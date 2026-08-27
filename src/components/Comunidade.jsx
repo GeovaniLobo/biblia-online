@@ -216,18 +216,38 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
           <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">Membros & Amizades 👥</h4>
           <div className="space-y-2 max-h-72 overflow-y-auto">
-            {perfisReais.filter(p => p.username !== usuarioLogado.username).map((perfil) => (
-              <div key={perfil.username} className={`flex items-center justify-between text-xs p-2.5 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => setPerfilSelecionado(perfil)}>
-                  <img src={perfil.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-7 h-7 rounded-full object-cover" />
-                  <div>
-                    <span className="font-bold hover:text-blue-500 truncate block max-w-[90px]">{perfil.nome}</span>
-                    <span className="text-[9px] opacity-50">@{perfil.username}</span>
+            {perfisReais.filter(p => p.username !== usuarioLogado.username).map((perfil) => {
+              const ehAmigo = perfilAtualNoBanco.amigos?.includes(perfil.username);
+              const envieiPedido = perfilAtualNoBanco.pedidos_enviados?.includes(perfil.username);
+              const recebiPedido = perfilAtualNoBanco.pedidos_recebidos?.includes(perfil.username);
+
+              return (
+                <div key={perfil.username} className={`flex items-center justify-between text-xs p-2.5 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => setPerfilSelecionado(perfil)}>
+                    <img src={perfil.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-7 h-7 rounded-full object-cover" />
+                    <div>
+                      <span className="font-bold hover:text-blue-500 truncate block max-w-[90px]">{perfil.nome}</span>
+                      <span className="text-[9px] opacity-50">@{perfil.username}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {ehAmigo ? (
+                      <button onClick={() => setChatComUsuario(perfil.username)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-2 py-1 rounded-lg font-bold">💬 Chat</button>
+                    ) : envieiPedido ? (
+                      <span className="text-[10px] text-amber-500 italic font-semibold">Pendente</span>
+                    ) : recebiPedido ? (
+                      <div className="flex gap-1">
+                        <button onClick={async () => { await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, perfil.username); setPerfisReais(await BancoDeDados.getPerfisCadastrados()); }} className="bg-emerald-500 text-white px-2 py-1 rounded text-[10px] font-bold">Aceitar</button>
+                        <button onClick={async () => { await BancoDeDados.rejeitarPedidoAmizade(usuarioLogado.username, perfil.username); setPerfisReais(await BancoDeDados.getPerfisCadastrados()); }} className="bg-red-500 text-white px-2 py-1 rounded text-[10px]">X</button>
+                      </div>
+                    ) : (
+                      <button onClick={async () => { await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, perfil.username); setPerfisReais(await BancoDeDados.getPerfisCadastrados()); }} className="bg-blue-600 text-white px-2.5 py-1 rounded-lg font-bold">+ Adicionar</button>
+                    )}
                   </div>
                 </div>
-                <button onClick={() => setChatComUsuario(perfil.username)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-2 py-1 rounded-lg font-bold">💬 Chat</button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

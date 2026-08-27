@@ -126,7 +126,99 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
-  // Métodos de Chat em Tempo Real via Supabase
+  // Gerenciamento de Amizades via Supabase
+  enviarPedidoAmizade: async (usernameRemetente, usernameDestinatario) => {
+    try {
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      const remetente = perfis.find(p => p.username === usernameRemetente);
+      const destinatario = perfis.find(p => p.username === usernameDestinatario);
+
+      if (!remetente || !destinatario) return;
+
+      const enviados = remetente.pedidos_enviados || [];
+      const recebidos = destinatario.pedidos_recebidos || [];
+
+      if (!enviados.includes(usernameDestinatario)) {
+        enviados.push(usernameDestinatario);
+        recebidos.push(usernameRemetente);
+
+        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ pedidos_enviados: enviados })
+        });
+
+        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameDestinatario}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ pedidos_recebidos: recebidos })
+        });
+      }
+    } catch (e) {
+      console.error('Erro ao enviar pedido:', e);
+    }
+  },
+
+  aceitarPedidoAmizade: async (usernameMeu, usernameAmigo) => {
+    try {
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      const eu = perfis.find(p => p.username === usernameMeu);
+      const outro = perfis.find(p => p.username === usernameAmigo);
+
+      if (!eu || !outro) return;
+
+      const meusPedidos = (eu.pedidos_recebidos || []).filter(u => u !== usernameAmigo);
+      const meusAmigos = eu.amigos || [];
+      if (!meusAmigos.includes(usernameAmigo)) meusAmigos.push(usernameAmigo);
+
+      const outrosPedidos = (outro.pedidos_enviados || []).filter(u => u !== usernameMeu);
+      const outrosAmigos = outro.amigos || [];
+      if (!outrosAmigos.includes(usernameMeu)) outrosAmigos.push(usernameMeu);
+
+      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameMeu}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ pedidos_recebidos: meusPedidos, amigos: meusAmigos })
+      });
+
+      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameAmigo}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ pedidos_enviados: outrosPedidos, amigos: outrosAmigos })
+      });
+    } catch (e) {
+      console.error('Erro ao aceitar pedido:', e);
+    }
+  },
+
+  rejeitarPedidoAmizade: async (usernameMeu, usernameAmigo) => {
+    try {
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      const eu = perfis.find(p => p.username === usernameMeu);
+      const outro = perfis.find(p => p.username === usernameAmigo);
+
+      if (!eu || !outro) return;
+
+      const meusPedidos = (eu.pedidos_recebidos || []).filter(u => u !== usernameAmigo);
+      const outrosPedidos = (outro.pedidos_enviados || []).filter(u => u !== usernameMeu);
+
+      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameMeu}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ pedidos_recebidos: meusPedidos })
+      });
+
+      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameAmigo}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ pedidos_enviados: outrosPedidos })
+      });
+    } catch (e) {
+      console.error('Erro ao rejeitar pedido:', e);
+    }
+  },
+
+  // Mensagens de Chat em Tempo Real
   getMensagensChat: async (usuarioA, usuarioB) => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat?select=*&or=(and(remetente.eq.${usuarioA},destinatario.eq.${usuarioB}),and(remetente.eq.${usuarioB},destinatario.eq.${usuarioA}))&order=id.asc`, {
@@ -191,9 +283,5 @@ export const BancoDeDados = {
     const atuais = BancoDeDados.getNotificacoes(username);
     const lidas = atuais.map(n => ({ ...n, lida: true }));
     localStorage.setItem(`supa_notif_${username}`, JSON.stringify(lidas));
-  },
-
-  enviarPedidoAmizade: async () => {},
-  aceitarPedidoAmizade: async () => {},
-  rejeitarPedidoAmizade: async () => {}
+  }
 };
