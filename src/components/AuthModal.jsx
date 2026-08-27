@@ -7,13 +7,16 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
   const [nome, setNome] = useState('');
   const [senha, setSenha] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
-  const [foto, setFoto] = useState('');
+  
+  // Foto padrão de avatar anônimo pré-selecionada
+  const avatarPadrao = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
+  const [foto, setFoto] = useState(avatarPadrao);
+  
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
 
   if (!isOpen) return null;
 
-  // Função para converter e comprimir a foto escolhida do dispositivo
   const handleFileChange = (e) => {
     const arquivo = e.target.files[0];
     if (!arquivo) return;
@@ -62,7 +65,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
       const perfis = await BancoDeDados.getPerfisCadastrados();
 
       if (isLogin) {
-        // Fluxo de Login
         const usuarioEncontrado = perfis.find(p => p.username === username.trim().toLowerCase());
         
         if (!usuarioEncontrado) {
@@ -80,7 +82,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
         BancoDeDados.fazerLogin(usuarioEncontrado);
         onLoginSucesso(usuarioEncontrado);
       } else {
-        // Fluxo de Cadastro
         const usernameLimpo = username.trim().toLowerCase();
         if (!usernameLimpo || !nome.trim() || !senha.trim()) {
           setErro('Preencha todos os campos obrigatórios.');
@@ -100,7 +101,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
           nome: nome.trim(),
           senha: senha.trim(),
           data_nascimento: dataNascimento || '',
-          foto: foto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
+          foto: foto || avatarPadrao,
           biografia: 'Praticando a fé e o amor ao próximo.',
           amigos: [],
           pedidos_enviados: [],
@@ -123,7 +124,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fadeIn overflow-y-auto">
       <div className={`relative w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl border my-auto ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         
-        {/* Botão Fechar */}
         <button
           onClick={onClose}
           className="absolute top-5 right-5 text-slate-400 hover:text-slate-200 p-1 rounded-full transition"
@@ -131,13 +131,11 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
           ✕
         </button>
 
-        {/* Cabeçalho */}
         <div className="text-center mb-6">
           <h2 className="text-xl font-bold tracking-tight">Bíblia Online 📖</h2>
           <p className="text-xs text-slate-400 mt-1">Comunidade Global de Fé e Conexões</p>
         </div>
 
-        {/* Abas Alternar Login / Cadastro */}
         <div className={`grid grid-cols-2 p-1 rounded-2xl mb-6 ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
           <button
             type="button"
@@ -161,14 +159,13 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
           </div>
         )}
 
-        {/* Formulário */}
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
           {!isLogin && (
             <>
-              {/* Upload de Foto no Cadastro */}
+              {/* Avatar Anônimo Pré-selecionado com Preview */}
               <div className="flex flex-col items-center gap-2 pb-2">
                 <img 
-                  src={foto || 'https://via.placeholder.com/150'} 
+                  src={foto} 
                   alt="Preview" 
                   className="w-20 h-20 rounded-full object-cover border-2 border-blue-500 shadow-md" 
                 />
