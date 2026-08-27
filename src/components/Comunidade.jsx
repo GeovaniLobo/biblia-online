@@ -234,7 +234,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             </button>
 
             {mostrarNotificacoes && (
-              <div className={`absolute left-0 right-0 mt-2 p-3 rounded-2xl border shadow-2xl z-35 max-h-60 overflow-y-auto space-y-2 text-left ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+              <div className={`absolute top-full left-0 right-0 mt-2 p-3 rounded-2xl border shadow-2xl z-50 max-h-60 overflow-y-auto space-y-2 text-left ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                 <h4 className="text-xs font-bold opacity-60 border-b pb-1">Suas Notificações</h4>
                 {notificacoes.length === 0 ? (
                   <p className="text-xs opacity-50 text-center py-4">Nenhuma notificação por enquanto.</p>
