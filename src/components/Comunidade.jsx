@@ -4,10 +4,10 @@ import PerfilPublico from './PerfilPublico';
 import ChatPrivado from './ChatPrivado';
 
 export default function Comunidade({ usuarioLogado, darkMode }) {
-  const [publicacoes, setPublicacoes] = useState(BancoDeDados.getPublicacoes());
-  const [stories, setStories] = useState(BancoDeDados.getStories());
-  const [perfisReais, setPerfisReais] = useState(BancoDeDados.getPerfisCadastrados());
-  const [notificacoes, setNotificacoes] = useState(BancoDeDados.getNotificacoes(usuarioLogado.username));
+  const [publicacoes, setPublicacoes] = useState([]);
+  const [stories, setStories] = useState([]);
+  const [perfisReais, setPerfisReais] = useState([]);
+  const [notificacoes, setNotificacoes] = useState([]);
   
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
   const [chatComUsuario, setChatComUsuario] = useState(null);
@@ -18,7 +18,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [pubImagem, setPubImagem] = useState('');
   const [pubTema, setPubTema] = useState('');
 
-  // Estados de Edição
   const [postEditandoId, setPostEditandoId] = useState(null);
   const [textoEditado, setTextoEditado] = useState('');
   const [temaEditado, setTemaEditado] = useState('');
@@ -31,34 +30,26 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [indiceStoryAtual, setIndiceStoryAtual] = useState(0);
 
   useEffect(() => {
-    BancoDeDados.salvarNovoPerfilNaRede({
-      id: usuarioLogado.id || `user_${Date.now()}`,
-      username: usuarioLogado.username,
-      senha: usuarioLogado.senha,
-      nome: usuarioLogado.nome,
-      biografia: usuarioLogado.biografia,
-      foto: usuarioLogado.foto,
-      dataNascimento: usuarioLogado.dataNascimento
-    });
-    setPerfisReais(BancoDeDados.getPerfisCadastrados());
+    async function carregarDadosIniciais() {
+      await BancoDeDados.salvarNovoPerfilNaRede({
+        username: usuarioLogado.username,
+        senha: usuarioLogado.senha,
+        nome: usuarioLogado.nome,
+        biografia: usuarioLogado.biografia || '',
+        foto: usuarioLogado.foto || '',
+        data_nascimento: usuarioLogado.dataNascimento || ''
+      });
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      const pubs = await BancoDeDados.getPublicacoes();
+      setPerfisReais(perfis);
+      setPublicacoes(pubs);
+      setStories(BancoDeDados.getStories());
+      setNotificacoes(BancoDeDados.getNotificacoes(usuarioLogado.username));
+    }
+    carregarDadosIniciais();
   }, [usuarioLogado]);
 
-  const perfilAtualNoBanco = perfisReais.find(p => p.username === usuarioLogado.username) || { amigos: [], pedidosEnviados: [], pedidosRecebidos: [] };
-
-  const enviarPedido = (usernameAlvo) => {
-    BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, usernameAlvo);
-    setPerfisReais(BancoDeDados.getPerfisCadastrados());
-  };
-
-  const aceitarPedido = (usernameAmigo) => {
-    BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, usernameAmigo);
-    setPerfisReais(BancoDeDados.getPerfisCadastrados());
-  };
-
-  const rejeitarPedido = (usernameAmigo) => {
-    BancoDeDados.rejeitarPedidoAmizade(usuarioLogado.username, usernameAmigo);
-    setPerfisReais(BancoDeDados.getPerfisCadastrados());
-  };
+  const perfilAtualNoBanco = perfisReais.find(p => p.username === usuarioLogado.username) || { amigos: [], pedidos_enviados: [], pedidos_recebidos: [] };
 
   const abrirNotificacoes = () => {
     setMostrarNotificacoes(!mostrarNotificacoes);
@@ -82,12 +73,12 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
     setAutorStoryAtivo(grupo);
     setIndiceStoryAtual(0);
     grupo.itens.forEach(item => {
-      BancoDeDados.registrarVisualizacaoStory(item.id, usuarioLogado.username, grupo.username || grupo.autor);
+      BancoDeDados.registrarVisualizacaoStory(item.id, usuarioLogado.username);
     });
     setStories(BancoDeDados.getStories());
   };
 
-  const publicarPost = (e) => {
+  const publicarPost = async (e) => {
     e.preventDefault();
     if (!pubTexto.trim() && !pubImagem) return;
     const novoPost = {
@@ -101,22 +92,22 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       curtidas: 0,
       comentarios: []
     };
-    const atualizados = BancoDeDados.salvarPublicacao(novoPost);
+    const atualizados = await BancoDeDados.salvarPublicacao(novoPost);
     setPublicacoes([...atualizados]);
     setPubTexto('');
     setPubImagem('');
     setPubTema('');
   };
 
-  const excluirPost = (id) => {
+  const excluirPost = async (id) => {
     if (window.confirm('Deseja realmente excluir esta publicação?')) {
-      const atualizados = BancoDeDados.excluirPublicacao(id);
+      const atualizados = await BancoDeDados.excluirPublicacao(id);
       setPublicacoes([...atualizados]);
     }
   };
 
-  const salvarEdicaoPost = (id) => {
-    const atualizados = BancoDeDados.atualizarPublicacao(id, textoEditado, temaEditado);
+  const salvarEdicaoPost = async (id) => {
+    const atualizados = await BancoDeDados.atualizarPublicacao(id, textoEditado, temaEditado);
     setPublicacoes([...atualizados]);
     setPostEditandoId(null);
   };
@@ -131,8 +122,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       avatar: usuarioLogado.foto,
       texto: storyTexto.trim(),
       imagem: storyImagem,
-      duracao: '24h',
-      tempo: 'Agora mesmo',
       visualizadores: []
     };
     const atualizados = BancoDeDados.salvarStory(story);
@@ -142,20 +131,20 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
     setModalStoryAberto(false);
   };
 
-  const curtir = (id, usernameAutorPost) => {
-    const atualizados = BancoDeDados.curtirPublicacao(id, usernameAutorPost);
+  const curtir = async (id, usernameAutorPost) => {
+    const atualizados = await BancoDeDados.curtirPublicacao(id, usernameAutorPost);
     setPublicacoes([...atualizados]);
     if (usuarioLogado.username !== usernameAutorPost) {
       BancoDeDados.adicionarNotificacao(usernameAutorPost, `@${usuarioLogado.username} curtiu sua publicação.`, 'curtida');
     }
   };
 
-  const comentar = (id, usernameAutorPost, e) => {
+  const comentar = async (id, usernameAutorPost, e) => {
     e.preventDefault();
     const texto = novoComentario[id];
     if (!texto || !texto.trim()) return;
     const comentarioObj = { autor: usuarioLogado.nome, username: usuarioLogado.username, texto: texto.trim() };
-    const atualizados = BancoDeDados.adicionarComentarioPub(id, comentarioObj, usernameAutorPost);
+    const atualizados = await BancoDeDados.adicionarComentarioPub(id, comentarioObj, usernameAutorPost);
     setPublicacoes([...atualizados]);
     setNovoComentario({ ...novoComentario, [id]: '' });
     if (usuarioLogado.username !== usernameAutorPost) {
@@ -187,8 +176,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-      
-      {/* COLUNA ESQUERDA: PERFIL E MEMBROS */}
       <div className="space-y-6">
         <div className={`p-6 rounded-2xl border text-center space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
           <img src={usuarioLogado.foto} alt="Perfil" className="w-20 h-20 rounded-full object-cover mx-auto border-2 border-blue-500 shadow-md" />
@@ -228,47 +215,24 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
         <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
           <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">Membros & Amizades 👥</h4>
-          
           <div className="space-y-2 max-h-72 overflow-y-auto">
-            {perfisReais.filter(p => p.username !== usuarioLogado.username).map((perfil) => {
-              const ehAmigo = perfilAtualNoBanco.amigos?.includes(perfil.username);
-              const envieiPedido = perfilAtualNoBanco.pedidosEnviados?.includes(perfil.username);
-              const recebiPedido = perfilAtualNoBanco.pedidosRecebidos?.includes(perfil.username);
-
-              return (
-                <div key={perfil.id || perfil.username} className={`flex items-center justify-between text-xs p-2.5 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
-                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => setPerfilSelecionado(perfil)}>
-                    <img src={perfil.foto} alt="Avatar" className="w-7 h-7 rounded-full object-cover" />
-                    <div>
-                      <span className="font-bold hover:text-blue-500 truncate block max-w-[90px]">{perfil.nome}</span>
-                      <span className="text-[9px] opacity-50">@{perfil.username}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    {ehAmigo ? (
-                      <button onClick={() => setChatComUsuario(perfil.username)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-2 py-1 rounded-lg font-bold">💬 Chat</button>
-                    ) : envieiPedido ? (
-                      <span className="text-[10px] text-amber-500 italic">Enviado</span>
-                    ) : recebiPedido ? (
-                      <div className="flex gap-1">
-                        <button onClick={() => aceitarPedido(perfil.username)} className="bg-emerald-500 text-white px-2 py-1 rounded text-[10px] font-bold">Aceitar</button>
-                        <button onClick={() => rejeitarPedido(perfil.username)} className="bg-red-500 text-white px-2 py-1 rounded text-[10px]">X</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => enviarPedido(perfil.username)} className="bg-blue-600 text-white px-2 py-1 rounded-lg font-bold">+ Adicionar</button>
-                    )}
+            {perfisReais.filter(p => p.username !== usuarioLogado.username).map((perfil) => (
+              <div key={perfil.username} className={`flex items-center justify-between text-xs p-2.5 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => setPerfilSelecionado(perfil)}>
+                  <img src={perfil.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-7 h-7 rounded-full object-cover" />
+                  <div>
+                    <span className="font-bold hover:text-blue-500 truncate block max-w-[90px]">{perfil.nome}</span>
+                    <span className="text-[9px] opacity-50">@{perfil.username}</span>
                   </div>
                 </div>
-              );
-            })}
+                <button onClick={() => setChatComUsuario(perfil.username)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-2 py-1 rounded-lg font-bold">💬 Chat</button>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* FEED E STORIES */}
       <div className="md:col-span-2 space-y-6">
-        
         <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
           <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Criar Publicação 📝</h3>
           <form onSubmit={publicarPost} className="space-y-3">
@@ -322,36 +286,16 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
                   {souDono && !estaEditando && (
                     <div className="flex gap-2">
-                      <button 
-                        onClick={() => { setPostEditandoId(post.id); setTextoEditado(post.texto); setTemaEditado(post.tema); }}
-                        className="text-xs text-blue-400 hover:underline font-semibold"
-                      >
-                        ✏️ Editar
-                      </button>
-                      <button 
-                        onClick={() => excluirPost(post.id)}
-                        className="text-xs text-red-400 hover:underline font-semibold"
-                      >
-                        🗑️ Excluir
-                      </button>
+                      <button onClick={() => { setPostEditandoId(post.id); setTextoEditado(post.texto); setTemaEditado(post.tema); }} className="text-xs text-blue-400 hover:underline font-semibold">✏️ Editar</button>
+                      <button onClick={() => excluirPost(post.id)} className="text-xs text-red-400 hover:underline font-semibold">🗑️ Excluir</button>
                     </div>
                   )}
                 </div>
 
                 {estaEditando ? (
                   <div className="space-y-3 pt-2">
-                    <input 
-                      type="text" 
-                      value={temaEditado} 
-                      onChange={(e) => setTemaEditado(e.target.value)} 
-                      className={`w-full text-sm rounded-xl px-3 py-2 border font-bold ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} 
-                    />
-                    <textarea 
-                      rows="3" 
-                      value={textoEditado} 
-                      onChange={(e) => setTextoEditado(e.target.value)} 
-                      className={`w-full text-sm rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
-                    ></textarea>
+                    <input type="text" value={temaEditado} onChange={(e) => setTemaEditado(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border font-bold ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
+                    <textarea rows="3" value={textoEditado} onChange={(e) => setTextoEditado(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
                     <div className="flex justify-end gap-2">
                       <button onClick={() => setPostEditandoId(null)} className="px-3 py-1.5 rounded-xl text-xs opacity-70">Cancelar</button>
                       <button onClick={() => salvarEdicaoPost(post.id)} className="bg-blue-600 text-white px-4 py-1.5 rounded-xl text-xs font-bold">Salvar</button>
@@ -366,7 +310,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                 )}
 
                 <div className="flex gap-4 pt-2 border-t border-slate-700/50">
-                  <button onClick={() => curtir(post.id, post.username)} className="text-xs font-bold text-red-400">❤️ {post.curtidas} Curtidas</button>
+                  <button onClick={() => curtir(post.id, post.username)} className="text-xs font-bold text-red-400">❤️ {post.curtidas || 0} Curtidas</button>
                 </div>
                 
                 <form onSubmit={(e) => comentar(post.id, post.username, e)} className="flex gap-2">
@@ -377,7 +321,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             );
           })}
         </div>
-
       </div>
 
       {modalStoryAberto && (
@@ -404,13 +347,12 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
               <p className="text-xl">"{autorStoryAtivo.itens[indiceStoryAtual].texto}"</p>
             </div>
             <div className="bg-black/80 p-3 rounded-xl text-center text-xs">
-              <p className="font-bold mb-1">👁️ Visto por ({autorStoryAtivo.itens[indiceStoryAtual].visualizadores.length}):</p>
-              {autorStoryAtivo.itens[indiceStoryAtual].visualizadores.join(', ') || 'Ninguém ainda'}
+              <p className="font-bold mb-1">👁️ Visto por ({autorStoryAtivo.itens[indiceStoryAtual].visualizadores?.length || 0}):</p>
+              {autorStoryAtivo.itens[indiceStoryAtual].visualizadores?.join(', ') || 'Ninguém ainda'}
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
