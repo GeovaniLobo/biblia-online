@@ -8,6 +8,22 @@ export default function EditarPerfil({ usuarioLogado, onSalvo, onVoltar, darkMod
   const [senha, setSenha] = useState(usuarioLogado.senha || '');
   const [carregando, setCarregando] = useState(false);
 
+  // Função para converter a imagem enviada do dispositivo em Base64
+  const handleFileChange = (e) => {
+    const arquivo = e.target.files[0];
+    if (arquivo) {
+      if (arquivo.size > 2 * 1024 * 1024) {
+        alert('A imagem é muito grande! Escolha uma imagem com menos de 2MB.');
+        return;
+      }
+      const leitor = new FileReader();
+      leitor.onloadend = () => {
+        setFoto(leitor.result);
+      };
+      leitor.readAsDataURL(arquivo);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setCarregando(true);
@@ -44,9 +60,15 @@ export default function EditarPerfil({ usuarioLogado, onSalvo, onVoltar, darkMod
 
       <form onSubmit={handleSubmit} className={`p-8 rounded-3xl border shadow-lg space-y-5 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         
+        {/* Foto e Botão de Upload do Dispositivo */}
         <div className="flex flex-col items-center gap-3">
           <img src={foto || 'https://via.placeholder.com/150'} alt="Avatar Preview" className="w-24 h-24 rounded-full object-cover border-2 border-blue-500 shadow-md" />
           <p className="text-xs opacity-60">@{usuarioLogado.username} (não pode ser alterado)</p>
+          
+          <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-md">
+            📁 Escolher Foto do Dispositivo
+            <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+          </label>
         </div>
 
         <div>
@@ -56,17 +78,6 @@ export default function EditarPerfil({ usuarioLogado, onSalvo, onVoltar, darkMod
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             required
-            className={`w-full text-sm rounded-xl px-4 py-3 border focus:outline-none focus:ring-2 focus:ring-blue-500 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider mb-1 opacity-80">Link da Foto de Perfil (URL)</label>
-          <input
-            type="text"
-            value={foto}
-            onChange={(e) => setFoto(e.target.value)}
-            placeholder="https://exemplo.com/foto.jpg"
             className={`w-full text-sm rounded-xl px-4 py-3 border focus:outline-none focus:ring-2 focus:ring-blue-500 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
           />
         </div>
@@ -84,7 +95,7 @@ export default function EditarPerfil({ usuarioLogado, onSalvo, onVoltar, darkMod
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider mb-1 opacity-80">Senha</label>
           <input
-            type="text"
+            type="password"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
             required
