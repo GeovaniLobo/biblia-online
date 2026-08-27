@@ -50,9 +50,11 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       const pubs = await BancoDeDados.getPublicacoes();
       const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
       const perfis = await BancoDeDados.getPerfisCadastrados();
+      const pedidos = BancoDeDados.getPedidosOracao();
       setPublicacoes(pubs);
       setNotificacoes(notifs);
       setPerfisReais(perfis);
+      setPedidosOracao(pedidos);
     }, 4000);
 
     return () => clearInterval(intervalo);
@@ -138,7 +140,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       apoios: 0
     };
     const atualizados = BancoDeDados.salvarPedidoOracao(pedido);
-    setPedidosOracao(atualizados);
+    setPedidosOracao([...atualizados]);
     setNovoPedidoTexto('');
   };
 
@@ -327,23 +329,61 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           </form>
         </div>
 
+        {/* PEDIDOS DE ORAÇÃO GLOBAL & EXCLUSIVIDADE DO DONO */}
         <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-          <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Pedidos de Oração</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração</h3>
           <form onSubmit={criarPedidoOracao} className="flex gap-2">
-            <input type="text" placeholder="Compartilhe um pedido de oração..." value={novoPedidoTexto} onChange={(e) => setNovoPedidoTexto(e.target.value)} className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
-            <button type="submit" className="bg-blue-600 text-white text-xs px-4 py-2 rounded-xl font-bold">Pedir Oração</button>
+            <input 
+              type="text" 
+              placeholder="Compartilhe um pedido de oração..." 
+              value={novoPedidoTexto} 
+              onChange={(e) => setNovoPedidoTexto(e.target.value)} 
+              className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} 
+            />
+            <button type="submit" className="bg-blue-600 text-white text-xs px-4 py-2 rounded-xl font-bold transition hover:bg-blue-700">Pedir Oração</button>
           </form>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {pedidosOracao.map(p => (
-              <div key={p.id} className={`p-3 rounded-xl border flex items-center justify-between text-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                <div>
-                  <p className="font-bold">@{p.username}: {p.texto}</p>
-                </div>
-                <button onClick={() => setPedidosOracao(BancoDeDados.apoiarPedidoOracao(p.id))} className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1 rounded-lg font-bold transition">
-                  Apoiar ({p.apoios || 0})
-                </button>
-              </div>
-            ))}
+
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {pedidosOracao.length === 0 ? (
+              <p className="text-[11px] opacity-50 text-center py-4">Nenhum pedido de oração no momento. Seja o primeiro a compartilhar!</p>
+            ) : (
+              pedidosOracao.map(p => {
+                const souDonoDoPedido = p.username === usuarioLogado.username;
+
+                return (
+                  <div key={p.id} className={`p-3 rounded-xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-bold text-blue-500 mr-1">@{p.username}:</span>
+                      <span className="break-words">{p.texto}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button 
+                        onClick={() => setPedidosOracao(BancoDeDados.apoiarPedidoOracao(p.id))} 
+                        className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg font-bold transition"
+                      >
+                        ❤️ Apoiar ({p.apoios || 0})
+                      </button>
+
+                      {souDonoDoPedido && (
+                        <button 
+                          onClick={() => {
+                            if (window.confirm('Deseja excluir este pedido de oração?')) {
+                              const atualizados = BancoDeDados.excluirPedidoOracao(p.id);
+                              setPedidosOracao([...atualizados]);
+                            }
+                          }} 
+                          className="text-slate-400 hover:text-red-500 p-1 font-bold transition"
+                          title="Excluir pedido"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -382,7 +422,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             const souDono = post.username === usuarioLogado.username;
             const estaEditando = postEditandoId === post.id;
 
-            // Busca o perfil atualizado do autor no banco para garantir que a foto e o nome acompanhem o perfil real
             const perfilAutorReal = perfisReais.find(p => p.username === post.username) || {};
             const avatarAtualizado = perfilAutorReal.foto || post.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
             const nomeAtualizado = perfilAutorReal.nome || post.autor;
@@ -411,7 +450,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                     <input type="text" value={temaEditado} onChange={(e) => setTemaEditado(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border font-bold ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
                     <textarea rows="3" value={textoEditado} onChange={(e) => setTextoEditado(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => setPostEditandoId(null)} className="px-3 py-1.5 rounded-xl text-xs opacity-70">Cancelar`,</button>
+                      <button onClick={() => setPostEditandoId(null)} className="px-3 py-1.5 rounded-xl text-xs opacity-70">Cancelar</button>
                       <button onClick={() => salvarEdicaoPost(post.id)} className="bg-blue-600 text-white px-4 py-1.5 rounded-xl text-xs font-bold">Salvar</button>
                     </div>
                   </div>

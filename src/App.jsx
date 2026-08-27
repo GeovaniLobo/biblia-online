@@ -548,28 +548,24 @@ export default function App() {
                   return (
                     <div 
                       key={index} 
-                      className={`group flex flex-col sm:flex-row sm:items-start justify-between gap-2 py-2 px-3 rounded-lg transition border ${
+                      onClick={() => toggleSelecaoVersiculo(numeroV, textoVersiculo)}
+                      className={`group flex flex-col sm:flex-row sm:items-start justify-between gap-2 py-2.5 px-3 rounded-xl transition border cursor-pointer select-none ${
                         isSelecionado 
-                          ? 'bg-blue-600/15 border-blue-500/50' 
+                          ? 'bg-blue-600/20 border-blue-500/60 shadow-sm' 
                           : corDestaqueAtual 
                           ? `${corDestaqueAtual} border-opacity-40` 
                           : 'border-transparent hover:bg-blue-500/5'
                       }`}
+                      title="Clique para selecionar o versículo"
                     >
-                      <div className="flex items-start gap-2.5 flex-1">
-                        <input
-                          type="checkbox"
-                          checked={isSelecionado}
-                          onChange={() => toggleSelecaoVersiculo(numeroV, textoVersiculo)}
-                          className="mt-1.5 h-4 w-4 rounded border-slate-400 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0"
-                        />
-                        <p className="flex-1">
-                          <span className="text-xs font-bold text-blue-500 mr-2 align-super">{numeroV}</span>
+                      <div className="flex items-start gap-3 flex-1">
+                        <p className="flex-1 leading-relaxed">
+                          <span className="text-xs font-extrabold text-blue-500 mr-2.5 align-super bg-blue-500/10 px-1.5 py-0.5 rounded-md">{numeroV}</span>
                           {textoVersiculo}
                         </p>
                       </div>
 
-                      <div className="flex items-center justify-end gap-2 pt-2 sm:pt-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition">
+                      <div className="flex items-center justify-end gap-2 pt-2 sm:pt-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-1.5 bg-slate-800/80 p-1 rounded-lg">
                           <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-amber-400/15 text-amber-200 border-amber-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-amber-400" title="Amarelo"></button>
                           <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-emerald-500/15 text-emerald-200 border-emerald-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-emerald-500" title="Verde"></button>
@@ -579,7 +575,8 @@ export default function App() {
 
                         <button
                           onClick={() => toggleFavorito(livroAtualObj.name, capituloAtual, numeroV, textoVersiculo)}
-                          className={`text-sm px-1.5 py-0.5 rounded ${isFavorito ? 'text-red-500' : 'text-slate-400'}`}
+                          className={`text-sm px-1.5 py-0.5 rounded ${isFavorito ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
+                          title="Favoritar"
                         >
                           {isFavorito ? '❤️' : '🤍'}
                         </button>
