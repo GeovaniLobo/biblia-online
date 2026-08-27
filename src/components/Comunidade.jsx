@@ -15,10 +15,9 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [chatComUsuario, setChatComUsuario] = useState(null);
   const [mostrarNotificacoes, setMostrarNotificacoes] = useState(false);
 
-  // Estados dos Stories
   const [storyAberto, setStoryAberto] = useState(null);
   const [menuPerfilAberto, setMenuPerfilAberto] = useState(false);
-  const [modalCriarStoryTexto, setModalCriarStoryTexto] = useState(false); // Modal para o Story de Texto
+  const [modalCriarStoryTexto, setModalCriarStoryTexto] = useState(false);
   const [textoStoryDireto, setTextoStoryDireto] = useState('');
   
   const [compartilhandoPubNoStory, setCompartilhandoPubNoStory] = useState(null);
@@ -82,7 +81,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         setPedidosOracao(pedidos || []);
         setStories(st || []);
       } catch (e) {}
-    }, 4000);
+    }, 3000);
 
     return () => clearInterval(intervalo);
   }, [usuarioLogado]);
@@ -107,9 +106,9 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         comentarios: []
       };
       const atualizados = await BancoDeDados.salvarStory(novoStory);
-      setStories(atualizados || []);
+      setStories([...atualizados]);
       setMenuPerfilAberto(false);
-      alert('Story publicado com sucesso! 🚀');
+      alert('Story publicado com sucesso!');
     };
     reader.readAsDataURL(file);
   };
@@ -129,11 +128,11 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       comentarios: []
     };
     const atualizados = await BancoDeDados.salvarStory(novoStory);
-    setStories(atualizados || []);
+    setStories([...atualizados]);
     setTextoStoryDireto('');
     setModalCriarStoryTexto(false);
     setMenuPerfilAberto(false);
-    alert('Story em texto publicado com sucesso! 📝');
+    alert('Story em texto publicado com sucesso!');
   };
 
   const compartilharPubComoStory = async (post, tipoMidia = 'texto', arquivoMidia = '') => {
@@ -150,9 +149,9 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       comentarios: []
     };
     const atualizados = await BancoDeDados.salvarStory(novoStory);
-    setStories(atualizados || []);
+    setStories([...atualizados]);
     setCompartilhandoPubNoStory(null);
-    alert('Publicação compartilhada no Story com sucesso! ✨');
+    alert('Publicação compartilhada no Story com sucesso!');
   };
 
   const reagirStory = async (storyId, tipoReacao) => {
@@ -171,7 +170,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         body: JSON.stringify({ reacoes })
       });
       const novaLista = await BancoDeDados.getStories();
-      setStories(novaLista);
+      setStories([...novaLista]);
       setStoryAberto(novaLista.find(s => s.id === storyId));
     }
   };
@@ -192,7 +191,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       });
       setNovoComentarioStory('');
       const novaLista = await BancoDeDados.getStories();
-      setStories(novaLista);
+      setStories([...novaLista]);
       setStoryAberto(novaLista.find(s => s.id === storyId));
     }
   };
@@ -294,11 +293,9 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   return (
     <div className={`space-y-6 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6 relative ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
-      {/* INPUTS DE MÍDIA */}
       <input type="file" accept="image/*" capture="environment" ref={fileInputRef} onChange={(e) => handleSalvarStoryMidia(e, 'imagem')} className="hidden" />
       <input type="file" accept="image/*,video/*" ref={fileUploadStoryRef} onChange={(e) => handleSalvarStoryMidia(e, e.target.files[0]?.type.includes('video') ? 'video' : 'imagem')} className="hidden" />
 
-      {/* MODAL PARA CRIAR STORY DE TEXTO ESTILO WHATSAPP */}
       {modalCriarStoryTexto && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <form onSubmit={publicarStoryTextoDireto} className={`p-6 rounded-2xl max-w-md w-full space-y-4 border shadow-2xl ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -318,7 +315,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* MODAL DE COMPARTILHAR PUBLICAÇÃO NO STORY */}
       {compartilhandoPubNoStory && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className={`p-6 rounded-2xl max-w-md w-full space-y-4 border ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -340,7 +336,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* TELA CHEIA DO STORY COM REAÇÕES E COMENTÁRIOS */}
       {storyAberto && (
         <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
           <div className="relative max-w-md w-full h-[85vh] bg-slate-900 rounded-2xl overflow-hidden flex flex-col justify-between p-4 border border-slate-700 shadow-2xl">
@@ -395,7 +390,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* MENU AO CLICAR NA FOTO DE PERFIL */}
       {menuPerfilAberto && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className={`p-6 rounded-2xl max-w-xs w-full space-y-4 text-center shadow-2xl border ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -412,7 +406,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
               <button onClick={() => { setMenuPerfilAberto(false); fileUploadStoryRef.current.click(); }} className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-sm">
                 📁 Enviar Mídia da Galeria
               </button>
-              <button onClick={() => { setMenuPerfilAberto(false); setPerfilSelecionado({ username: usuarioLogado.username, nome: usuarioLogado.nome, biografia: usuarioLogado.biografia, foto: usuarioLogado.foto }); }} className={`w-full text-xs font-bold py-2.5 rounded-xl border transition ${darkMode ? 'bg-slate-850 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-800'}`}>
+              <button onClick={() => { setMenuPerfilAberto(false); setPerfilSelecionado({ username: usuarioLogado.username, nome: usuarioLogado.nome, biografia: usuarioLogado.biografia, foto: usuarioLogado.foto }); }} className={`w-full text-xs font-bold py-2.5 rounded-xl border transition ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-800'}`}>
                 👤 Entrar no Meu Perfil
               </button>
               <button onClick={() => setMenuPerfilAberto(false)} className="w-full text-xs text-red-400 font-semibold py-1.5">Cancelar</button>
@@ -421,13 +415,9 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* COLUNA ESQUERDA & CENTRO (FEED E STORIES) */}
       <div className="lg:col-span-2 space-y-6">
         
-        {/* CARROSSEL DE STORIES */}
         <div className={`p-4 rounded-2xl border flex items-center gap-4 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-          
-          {/* SEU STORY (EXIBE SEU CÍRCULO E ABRE O MENU AO CLICAR) */}
           <div className="flex flex-col items-center flex-shrink-0 cursor-pointer" onClick={() => setMenuPerfilAberto(true)}>
             <div className={`w-14 h-14 rounded-full p-0.5 flex items-center justify-center relative ${storiesPorUsuario[usuarioLogado.username]?.length > 0 ? 'border-2 border-purple-500 bg-purple-500/10' : 'border-2 border-blue-500 bg-blue-500/10'}`}>
               <img src={usuarioLogado.foto} className="w-full h-full rounded-full object-cover" />
@@ -436,17 +426,15 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             <span className="text-[10px] font-bold mt-1">Seu Story</span>
           </div>
 
-          {/* SEU PRÓPRIO STORY PUBLICADO NO CARROSSEL */}
           {storiesPorUsuario[usuarioLogado.username]?.map(st => (
             <div key={st.id} onClick={() => setStoryAberto(st)} className="flex flex-col items-center flex-shrink-0 cursor-pointer group">
-              <div className="w-14 h-14 rounded-full border-2 border-blue-500 p-0.5 flex items-center justify-center bg-blue-500/10 transition group-hover:scale-105">
+              <div className="w-14 h-14 rounded-full border-2 border-purple-500 p-0.5 flex items-center justify-center bg-purple-500/10 transition group-hover:scale-105">
                 <img src={st.midia || usuarioLogado.foto} className="w-full h-full rounded-full object-cover" />
               </div>
               <span className="text-[10px] font-bold mt-1">Meu Story</span>
             </div>
           ))}
 
-          {/* STORIES DOS OUTROS AMIGOS */}
           {Object.keys(storiesPorUsuario).map(username => {
             if (username === usuarioLogado.username) return null;
             const userStories = storiesPorUsuario[username];
@@ -463,7 +451,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           })}
         </div>
 
-        {/* CRIAR PUBLICAÇÃO */}
         <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
           <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Criar Publicação</h3>
           <form onSubmit={publicarPost} className="space-y-3">
@@ -480,7 +467,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           </form>
         </div>
 
-        {/* FEED */}
         <div className="space-y-6">
           <h3 className="text-md font-bold opacity-70">Feed da Comunidade</h3>
           {publicacoes.map((post) => {
@@ -558,7 +544,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         </div>
       </div>
 
-      {/* COLUNA DIREITA (CHAT) */}
       <div className="space-y-6">
         <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
           <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>

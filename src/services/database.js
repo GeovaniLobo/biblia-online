@@ -93,25 +93,32 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
+  // --- REAÇÕES DO FEED CORRIGIDAS E BLINDADAS ---
   reagirPublicacao: async (id, tipoReacao, usernameUsuario) => {
-    const pubs = await BancoDeDados.getPublicacoes();
-    const p = pubs.find(x => x.id === id);
-    if (p) {
-      let reacoes = p.reacoes || { amem: [], gloria: [], amor: [] };
-      if (!reacoes.amem) reacoes = { amem: [], gloria: [], amor: [] };
+    try {
+      const pubs = await BancoDeDados.getPublicacoes();
+      const p = pubs.find(x => x.id === id);
+      if (p) {
+        let reacoes = p.reacoes || { amem: [], gloria: [], amor: [] };
+        if (!reacoes.amem) reacoes = { amem: [], gloria: [], amor: [] };
 
-      Object.keys(reacoes).forEach(tipo => {
-        reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== usernameUsuario);
-      });
+        // Remove o usuário de todas as reações para alternar corretamente
+        Object.keys(reacoes).forEach(tipo => {
+          reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== usernameUsuario);
+        });
 
-      reacoes[tipoReacao].push(usernameUsuario);
-      const totalReacoes = (reacoes.amem.length + reacoes.gloria.length + reacoes.amor.length);
+        // Adiciona na nova reação escolhida
+        reacoes[tipoReacao].push(usernameUsuario);
+        const totalReacoes = (reacoes.amem.length + reacoes.gloria.length + reacoes.amor.length);
 
-      await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ reacoes, curtidas: totalReacoes })
-      });
+        await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ reacoes, curtidas: totalReacoes })
+        });
+      }
+    } catch (e) {
+      console.error("Erro ao reagir:", e);
     }
     return await BancoDeDados.getPublicacoes();
   },
@@ -232,32 +239,44 @@ export const BancoDeDados = {
     } catch (e) {}
   },
 
-  // --- STORIES ROBUSTOS ---
+  // --- STORIES COM SUPORTE TOTAL AO SUPABASE ---
   getStories: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/stories?select=*&order=id.desc`, { method: 'GET', headers });
       if (!response.ok) return [];
       const data = await response.json();
-      return data || [];
+      return (data || []).map(s => ({
+        ...s,
+        textoCompartilhado: s.textoCompartilhado || s.texto_compartilhado,
+        temaCompartilhado: s.temaCompartilhado || s.tema_compartilhado
+      }));
     } catch (err) { return []; }
   },
 
   salvarStory: async (story) => {
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
+      const payload = {
+        id: story.id,
+        autor: story.autor,
+        username: story.username,
+        avatar: story.avatar,
+        midia: story.midia || '',
+        tipo: story.tipo || 'imagem',
+        textoCompartilhado: story.textoCompartilhado || '',
+        temaCompartilhado: story.temaCompartilhado || '',
+        reacoes: story.reacoes || { amem: [], gloria: [], amor: [] },
+        comentarios: story.comentarios || []
+      };
+
+      await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(story)
+        body: JSON.stringify(payload)
       });
-      if (!response.ok) {
-        const errJson = await response.json();
-        console.error("Erro do Supabase ao salvar story:", errJson);
-      }
-      return await BancoDeDados.getStories();
     } catch (err) {
-      console.error("Erro na requisição do story:", err);
-      return await BancoDeDados.getStories();
+      console.error("Erro ao salvar story:", err);
     }
+    return await BancoDeDados.getStories();
   },
 
   getPedidosOracao: async () => {
