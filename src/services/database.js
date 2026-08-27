@@ -1,218 +1,389 @@
+const SUPABASE_URL = 'https://apodufxahgxlghmlzagq.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_vDRu0b_QIKsCCqt7ZgPwdg_G0QTJ8Eo';
+
+const headers = {
+  'apikey': SUPABASE_ANON_KEY,
+  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
+
 export const BancoDeDados = {
-  // --- PERFIS & AUTENTICAÇÃO ---
-  getPerfisCadastrados() {
-    const perfis = localStorage.getItem('perfis_cadastrados_biblia');
-    return perfis ? JSON.parse(perfis) : [];
+  getUsuarioLogado: () => {
+    const salvo = localStorage.getItem('usuario_logado_supa');
+    return salvo ? JSON.parse(salvo) : null;
   },
 
-  salvarNovoPerfilNaRede(novoPerfil) {
-    let perfis = this.getPerfisCadastrados();
-    const index = perfis.findIndex(p => p.username === novoPerfil.username);
-    if (index !== -1) {
-      // Atualiza mantendo dados existentes
-      perfis[index] = { ...perfis[index], ...novoPerfil };
-    } else {
-      perfis.push({
-        amigos: [],
-        pedidos_enviados: [],
-        pedidos_recebidos: [],
-        biografia: 'Praticando a fé e o amor ao próximo.',
-        ...novoPerfil
+  fazerLogin: (usuario) => {
+    localStorage.setItem('usuario_logado_supa', JSON.stringify(usuario));
+  },
+
+  fazerLogout: () => {
+    localStorage.removeItem('usuario_logado_supa');
+  },
+
+  getPerfisCadastrados: async () => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/perfis?select=*`, { method: 'GET', headers });
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data || [];
+    } catch (err) {
+      return [];
+    }
+  },
+
+  cadastrarPerfil: async (novoPerfil) => {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/perfis`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(novoPerfil)
+    });
+    if (!response.ok) throw new Error('Erro ao cadastrar perfil.');
+    return await response.json();
+  },
+
+  salvarNovoPerfilNaRede: async (perfil) => {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/perfis`, {
+        method: 'POST',
+        headers: { ...headers, 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify(perfil)
+      });
+    } catch (e) {}
+  },
+
+  atualizarPerfil: async (username, novosDados) => {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${username}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(novosDados)
+    });
+    if (!response.ok) throw new Error('Erro ao atualizar perfil.');
+    return await response.json();
+  },
+
+  getPublicacoes: async () => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?select=*&order=id.desc`, { method: 'GET', headers });
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (err) {
+      return [];
+    }
+  },
+
+  salvarPublicacao: async (pub) => {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(pub)
+    });
+    if (!response.ok) throw new Error('Erro ao salvar publicação.');
+    return await BancoDeDados.getPublicacoes();
+  },
+
+  excluirPublicacao: async (id) => {
+    await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, { method: 'DELETE', headers });
+    return await BancoDeDados.getPublicacoes();
+  },
+
+  atualizarPublicacao: async (id, texto, tema) => {
+    await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ texto, tema })
+    });
+    return await BancoDeDados.getPublicacoes();
+  },
+
+  curtirPublicacao: async (id) => {
+    const pubs = await BancoDeDados.getPublicacoes();
+    const p = pubs.find(x => x.id === id);
+    if (p) {
+      const novasCurtidas = (p.curtidas || 0) + 1;
+      await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ curtidas: novasCurtidas })
       });
     }
-    localStorage.setItem('perfis_cadastrados_biblia', JSON.stringify(perfis));
-    return perfis;
+    return await BancoDeDados.getPublicacoes();
   },
 
-  getUsuarioLogado() {
-    const usuario = localStorage.getItem('usuario_logado_biblia');
-    return usuario ? JSON.parse(usuario) : null;
-  },
-
-  fazerLogin(perfil) {
-    localStorage.setItem('usuario_logado_biblia', JSON.stringify(perfil));
-  },
-
-  fazerLogout() {
-    localStorage.removeItem('usuario_logado_biblia');
-  },
-
-  atualizarPerfilLogado(perfilAtualizado) {
-    localStorage.setItem('usuario_logado_biblia', JSON.stringify(perfilAtualizado));
-    this.salvarNovoPerfilNaRede(perfilAtualizado);
-  },
-
-  // --- PUBLICAÇÕES & FEED ---
-  getPublicacoes() {
-    const pubs = localStorage.getItem('publicacoes_biblia');
-    return pubs ? JSON.parse(pubs) : [];
-  },
-
-  salvarPublicacao(novaPub) {
-    let pubs = this.getPublicacoes();
-    pubs.unshift(novaPub);
-    localStorage.setItem('publicacoes_biblia', JSON.stringify(pubs));
-    return pubs;
-  },
-
-  excluirPublicacao(id) {
-    let pubs = this.getPublicacoes();
-    pubs = pubs.filter(p => p.id !== id);
-    localStorage.setItem('publicacoes_biblia', JSON.stringify(pubs));
-    return pubs;
-  },
-
-  atualizarPublicacao(id, novoTexto, novoTema) {
-    let pubs = this.getPublicacoes();
-    const pub = pubs.find(p => p.id === id);
-    if (pub) {
-      pub.texto = novoTexto;
-      pub.tema = novoTema;
-      localStorage.setItem('publicacoes_biblia', JSON.stringify(pubs));
-    }
-    return pubs;
-  },
-
-  curtirPublicacao(id, usernameAutor) {
-    let pubs = this.getPublicacoes();
-    const pub = pubs.find(p => p.id === id);
-    if (pub) {
-      pub.curtidas = (pub.curtidas || 0) + 1;
-      localStorage.setItem('publicacoes_biblia', JSON.stringify(pubs));
-    }
-    return pubs;
-  },
-
-  adicionarComentarioPub(id, comentarioObj, usernameAutor) {
-    let pubs = this.getPublicacoes();
-    const pub = pubs.find(p => p.id === id);
-    if (pub) {
-      if (!pub.comentarios) pub.comentarios = [];
-      pub.comentarios.push(comentarioObj);
-      localStorage.setItem('publicacoes_biblia', JSON.stringify(pubs));
-    }
-    return pubs;
-  },
-
-  // --- PEDIDOS DE ORAÇÃO ---
-  getPedidosOracao() {
-    const pedidos = localStorage.getItem('pedidos_oracao_biblia');
-    return pedidos ? JSON.parse(pedidos) : [];
-  },
-
-  salvarPedidoOracao(pedido) {
-    let pedidos = this.getPedidosOracao();
-    pedidos.unshift(pedido);
-    localStorage.setItem('pedidos_oracao_biblia', JSON.stringify(pedidos));
-    return pedidos;
-  },
-
-  apoiarPedidoOracao(id) {
-    let pedidos = this.getPedidosOracao();
-    const p = pedidos.find(item => item.id === id);
+  adicionarComentarioPub: async (id, comentario) => {
+    const pubs = await BancoDeDados.getPublicacoes();
+    const p = pubs.find(x => x.id === id);
     if (p) {
-      p.apoios = (p.apoios || 0) + 1;
-      localStorage.setItem('pedidos_oracao_biblia', JSON.stringify(pedidos));
+      const comentariosAtuais = p.comentarios || [];
+      const novosComentarios = [...comentariosAtuais, comentario];
+      await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ comentarios: novosComentarios })
+      });
     }
-    return pedidos;
+    return await BancoDeDados.getPublicacoes();
   },
 
-  excluirPedidoOracao(id) {
-    let pedidos = this.getPedidosOracao();
-    pedidos = pedidos.filter(p => p.id !== id);
-    localStorage.setItem('pedidos_oracao_biblia', JSON.stringify(pedidos));
-    return pedidos;
-  },
+  enviarPedidoAmizade: async (usernameRemetente, usernameDestinatario) => {
+    try {
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      const remetente = perfis.find(p => p.username === usernameRemetente);
+      const destinatario = perfis.find(p => p.username === usernameDestinatario);
 
-  // --- CHAT PRIVADO & MENSAGENS ---
-  getMensagensChat(user1, user2) {
-    const todas = JSON.parse(localStorage.getItem('mensagens_chat_biblia') || '[]');
-    return todas.filter(m => 
-      (m.remetente === user1 && m.destinatario === user2) || 
-      (m.remetente === user2 && m.destinatario === user1)
-    );
-  },
+      if (!remetente || !destinatario) return;
 
-  enviarMensagemChat(mensagem) {
-    let todas = JSON.parse(localStorage.getItem('mensagens_chat_biblia') || '[]');
-    todas.push(mensagem);
-    localStorage.setItem('mensagens_chat_biblia', JSON.stringify(todas));
-    
-    // Adiciona notificação para o destinatário
-    this.adicionarNotificacao(mensagem.destinatario, `@${mensagem.remetente} enviou uma nova mensagem.`, 'mensagem');
-    return todas;
-  },
+      const enviados = remetente.pedidos_enviados || [];
+      const recebidos = destinatario.pedidos_recebidos || [];
 
-  // --- NOTIFICAÇÕES ---
-  getNotificacoes(username) {
-    const todas = JSON.parse(localStorage.getItem('notificacoes_biblia') || '{}');
-    return todas[username] || [];
-  },
+      if (!enviados.includes(usernameDestinatario)) {
+        enviados.push(usernameDestinatario);
+        recebidos.push(usernameRemetente);
 
-  adicionarNotificacao(usernameDestino, texto, tipo = 'geral') {
-    let todas = JSON.parse(localStorage.getItem('notificacoes_biblia') || '{}');
-    if (!todas[usernameDestino]) todas[usernameDestino] = [];
-    todas[usernameDestino].unshift({
-      id: Date.now(),
-      texto,
-      tipo,
-      lida: false,
-      horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    });
-    localStorage.setItem('notificacoes_biblia', JSON.stringify(todas));
-  },
+        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ pedidos_enviados: enviados })
+        });
 
-  marcarNotificacoesLidas(username) {
-    let todas = JSON.parse(localStorage.getItem('notificacoes_biblia') || '{}');
-    if (todas[username]) {
-      todas[username].forEach(n => n.lida = true);
-      localStorage.setItem('notificacoes_biblia', JSON.stringify(todas));
+        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameDestinatario}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ pedidos_recebidos: recebidos })
+        });
+      }
+    } catch (e) {
+      console.error('Erro ao enviar pedido:', e);
     }
   },
 
-  // --- AMIZADES ---
-  enviarPedidoAmizade(meuUser, userAlvo) {
-    let perfis = this.getPerfisCadastrados();
-    let eu = perfis.find(p => p.username === meuUser);
-    let alvo = perfis.find(p => p.username === userAlvo);
-    if (eu && alvo) {
-      if (!eu.pedidos_enviados) eu.pedidos_enviados = [];
-      if (!alvo.pedidos_recebidos) alvo.pedidos_recebidos = [];
-      if (!eu.pedidos_enviados.includes(userAlvo)) eu.pedidos_enviados.push(userAlvo);
-      if (!alvo.pedidos_recebidos.includes(meuUser)) alvo.pedidos_recebidos.push(meuUser);
-      localStorage.setItem('perfis_cadastrados_biblia', JSON.stringify(perfis));
-      this.adicionarNotificacao(userAlvo, `@${meuUser} enviou um pedido de amizade.`, 'amizade');
+  aceitarPedidoAmizade: async (usernameMeu, usernameAmigo) => {
+    try {
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      const eu = perfis.find(p => p.username === usernameMeu);
+      const outro = perfis.find(p => p.username === usernameAmigo);
+
+      if (!eu || !outro) return;
+
+      const meusPedidos = (eu.pedidos_recebidos || []).filter(u => u !== usernameAmigo);
+      const meusAmigos = eu.amigos || [];
+      if (!meusAmigos.includes(usernameAmigo)) meusAmigos.push(usernameAmigo);
+
+      const outrosPedidos = (outro.pedidos_enviados || []).filter(u => u !== usernameMeu);
+      const outrosAmigos = outro.amigos || [];
+      if (!outrosAmigos.includes(usernameMeu)) outrosAmigos.push(usernameMeu);
+
+      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameMeu}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ pedidos_recebidos: meusPedidos, amigos: meusAmigos })
+      });
+
+      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameAmigo}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ pedidos_enviados: outrosPedidos, amigos: outrosAmigos })
+      });
+    } catch (e) {
+      console.error('Erro ao aceitar pedido:', e);
     }
   },
 
-  aceitarPedidoAmizade(meuUser, userAlvo) {
-    let perfis = this.getPerfisCadastrados();
-    let eu = perfis.find(p => p.username === meuUser);
-    let alvo = perfis.find(p => p.username === userAlvo);
-    if (eu && alvo) {
-      eu.pedidos_recebidos = (eu.pedidos_recebidos || []).filter(u => u !== userAlvo);
-      alvo.pedidos_enviados = (alvo.pedidos_enviados || []).filter(u => u !== meuUser);
-      if (!eu.amigos) eu.amigos = [];
-      if (!alvo.amigos) alvo.amigos = [];
-      if (!eu.amigos.includes(userAlvo)) eu.amigos.push(userAlvo);
-      if (!alvo.amigos.includes(meuUser)) alvo.amigos.push(meuUser);
-      localStorage.setItem('perfis_cadastrados_biblia', JSON.stringify(perfis));
-      this.adicionarNotificacao(userAlvo, `@${meuUser} aceitou seu pedido de amizade.`, 'amizade');
+  rejeitarPedidoAmizade: async (usernameMeu, usernameAmigo) => {
+    try {
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      const eu = perfis.find(p => p.username === usernameMeu);
+      const outro = perfis.find(p => p.username === usernameAmigo);
+
+      if (!eu || !outro) return;
+
+      const meusPedidos = (eu.pedidos_recebidos || []).filter(u => u !== usernameAmigo);
+      const outrosPedidos = (outro.pedidos_enviados || []).filter(u => u !== usernameMeu);
+
+      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameMeu}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ pedidos_recebidos: meusPedidos })
+      });
+
+      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameAmigo}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ pedidos_enviados: outrosPedidos })
+      });
+    } catch (e) {
+      console.error('Erro ao rejeitar pedido:', e);
     }
   },
 
-  rejeitarPedidoAmizade(meuUser, userAlvo) {
-    let perfis = this.getPerfisCadastrados();
-    let eu = perfis.find(p => p.username === meuUser);
-    let alvo = perfis.find(p => p.username === userAlvo);
-    if (eu && alvo) {
-      eu.pedidos_recebidos = (eu.pedidos_recebidos || []).filter(u => u !== userAlvo);
-      alvo.pedidos_enviados = (alvo.pedidos_enviados || []).filter(u => u !== meuUser);
-      localStorage.setItem('perfis_cadastrados_biblia', JSON.stringify(perfis));
+  getMensagensChat: async (usuarioA, usuarioB) => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat?select=*&or=(and(remetente.eq.${usuarioA},destinatario.eq.${usuarioB}),and(remetente.eq.${usuarioB},destinatario.eq.${usuarioA}))&order=id.asc`, {
+        method: 'GET',
+        headers
+      });
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (err) {
+      return [];
     }
   },
 
-  getStories() {
-    return JSON.parse(localStorage.getItem('stories_biblia') || '[]');
+  enviarMensagemChat: async (novaMensagem) => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(novaMensagem)
+      });
+      if (response.ok) {
+        await BancoDeDados.adicionarNotificacao(
+          novaMensagem.destinatario,
+          `@${novaMensagem.remetente} enviou uma nova mensagem.`,
+          'mensagem'
+        );
+      }
+    } catch (err) {
+      console.error('Erro ao enviar mensagem:', err);
+    }
+  },
+
+  getNotificacoes: async (username) => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?select=*&destinatario=eq.${username}&order=id.desc`, {
+        method: 'GET',
+        headers
+      });
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (err) {
+      return [];
+    }
+  },
+
+  adicionarNotificacao: async (usernameDestino, texto, tipo) => {
+    try {
+      const novaNotif = {
+        id: Date.now(),
+        destinatario: usernameDestino,
+        texto,
+        tipo,
+        lida: false,
+        horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(novaNotif)
+      });
+    } catch (e) {
+      console.error('Erro ao adicionar notificação:', e);
+    }
+  },
+
+  marcarNotificacoesLidas: async (username) => {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?destinatario=eq.${username}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ lida: true })
+      });
+    } catch (e) {}
+  },
+
+  getStories: async () => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/stories?select=*&order=id.desc`, { method: 'GET', headers });
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (err) {
+      return [];
+    }
+  },
+
+  salvarStory: async (story) => {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(story)
+      });
+      return await BancoDeDados.getStories();
+    } catch (err) {
+      return [];
+    }
+  },
+
+  registrarVisualizacaoStory: async (storyId, usernameVisitante) => {
+    try {
+      const stories = await BancoDeDados.getStories();
+      const st = stories.find(s => s.id === storyId);
+      if (st) {
+        const vis = st.visualizadores || [];
+        if (!vis.includes(usernameVisitante)) {
+          vis.push(usernameVisitante);
+          await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${storyId}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ visualizadores: vis })
+          });
+        }
+      }
+    } catch (err) {}
+  },
+
+  // --- PEDIDOS DE ORAÇÃO MIGRADOS PARA O SUPABASE ---
+  getPedidosOracao: async () => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?select=*&order=id.desc`, { method: 'GET', headers });
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (err) {
+      return [];
+    }
+  },
+
+  salvarPedidoOracao: async (pedido) => {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(pedido)
+      });
+      return await BancoDeDados.getPedidosOracao();
+    } catch (err) {
+      return [];
+    }
+  },
+
+  apoiarPedidoOracao: async (id) => {
+    try {
+      const pedidos = await BancoDeDados.getPedidosOracao();
+      const p = pedidos.find(item => item.id === id);
+      if (p) {
+        const novosApoios = (p.apoios || 0) + 1;
+        await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?id=eq.${id}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ apoios: novosApoios })
+        });
+      }
+      return await BancoDeDados.getPedidosOracao();
+    } catch (err) {
+      return [];
+    }
+  },
+
+  excluirPedidoOracao: async (id) => {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?id=eq.${id}`, {
+        method: 'DELETE',
+        headers
+      });
+      return await BancoDeDados.getPedidosOracao();
+    } catch (err) {
+      return [];
+    }
   }
 };
