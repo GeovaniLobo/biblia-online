@@ -1,47 +1,48 @@
 import React, { useState, useEffect } from 'react';
+import { BancoDeDados } from '../services/database';
 
 export default function ChatPrivado({ destinatario, usuarioLogado, darkMode }) {
   const [mensagens, setMensagens] = useState([]);
   const [texto, setTexto] = useState('');
 
-  // Chave única para salvar as mensagens entre estes dois usuários no localStorage
-  const obterChaveChat = () => {
-    const usuarios = [usuarioLogado.username, destinatario].sort();
-    return `chat_${usuarios[0]}_${usuarios[1]}`;
-  };
-
   useEffect(() => {
-    const carregarMensagens = () => {
-      const salvo = localStorage.getItem(obterChaveChat());
-      if (salvo) {
-        setMensagens(JSON.parse(salvo));
-      } else {
-        setMensagens([]);
+    let montado = true;
+
+    const buscarMensagens = async () => {
+      const dados = await BancoDeDados.getMensagensChat(usuarioLogado.username, destinatario);
+      if (montado) {
+        setMensagens(dados || []);
       }
     };
 
-    carregarMensagens();
+    buscarMensagens();
 
-    // Atualiza periodicamente para simular tempo real
-    const intervalo = setInterval(carregarMensagens, 1500);
-    return () => clearInterval(intervalo);
+    // Atualiza a cada 2 segundos para buscar novas mensagens da nuvem em tempo real
+    const intervalo = setInterval(buscarMensagens, 2000);
+    return () => {
+      montado = false;
+      clearInterval(intervalo);
+    };
   }, [destinatario, usuarioLogado.username]);
 
-  const enviarMensagem = (e) => {
+  const enviarMensagem = async (e) => {
     e.preventDefault();
     if (!texto.trim()) return;
 
     const novaMensagem = {
       id: Date.now(),
       remetente: usuarioLogado.username,
+      destinatario: destinatario,
       texto: texto.trim(),
       horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    const atualizadas = [...mensagens, novaMensagem];
-    setMensagens(atualizadas);
-    localStorage.setItem(obterChaveChat(), JSON.stringify(atualizadas));
     setTexto('');
+    await BancoDeDados.enviarMensagemChat(novaMensagem);
+    
+    // Atualiza imediatamente a lista local
+    const atualizadas = await BancoDeDados.getMensagensChat(usuarioLogado.username, destinatario);
+    setMensagens(atualizadas || []);
   };
 
   return (
@@ -54,7 +55,7 @@ export default function ChatPrivado({ destinatario, usuarioLogado, darkMode }) {
         </div>
         <div>
           <h3 className="text-sm font-bold">@{destinatario}</h3>
-          <p className="text-[10px] text-emerald-500 font-semibold">● Online na Comunidade</p>
+          <p className="text-[10px] text-emerald-500 font-semibold">● Online na Nuvem</p>
         </div>
       </div>
 
@@ -62,7 +63,7 @@ export default function ChatPrivado({ destinatario, usuarioLogado, darkMode }) {
       <div className="flex-1 p-4 overflow-y-auto space-y-3">
         {mensagens.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center opacity-50 space-y-1">
-            <p className="text-xs">Nenhuma mensagem ainda.</p>
+            <p className="text-xs">Nenhuma mensagem na nuvem ainda.</p>
             <p className="text-[10px]">Envie uma saudação para iniciar a conversa!</p>
           </div>
         ) : (

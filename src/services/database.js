@@ -97,8 +97,7 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
-  curtirPublicacao: async (id, usernameAutor) => {
-    // Simulação local de curtidas ou fetch direto
+  curtirPublicacao: async (id) => {
     const pubs = await BancoDeDados.getPublicacoes();
     const p = pubs.find(x => x.id === id);
     if (p) {
@@ -112,7 +111,7 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
-  adicionarComentarioPub: async (id, comentario, usernameAutor) => {
+  adicionarComentarioPub: async (id, comentario) => {
     const pubs = await BancoDeDados.getPublicacoes();
     const p = pubs.find(x => x.id === id);
     if (p) {
@@ -127,7 +126,35 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
-  // Fallbacks locais seguros para Stories e Notificações (salvos em storage para manter performance e estabilidade)
+  // Métodos de Chat em Tempo Real via Supabase
+  getMensagensChat: async (usuarioA, usuarioB) => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat?select=*&or=(and(remetente.eq.${usuarioA},destinatario.eq.${usuarioB}),and(remetente.eq.${usuarioB},destinatario.eq.${usuarioA}))&order=id.asc`, {
+        method: 'GET',
+        headers
+      });
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (err) {
+      return [];
+    }
+  },
+
+  enviarMensagemChat: async (novaMensagem) => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(novaMensagem)
+      });
+      if (!response.ok) throw new Error('Erro ao enviar mensagem.');
+      return await response.json();
+    } catch (err) {
+      console.error('Erro ao enviar mensagem:', err);
+    }
+  },
+
+  // Stories e Notificações (LocalStorage auxiliar)
   getStories: () => {
     const s = localStorage.getItem('supa_stories');
     return s ? JSON.parse(s) : [];
@@ -166,9 +193,7 @@ export const BancoDeDados = {
     localStorage.setItem(`supa_notif_${username}`, JSON.stringify(lidas));
   },
 
-  enviarPedidoAmizade: async (eu, outro) => {
-    // Gerenciado via metadados de perfil
-  },
-  aceitarPedidoAmizade: async (eu, outro) => {},
-  rejeitarPedidoAmizade: async (eu, outro) => {}
+  enviarPedidoAmizade: async () => {},
+  aceitarPedidoAmizade: async () => {},
+  rejeitarPedidoAmizade: async () => {}
 };
