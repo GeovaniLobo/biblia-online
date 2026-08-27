@@ -3,12 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://dttuprbwfvehrrlmsbsq.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_L924KJoUXUBko-Av9UJgCg_53qbu4u_';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  }
-});
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export const BancoDeDados = {
   getUsuarioLogado: () => {
