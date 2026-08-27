@@ -4,6 +4,7 @@ import AuthModal from './components/AuthModal';
 import Comunidade from './components/Comunidade';
 import Devocionais from './components/Devocionais';
 import PerfilPublico from './components/PerfilPublico';
+import EditarPerfil from './components/EditarPerfil';
 
 export default function App() {
   const [versaoSelecionada, setVersaoSelecionada] = useState('acf');
@@ -13,14 +14,14 @@ export default function App() {
   const [carregando, setCarregando] = useState(true);
 
   const [darkMode, setDarkMode] = useState(false);
-  const [menuAberto, setMenuAberto] = useState(false); // No mobile começa fechado para não atrapalhar
+  const [menuAberto, setMenuAberto] = useState(false);
   const [termoBusca, setTermoBusca] = useState('');
   const [resultadosBusca, setResultadosBusca] = useState([]);
 
   // Usuário Logado via Banco de Dados
   const [usuarioLogado, setUsuarioLogado] = useState(BancoDeDados.getUsuarioLogado());
   const [modalLoginAberto, setModalLoginAberto] = useState(false);
-  const [abaPrincipal, setAbaPrincipal] = useState('biblia'); // 'biblia', 'devocional', 'comunidade', 'perfilUrl'
+  const [abaPrincipal, setAbaPrincipal] = useState('biblia'); // 'biblia', 'devocional', 'comunidade', 'perfilUrl', 'editarPerfil'
   const [perfilUrlAlvo, setPerfilUrlAlvo] = useState(null);
 
   const [favoritos, setFavoritos] = useState(() => {
@@ -42,10 +43,10 @@ export default function App() {
   ];
 
   useEffect(() => {
-    const tratarRotaUrl = () => {
+    const tratarRotaUrl = async () => {
       const hash = window.location.hash.replace('#/', '').replace('#', '');
-      if (hash && hash !== 'biblia' && hash !== 'devocional' && hash !== 'comunidade') {
-        const perfis = BancoDeDados.getPerfisCadastrados();
+      if (hash && hash !== 'biblia' && hash !== 'devocional' && hash !== 'comunidade' && hash !== 'editarPerfil') {
+        const perfis = await BancoDeDados.getPerfisCadastrados();
         const encontrado = perfis.find(p => p.username === hash);
         if (encontrado) {
           setPerfilUrlAlvo(encontrado);
@@ -229,7 +230,7 @@ export default function App() {
   return (
     <div className={`flex h-screen font-sans overflow-hidden ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
       
-      {/* BARRA LATERAL (RESPONSIVA: Drawer flutuante no mobile e fixa no desktop) */}
+      {/* BARRA LATERAL (RESPONSIVA) */}
       <aside className={`fixed md:relative inset-y-0 left-0 z-50 flex flex-col border-r transition-all duration-300 ${menuAberto ? 'w-72 sm:w-80 translate-x-0' : '-translate-x-full md:w-0 md:translate-x-0 md:overflow-hidden'} bg-slate-900 border-slate-800 text-slate-300 shadow-2xl md:shadow-none`}>
         <div className="p-4 border-b border-slate-800 flex justify-between items-center">
           <h1 className="text-white font-bold text-base tracking-wider">BÍBLIA ONLINE 📖</h1>
@@ -240,7 +241,6 @@ export default function App() {
             >
               {darkMode ? '☀️' : '🌙'}
             </button>
-            {/* Botão fechar no mobile */}
             <button
               onClick={() => setMenuAberto(false)}
               className="md:hidden p-1.5 rounded-lg bg-slate-800 text-white text-xs"
@@ -273,6 +273,14 @@ export default function App() {
                   Sair
                 </button>
               </div>
+
+              <button
+                onClick={() => { setAbaPrincipal('editarPerfil'); setMenuAberto(false); }}
+                className="w-full bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold py-1.5 rounded-lg transition"
+              >
+                ✏️ Editar Perfil
+              </button>
+
               <button
                 onClick={() => {
                   const link = `${window.location.origin}/#/${usuarioLogado.username}`;
@@ -336,7 +344,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* LISTA DE LIVROS NA SIDEBAR */}
+        {/* LISTA DE LIVROS */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {abaPrincipal === 'biblia' && (
             <>
@@ -347,7 +355,7 @@ export default function App() {
                   onClick={() => {
                     setLivroIndex(index);
                     setCapituloAtual(1);
-                    setMenuAberto(false); // Fecha o menu no mobile ao escolher o livro
+                    setMenuAberto(false);
                   }}
                   className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium flex justify-between items-center ${
                     livroIndex === index ? "bg-blue-600 text-white shadow-md" : "hover:bg-slate-800 text-slate-300"
@@ -362,7 +370,6 @@ export default function App() {
         </div>
       </aside>
 
-      {/* OVERLAY ESCURO PARA O MOBILE QUANDO O MENU ESTIVER ABERTO */}
       {menuAberto && (
         <div 
           onClick={() => setMenuAberto(false)} 
@@ -387,7 +394,8 @@ export default function App() {
                 {abaPrincipal === 'biblia' && `${livroAtualObj.name}`}
                 {abaPrincipal === 'devocional' && 'Devocionais'}
                 {abaPrincipal === 'comunidade' && 'Comunidade 🌐'}
-                {abaPrincipal === 'perfilUrl' && `Perfil`}
+                {abaPrincipal === 'perfilUrl' && 'Perfil'}
+                {abaPrincipal === 'editarPerfil' && 'Editar Perfil'}
               </h2>
 
               {abaPrincipal === 'biblia' && (
@@ -505,7 +513,6 @@ export default function App() {
                         </p>
                       </div>
 
-                      {/* Botões de marcação (visíveis ao toque no celular ou hover no PC) */}
                       <div className="flex items-center justify-end gap-2 pt-2 sm:pt-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition">
                         <div className="flex gap-1.5 bg-slate-800/80 p-1 rounded-lg">
                           <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-amber-400/15 text-amber-200 border-amber-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-amber-400" title="Amarelo"></button>
@@ -543,6 +550,18 @@ export default function App() {
               onVoltar={() => { window.location.hash = 'comunidade'; setAbaPrincipal('comunidade'); }}
               darkMode={darkMode}
               onToggleDarkMode={() => setDarkMode(!darkMode)}
+            />
+          )}
+
+          {abaPrincipal === 'editarPerfil' && usuarioLogado && (
+            <EditarPerfil
+              usuarioLogado={usuarioLogado}
+              onSalvo={(usuarioAtualizado) => {
+                setUsuarioLogado(usuarioAtualizado);
+                setAbaPrincipal('comunidade');
+              }}
+              onVoltar={() => setAbaPrincipal('comunidade')}
+              darkMode={darkMode}
             />
           )}
 
