@@ -42,18 +42,24 @@ export default function App() {
     { id: 'ntlh', nome: 'Nova Tradução na Linguagem de Hoje (NTLH)' }
   ];
 
-  // Roteamento baseado no Pathname limpo (ex: /geovanilobo)
+  // Roteamento robusto para URLs limpas (ex: /geovanilobo)
   useEffect(() => {
     const tratarRotaUrl = async () => {
       const path = window.location.pathname.replace('/', '').trim();
       
       if (path && !['biblia', 'devocional', 'comunidade', 'editarPerfil'].includes(path)) {
+        setCarregando(true);
         const perfis = await BancoDeDados.getPerfisCadastrados();
         const encontrado = perfis.find(p => p.username.toLowerCase() === path.toLowerCase());
+        
         if (encontrado) {
           setPerfilUrlAlvo(encontrado);
           setAbaPrincipal('perfilUrl');
+        } else {
+          setAbaPrincipal('biblia');
+          setPerfilUrlAlvo(null);
         }
+        setCarregando(false);
       } else if (path === 'comunidade') {
         setAbaPrincipal('comunidade');
         setPerfilUrlAlvo(null);
