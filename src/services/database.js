@@ -3,7 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://dttuprbwfvehrrlmsbsq.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_L924KJoUXUBko-Av9UJgCg_53qbu4u_';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  }
+});
 
 export const BancoDeDados = {
   getUsuarioLogado: () => {
@@ -20,17 +25,25 @@ export const BancoDeDados = {
   },
 
   getPerfisCadastrados: async () => {
-    const { data, error } = await supabase.from('perfis').select('*');
-    if (error) {
-      console.error('Erro ao buscar perfis:', error);
+    try {
+      const { data, error } = await supabase.from('perfis').select('*');
+      if (error) {
+        console.error('Erro Supabase (getPerfis):', error.message || error);
+        return [];
+      }
+      return data || [];
+    } catch (err) {
+      console.error('Erro de rede/conexão:', err);
       return [];
     }
-    return data || [];
   },
 
   cadastrarPerfil: async (novoPerfil) => {
     const { data, error } = await supabase.from('perfis').insert([novoPerfil]);
-    if (error) throw error;
+    if (error) {
+      console.error('Erro Supabase ao cadastrar:', error.message || error);
+      throw error;
+    }
     return data;
   },
 
