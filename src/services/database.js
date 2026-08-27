@@ -1,9 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
-
 const SUPABASE_URL = 'https://dttuprbwfvehrrlmsbsq.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_L924KJoUXUBko-Av9UJgCg_53qbu4u_';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const headers = {
+  'apikey': SUPABASE_ANON_KEY,
+  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
 
 export const BancoDeDados = {
   getUsuarioLogado: () => {
@@ -21,51 +24,98 @@ export const BancoDeDados = {
 
   getPerfisCadastrados: async () => {
     try {
-      const { data, error } = await supabase.from('perfis').select('*');
-      if (error) {
-        console.error('Erro Supabase (getPerfis):', error.message || error);
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/perfis?select=*`, {
+        method: 'GET',
+        headers: headers
+      });
+      
+      if (!response.ok) {
+        console.error('Erro HTTP ao buscar perfis:', response.statusText);
         return [];
       }
+      
+      const data = await response.json();
       return data || [];
     } catch (err) {
-      console.error('Erro de rede/conexão:', err);
+      console.error('Erro de conexão ao buscar perfis:', err);
       return [];
     }
   },
 
   cadastrarPerfil: async (novoPerfil) => {
-    const { data, error } = await supabase.from('perfis').insert([novoPerfil]).select();
-    if (error) {
-      console.error('Erro Supabase ao cadastrar:', error);
-      throw error;
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/perfis`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(novoPerfil)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Erro do servidor ao cadastrar:', errorText);
+        throw new Error(errorText || 'Erro ao cadastrar perfil no servidor.');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      console.error('Erro na requisição de cadastro:', err);
+      throw err;
     }
-    return data;
   },
 
   atualizarPerfil: async (username, novosDados) => {
-    const { data, error } = await supabase
-      .from('perfis')
-      .update(novosDados)
-      .eq('username', username);
-    if (error) throw error;
-    return data;
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${username}`, {
+        method: 'PATCH',
+        headers: headers,
+        body: JSON.stringify(novosDados)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Erro ao atualizar perfil.');
+      }
+
+      return await response.json();
+    } catch (err) {
+      console.error('Erro ao atualizar perfil:', err);
+      throw err;
+    }
   },
 
   getPublicacoes: async () => {
-    const { data, error } = await supabase
-      .from('publicacoes')
-      .select('*')
-      .order('id', { ascending: false });
-    if (error) {
-      console.error('Erro ao buscar publicações:', error);
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?select=*&order=id.desc`, {
+        method: 'GET',
+        headers: headers
+      });
+
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (err) {
+      console.error('Erro ao buscar publicações:', err);
       return [];
     }
-    return data || [];
   },
 
   salvarPublicacao: async (pub) => {
-    const { data, error } = await supabase.from('publicacoes').insert([pub]);
-    if (error) throw error;
-    return data;
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(pub)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Erro ao salvar publicação.');
+      }
+
+      return await response.json();
+    } catch (err) {
+      console.error('Erro ao salvar publicação:', err);
+      throw err;
+    }
   }
 };
