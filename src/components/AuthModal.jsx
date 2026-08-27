@@ -6,10 +6,52 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
   const [username, setUsername] = useState('');
   const [nome, setNome] = useState('');
   const [senha, setSenha] = useState('');
+  const [dataNascimento, setDataNascimento] = useState('');
+  const [foto, setFoto] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
 
   if (!isOpen) return null;
+
+  // Função para converter e comprimir a foto escolhida do dispositivo
+  const handleFileChange = (e) => {
+    const arquivo = e.target.files[0];
+    if (!arquivo) return;
+
+    const leitor = new FileReader();
+    leitor.onload = (evento) => {
+      const img = new Image();
+      img.src = evento.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 300;
+        const MAX_HEIGHT = 300;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setFoto(dataUrl);
+      };
+    };
+    leitor.readAsDataURL(arquivo);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,7 +83,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
         // Fluxo de Cadastro
         const usernameLimpo = username.trim().toLowerCase();
         if (!usernameLimpo || !nome.trim() || !senha.trim()) {
-          setErro('Preencha todos os campos.');
+          setErro('Preencha todos os campos obrigatórios.');
           setCarregando(false);
           return;
         }
@@ -57,8 +99,12 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
           username: usernameLimpo,
           nome: nome.trim(),
           senha: senha.trim(),
-          foto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
-          biografia: 'Praticando a fé e o amor ao próximo.'
+          data_nascimento: dataNascimento || '',
+          foto: foto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
+          biografia: 'Praticando a fé e o amor ao próximo.',
+          amigos: [],
+          pedidos_enviados: [],
+          pedidos_recebidos: []
         };
 
         await BancoDeDados.cadastrarPerfil(novoPerfil);
@@ -74,8 +120,8 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fadeIn">
-      <div className={`relative w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl border ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fadeIn overflow-y-auto">
+      <div className={`relative w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl border my-auto ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         
         {/* Botão Fechar */}
         <button
@@ -91,7 +137,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
           <p className="text-xs text-slate-400 mt-1">Comunidade Global de Fé e Conexões</p>
         </div>
 
-        {/* Abas Alternar Login / Cadastro com Cores Corrigidas */}
+        {/* Abas Alternar Login / Cadastro */}
         <div className={`grid grid-cols-2 p-1 rounded-2xl mb-6 ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
           <button
             type="button"
@@ -116,19 +162,44 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
         )}
 
         {/* Formulário */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
           {!isLogin && (
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider mb-1 opacity-70">Seu Nome Completo</label>
-              <input
-                type="text"
-                placeholder="Ex: Ana Souza"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                required={!isLogin}
-                className={`w-full text-xs rounded-xl px-4 py-3 border focus:outline-none focus:ring-2 focus:ring-blue-500 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
-              />
-            </div>
+            <>
+              {/* Upload de Foto no Cadastro */}
+              <div className="flex flex-col items-center gap-2 pb-2">
+                <img 
+                  src={foto || 'https://via.placeholder.com/150'} 
+                  alt="Preview" 
+                  className="w-20 h-20 rounded-full object-cover border-2 border-blue-500 shadow-md" 
+                />
+                <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition shadow-md">
+                  📁 Escolher Foto do Dispositivo
+                  <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider mb-1 opacity-70">Seu Nome Completo</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Ana Souza"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  required={!isLogin}
+                  className={`w-full text-xs rounded-xl px-4 py-3 border focus:outline-none focus:ring-2 focus:ring-blue-500 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider mb-1 opacity-70">Data de Nascimento</label>
+                <input
+                  type="date"
+                  value={dataNascimento}
+                  onChange={(e) => setDataNascimento(e.target.value)}
+                  className={`w-full text-xs rounded-xl px-4 py-3 border focus:outline-none focus:ring-2 focus:ring-blue-500 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
+                />
+              </div>
+            </>
           )}
 
           <div>
