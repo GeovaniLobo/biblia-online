@@ -191,9 +191,9 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   });
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+    <div className={`space-y-8 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-8 relative ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       <div className="space-y-6">
-        <div className={`p-6 rounded-2xl border text-center space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
+        <div className={`p-6 rounded-2xl border text-center space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
           <img src={usuarioLogado.foto} alt="Perfil" className="w-20 h-20 rounded-full object-cover mx-auto border-2 border-blue-500 shadow-md" />
           <div>
             <h3 className="text-lg font-bold">{usuarioLogado.nome}</h3>
@@ -251,7 +251,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         </div>
 
         {aniversariantesHoje.length > 0 && (
-          <div className={`p-4 rounded-2xl border space-y-2 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-amber-50 border-amber-200'}`}>
+          <div className={`p-4 rounded-2xl border space-y-2 text-center ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-amber-50 border-amber-200 text-slate-900'}`}>
             <h4 className="text-xs font-bold uppercase tracking-wider text-amber-500">Aniversariantes de Hoje</h4>
             {aniversariantesHoje.map(aniv => (
               <div key={aniv.username} className="flex items-center justify-center gap-2">
@@ -262,7 +262,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           </div>
         )}
 
-        <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
+        <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
           <h4 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
             Amigos & Pedidos
@@ -277,7 +277,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                 const recebiPedido = perfilAtualNoBanco.pedidos_recebidos?.includes(perfil.username);
 
                 return (
-                  <div key={perfil.username} className={`flex items-center justify-between text-xs p-2.5 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
+                  <div key={perfil.username} className={`flex items-center justify-between text-xs p-2.5 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/50 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
                     <div className="flex items-center gap-2 cursor-pointer" onClick={() => setPerfilSelecionado(perfil)}>
                       <img src={perfil.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-7 h-7 rounded-full object-cover" />
                       <div>
@@ -309,7 +309,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       </div>
 
       <div className="md:col-span-2 space-y-6">
-        <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
+        <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
           <h3 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
             Criar Publicação
@@ -319,7 +319,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             <textarea rows="3" placeholder="Compartilhe algo com a comunidade..." value={pubTexto} onChange={(e) => setPubTexto(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
             {pubImagem && <img src={pubImagem} alt="Preview" className="w-full h-32 object-cover rounded-xl" />}
             <div className="flex justify-between items-center">
-              <label className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition">
+              <label className={`text-xs px-3 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 Imagem
                 <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files[0]; if(f) { const r = new FileReader(); r.onloadend = () => setPubImagem(r.result); r.readAsDataURL(f); } }} className="hidden" />
@@ -329,8 +329,8 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           </form>
         </div>
 
-        {/* PEDIDOS DE ORAÇÃO GLOBAL & EXCLUSIVIDADE DO DONO */}
-        <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+        {/* PEDIDOS DE ORAÇÃO GLOBAL */}
+        <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
           <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração</h3>
           <form onSubmit={criarPedidoOracao} className="flex gap-2">
             <input 
@@ -388,11 +388,11 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         </div>
 
         {sugestoesAmizade.length > 0 && (
-          <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
+          <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
             <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Sugestões de Amizade</h3>
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700">
               {sugestoesAmizade.map(perfil => (
-                <div key={perfil.username} className={`flex-shrink-0 w-36 p-3 rounded-xl border flex flex-col items-center text-center space-y-2 ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div key={perfil.username} className={`flex-shrink-0 w-36 p-3 rounded-xl border flex flex-col items-center text-center space-y-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
                   <img src={perfil.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-12 h-12 rounded-full object-cover cursor-pointer border border-blue-500" onClick={() => setPerfilSelecionado(perfil)} />
                   <div className="w-full truncate">
                     <span className="font-bold text-xs truncate block cursor-pointer hover:text-blue-500" onClick={() => setPerfilSelecionado(perfil)}>{perfil.nome}</span>
@@ -427,7 +427,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             const nomeAtualizado = perfilAutorReal.nome || post.autor;
 
             return (
-              <div key={post.id} className={`p-6 rounded-2xl border shadow-xs space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div key={post.id} className={`p-6 rounded-2xl border shadow-xs space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { const encontrado = perfisReais.find(p => p.username === post.username || p.nome === post.autor); if (encontrado) setPerfilSelecionado(encontrado); }}>
                     <img src={avatarAtualizado} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-blue-500/30" />
