@@ -299,6 +299,10 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                 const envieiPedido = perfilAtualNoBanco.pedidos_enviados?.includes(perfil.username);
                 const recebiPedido = perfilAtualNoBanco.pedidos_recebidos?.includes(perfil.username);
 
+                const mensagensNaoLidasDoAmigo = notificacoes.filter(
+                  n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${perfil.username}`)
+                ).length;
+
                 return (
                   <div key={perfil.username} className={`flex items-center justify-between text-xs p-2.5 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/50 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
                     <div className="flex items-center gap-2 cursor-pointer" onClick={() => setPerfilSelecionado(perfil)}>
@@ -311,9 +315,16 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
                     <div className="flex items-center gap-1">
                       {ehAmigo ? (
-                        <button onClick={() => setChatComUsuario(perfil.username)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white p-2 rounded-xl font-bold flex items-center justify-center transition" title="Abrir Chat">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                        </button>
+                        <div className="relative">
+                          <button onClick={() => setChatComUsuario(perfil.username)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white p-2 rounded-xl font-bold flex items-center justify-center transition" title="Abrir Chat">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                          </button>
+                          {mensagensNaoLidasDoAmigo > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-md">
+                              {mensagensNaoLidasDoAmigo}
+                            </span>
+                          )}
+                        </div>
                       ) : envieiPedido ? (
                         <span className="text-[10px] text-amber-500 italic font-semibold px-2">Pendente</span>
                       ) : recebiPedido ? (
