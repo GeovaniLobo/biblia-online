@@ -9,8 +9,10 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [perfisReais, setPerfisReais] = useState([]);
   const [notificacoes, setNotificacoes] = useState([]);
   const [pedidosOracao, setPedidosOracao] = useState([]);
-  const [carregandoComunidade, setCarregandoComunidade] = useState(true);
+  const [planosLeitura, setPlanosLeitura] = useState([]);
+  const [conquistas, setConquistas] = useState([]);
   
+  const [carregandoComunidade, setCarregandoComunidade] = useState(true);
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
   const [chatComUsuario, setChatComUsuario] = useState(null);
   const [mostrarNotificacoes, setMostrarNotificacoes] = useState(false);
@@ -23,7 +25,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [postEditandoId, setPostEditandoId] = useState(null);
   const [textoEditado, setTextoEditado] = useState('');
   const [temaEditado, setTemaEditado] = useState('');
-
   const [novoPedidoTexto, setNovoPedidoTexto] = useState('');
 
   useEffect(() => {
@@ -43,12 +44,16 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
         const st = await BancoDeDados.getStories();
         const pedidos = await BancoDeDados.getPedidosOracao();
+        const planos = BancoDeDados.getPlanosLeitura(usuarioLogado.username);
+        const confs = BancoDeDados.getConquistas(usuarioLogado.username);
 
         setPerfisReais(perfis || []);
         setPublicacoes(pubs || []);
         setNotificacoes(notifs || []);
         setStories(st || []);
         setPedidosOracao(pedidos || []);
+        setPlanosLeitura(planos || []);
+        setConquistas(confs || []);
       } catch (err) {
         console.error("Erro ao carregar comunidade do Supabase:", err);
       } finally {
@@ -101,6 +106,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       texto: pubTexto.trim(),
       imagem: pubImagem,
       curtidas: 0,
+      reacoes: { amem: [], gloria: [], amor: [] },
       comentarios: []
     };
     const atualizados = await BancoDeDados.salvarPublicacao(novoPost);
@@ -123,12 +129,9 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
     setPostEditandoId(null);
   };
 
-  const curtir = async (id, usernameAutorPost) => {
-    const atualizados = await BancoDeDados.curtirPublicacao(id, usernameAutorPost);
+  const reagir = async (id, tipoReacao) => {
+    const atualizados = await BancoDeDados.reagirPublicacao(id, tipoReacao, usuarioLogado.username);
     setPublicacoes([...atualizados]);
-    if (usuarioLogado.username !== usernameAutorPost) {
-      await BancoDeDados.adicionarNotificacao(usernameAutorPost, `@${usuarioLogado.username} curtiu sua publicação.`, 'curtida');
-    }
   };
 
   const comentar = async (id, usernameAutorPost, e) => {
@@ -273,6 +276,57 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           </div>
         </div>
 
+        {/* PLANOS DE LEITURA EM GRUPO (Item 4) */}
+        <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
+          <h4 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
+            📖 Planos de Leitura
+          </h4>
+          <div className="space-y-3">
+            {planosLeitura.map(plano => {
+              const progresso = Math.round((plano.diasConcluidos / plano.totalDias) * 100);
+              return (
+                <div key={plano.id} className={`p-3 rounded-xl border space-y-2 ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex justify-between items-center text-xs font-bold">
+                    <span>{plano.nome}</span>
+                    <span className="text-blue-500">{progresso}%</span>
+                  </div>
+                  <div className="w-full bg-slate-700/30 h-2 rounded-full overflow-hidden">
+                    <div className="bg-blue-600 h-full transition-all" style={{ width: `${progresso}%` }}></div>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px] opacity-75">
+                    <span>Dia {plano.diasConcluidos} de {plano.totalDias}</span>
+                    <button 
+                      onClick={() => {
+                        const atualizados = BancoDeDados.salvarProgressoPlano(usuarioLogado.username, plano.id);
+                        setPlanosLeitura([...atualizados]);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-lg font-bold"
+                    >
+                      Avançar Dia +1
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* CONQUISTAS E MEDALHAS (Item 10) */}
+        <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
+          <h4 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
+            🏆 Conquistas & Medalhas
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
+            {conquistas.map(c => (
+              <div key={c.id} className={`p-2.5 rounded-xl border flex flex-col items-center text-center space-y-1 ${c.desbloqueada ? 'border-amber-500/50 bg-amber-500/10' : 'opacity-40 border-slate-700'}`}>
+                <span className="text-2xl">{c.icone}</span>
+                <span className="font-bold text-[11px]">{c.titulo}</span>
+                <span className="text-[9px] opacity-75 leading-tight">{c.desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {aniversariantesHoje.length > 0 && (
           <div className={`p-4 rounded-2xl border space-y-2 text-center ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-amber-50 border-amber-200 text-slate-900'}`}>
             <h4 className="text-xs font-bold uppercase tracking-wider text-amber-500">Aniversariantes de Hoje</h4>
@@ -287,7 +341,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
         <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
           <h4 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
             Amigos & Pedidos
           </h4>
           <div className="space-y-2 max-h-72 overflow-y-auto">
@@ -345,7 +398,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       <div className="md:col-span-2 space-y-6">
         <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
           <h3 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
             Criar Publicação
           </h3>
           <form onSubmit={publicarPost} className="space-y-3">
@@ -354,7 +406,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             {pubImagem && <img src={pubImagem} alt="Preview" className="w-full h-32 object-cover rounded-xl" />}
             <div className="flex justify-between items-center">
               <label className={`text-xs px-3 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 Imagem
                 <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files[0]; if(f) { const r = new FileReader(); r.onloadend = () => setPubImagem(r.result); r.readAsDataURL(f); } }} className="hidden" />
               </label>
@@ -427,7 +478,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         {sugestoesAmizade.length > 0 && (
           <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
             <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Sugestões de Amizade</h3>
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700">
+            <div className="flex gap-4 overflow-x-auto pb-2">
               {sugestoesAmizade.map(perfil => (
                 <div key={perfil.username} className={`flex-shrink-0 w-36 p-3 rounded-xl border flex flex-col items-center text-center space-y-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
                   <img src={perfil.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-12 h-12 rounded-full object-cover cursor-pointer border border-blue-500" onClick={() => setPerfilSelecionado(perfil)} />
@@ -452,7 +503,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
         <div className="space-y-6">
           <h3 className="text-md font-bold opacity-70 flex items-center gap-1.5">
-            <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
             Feed da Comunidade
           </h3>
           {publicacoes.map((post) => {
@@ -462,6 +512,11 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             const perfilAutorReal = perfisReais.find(p => p.username === post.username) || {};
             const avatarAtualizado = perfilAutorReal.foto || post.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
             const nomeAtualizado = perfilAutorReal.nome || post.autor;
+
+            const reacoes = post.reacoes || { amem: [], gloria: [], amor: [] };
+            const meuAmem = (reacoes.amem || []).includes(usuarioLogado.username);
+            const meuGloria = (reacoes.gloria || []).includes(usuarioLogado.username);
+            const meuAmor = (reacoes.amor || []).includes(usuarioLogado.username);
 
             return (
               <div key={post.id} className={`p-6 rounded-2xl border shadow-xs space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -499,10 +554,25 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                   </div>
                 )}
 
-                <div className="flex gap-4 pt-2 border-t border-slate-700/50">
-                  <button onClick={() => curtir(post.id, post.username)} className="text-xs font-bold text-red-400 flex items-center gap-1.5 hover:opacity-80 transition">
-                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                    {post.curtidas || 0} Curtidas
+                {/* REAÇÕES BÍBLICAS MÚLTIPLAS (Item 7) */}
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-700/50">
+                  <button 
+                    onClick={() => reagir(post.id, 'amem')} 
+                    className={`text-xs px-3 py-1 rounded-lg font-bold border transition ${meuAmem ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800/40 text-slate-300 border-slate-700'}`}
+                  >
+                    ❤️ Amém ({(reacoes.amem || []).length})
+                  </button>
+                  <button 
+                    onClick={() => reagir(post.id, 'gloria')} 
+                    className={`text-xs px-3 py-1 rounded-lg font-bold border transition ${meuGloria ? 'bg-amber-600 text-white border-amber-500' : 'bg-slate-800/40 text-slate-300 border-slate-700'}`}
+                  >
+                    🙌 Glória ({(reacoes.gloria || []).length})
+                  </button>
+                  <button 
+                    onClick={() => reagir(post.id, 'amor')} 
+                    className={`text-xs px-3 py-1 rounded-lg font-bold border transition ${meuAmor ? 'bg-pink-600 text-white border-pink-500' : 'bg-slate-800/40 text-slate-300 border-slate-700'}`}
+                  >
+                    ✨ Amor ({(reacoes.amor || []).length})
                   </button>
                 </div>
                 

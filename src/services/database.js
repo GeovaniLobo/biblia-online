@@ -111,6 +111,30 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
+  // --- REAÇÕES BÍBLICAS MÚLTIPLAS (Item 7) ---
+  reagirPublicacao: async (id, tipoReacao, usernameUsuario) => {
+    const pubs = await BancoDeDados.getPublicacoes();
+    const p = pubs.find(x => x.id === id);
+    if (p) {
+      let reacoes = p.reacoes || { amem: [], gloria: [], amor: [] };
+      if (!reacoes.amem) reacoes = { amem: [], gloria: [], amor: [] };
+
+      Object.keys(reacoes).forEach(tipo => {
+        reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== usernameUsuario);
+      });
+
+      reacoes[tipoReacao].push(usernameUsuario);
+      const totalReacoes = (reacoes.amem.length + reacoes.gloria.length + reacoes.amor.length);
+
+      await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ reacoes, curtidas: totalReacoes })
+      });
+    }
+    return await BancoDeDados.getPublicacoes();
+  },
+
   adicionarComentarioPub: async (id, comentario) => {
     const pubs = await BancoDeDados.getPublicacoes();
     const p = pubs.find(x => x.id === id);
@@ -385,5 +409,31 @@ export const BancoDeDados = {
     } catch (err) {
       return [];
     }
+  },
+
+  // --- PLANOS DE LEITURA & CONQUISTAS (Itens 4 e 10) ---
+  getPlanosLeitura: (username) => {
+    const s = localStorage.getItem(`planos_leitura_${username}`);
+    return s ? JSON.parse(s) : [
+      { id: 1, nome: 'Evangelho de João em 21 Dias', diasConcluidos: 5, totalDias: 21 },
+      { id: 2, nome: 'Salmos para a Alma (30 Dias)', diasConcluidos: 12, totalDias: 30 }
+    ];
+  },
+
+  salvarProgressoPlano: (username, planoId) => {
+    let planos = BancoDeDados.getPlanosLeitura(username);
+    planos = planos.map(p => p.id === planoId ? { ...p, diasConcluidos: Math.min(p.totalDias, p.diasConcluidos + 1) } : p);
+    localStorage.setItem(`planos_leitura_${username}`, JSON.stringify(planos));
+    return planos;
+  },
+
+  getConquistas: (username) => {
+    const s = localStorage.getItem(`conquistas_${username}`);
+    return s ? JSON.parse(s) : [
+      { id: 1, titulo: 'Leitor Fiel', desc: 'Leu a Bíblia por dias seguidos', desbloqueada: true, icone: '🔥' },
+      { id: 2, titulo: 'Intercessor', desc: 'Compartilhou pedidos de oração', desbloqueada: true, icone: '🙏' },
+      { id: 3, titulo: 'Comunitário', desc: 'Conectou-se com outros irmãos', desbloqueada: true, icone: '🌐' },
+      { id: 4, titulo: 'Discípulo Dedicado', desc: 'Completou um plano de leitura', desbloqueada: false, icone: '📖' }
+    ];
   }
 };

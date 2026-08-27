@@ -18,6 +18,16 @@ export default function App() {
   const [termoBusca, setTermoBusca] = useState('');
   const [resultadosBusca, setResultadosBusca] = useState([]);
 
+  // Estados dos novos recursos (Itens 5 e 6: Modo Foco e Notas)
+  const [modoFoco, setModoFoco] = useState(false);
+  const [tamanhoFonte, setTamanhoFonte] = useState('text-base sm:text-lg');
+  const [notaVersiculoAtiva, setNotaVersiculoAtiva] = useState(null);
+  const [textoNota, setTextoNota] = useState('');
+  const [notasPessoais, setNotasPessoais] = useState(() => {
+    const s = localStorage.getItem('notas_versiculos_biblia');
+    return s ? JSON.parse(s) : {};
+  });
+
   // Usuário Logado via Banco de Dados
   const [usuarioLogado, setUsuarioLogado] = useState(BancoDeDados.getUsuarioLogado());
   const [modalLoginAberto, setModalLoginAberto] = useState(false);
@@ -120,7 +130,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('favoritos_biblia', JSON.stringify(favoritos));
     localStorage.setItem('marcacoes_biblia', JSON.stringify(marcacoes));
-  }, [favoritos, marcacoes]);
+    localStorage.setItem('notas_versiculos_biblia', JSON.stringify(notasPessoais));
+  }, [favoritos, marcacoes, notasPessoais]);
+
+  const salvarNotaVersiculo = (chave) => {
+    setNotasPessoais({ ...notasPessoais, [chave]: textoNota });
+    setNotaVersiculoAtiva(null);
+    setTextoNota('');
+  };
 
   const toggleFavorito = (livroNome, capitulo, numeroVersiculo, texto) => {
     if (!usuarioLogado) {
@@ -271,160 +288,161 @@ export default function App() {
   return (
     <div className={`flex h-screen font-sans overflow-hidden ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
       
-      {/* BARRA LATERAL (RESPONSIVA) */}
-      <aside className={`fixed md:relative inset-y-0 left-0 z-50 flex flex-col border-r transition-all duration-300 ${menuAberto ? 'w-72 sm:w-80 translate-x-0' : '-translate-x-full md:w-0 md:translate-x-0 md:overflow-hidden'} bg-slate-900 border-slate-800 text-slate-300 shadow-2xl md:shadow-none`}>
-        <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-          <h1 className="text-white font-bold text-base tracking-wider flex items-center gap-2">
-            BÍBLIA ONLINE
-            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-          </h1>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs transition flex items-center justify-center"
-              title="Alternar Tema"
-            >
-              {darkMode ? (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-              ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-              )}
-            </button>
-            <button
-              onClick={() => setMenuAberto(false)}
-              className="md:hidden p-1.5 rounded-lg bg-slate-800 text-white text-xs"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-
-        <div className="p-3 border-b border-slate-800">
-          {usuarioLogado ? (
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => navegarPara(`/${usuarioLogado.username}`, 'perfilUrl')}>
-                  <img src={usuarioLogado.foto} alt="Avatar" className="w-7 h-7 rounded-full object-cover" />
-                  <div>
-                    <p className="text-[10px] text-slate-400">Meu Link:</p>
-                    <p className="text-xs font-bold text-blue-400">@{usuarioLogado.username}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    BancoDeDados.fazerLogout();
-                    setUsuarioLogado(null);
-                    navegarPara('/', 'biblia');
-                  }}
-                  className="text-[10px] text-red-400 bg-red-500/10 px-2 py-1 rounded"
-                >
-                  Sair
-                </button>
-              </div>
-
+      {/* BARRA LATERAL (RESPONSIVA E OCULTÁVEL NO MODO FOCO) */}
+      {!modoFoco && (
+        <aside className={`fixed md:relative inset-y-0 left-0 z-50 flex flex-col border-r transition-all duration-300 ${menuAberto ? 'w-72 sm:w-80 translate-x-0' : '-translate-x-full md:w-0 md:translate-x-0 md:overflow-hidden'} bg-slate-900 border-slate-800 text-slate-300 shadow-2xl md:shadow-none`}>
+          <div className="p-4 border-b border-slate-800 flex justify-between items-center">
+            <h1 className="text-white font-bold text-base tracking-wider flex items-center gap-2">
+              BÍBLIA ONLINE
+              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+            </h1>
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => navegarPara('/editarPerfil', 'editarPerfil')}
-                className="w-full bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold py-1.5 rounded-lg transition"
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs transition flex items-center justify-center"
+                title="Alternar Tema"
               >
-                Editar Perfil
+                {darkMode ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                )}
               </button>
-
               <button
-                onClick={() => {
-                  const link = `${window.location.origin}/${usuarioLogado.username}`;
-                  navigator.clipboard.writeText(link);
-                  alert(`Link copiado: ${link}`);
-                }}
-                className="w-full bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold py-1.5 rounded-lg"
+                onClick={() => setMenuAberto(false)}
+                className="md:hidden p-1.5 rounded-lg bg-slate-800 text-white text-xs"
               >
-                Copiar Meu Link de Perfil
+                ✕
               </button>
             </div>
-          ) : (
-            <button
-              onClick={() => { setModalLoginAberto(true); setMenuAberto(false); }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-lg shadow-md flex items-center justify-center gap-1.5"
-            >
-              Entrar na Comunidade
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
-            </button>
-          )}
-
-          <div className="mt-3">
-            <select
-              value={versaoSelecionada}
-              onChange={(e) => {
-                setVersaoSelecionada(e.target.value);
-                setCapituloAtual(1);
-              }}
-              className="w-full bg-slate-800 border border-slate-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none"
-            >
-              {traducoesDisponiveis.map((t) => (
-                <option key={t.id} value={t.id}>{t.nome}</option>
-              ))}
-            </select>
           </div>
 
-          <div className="grid grid-cols-3 gap-1 mt-2 bg-slate-800 p-1 rounded-lg text-center">
-            <button
-              onClick={() => navegarPara('/', 'biblia')}
-              className={`text-[11px] py-1 rounded font-medium ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
-            >
-              Bíblia
-            </button>
-            <button
-              onClick={() => {
-                if (!usuarioLogado) setModalLoginAberto(true);
-                else navegarPara('/devocional', 'devocional');
-              }}
-              className={`text-[11px] py-1 rounded font-medium ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
-            >
-              Devocionais
-            </button>
-            
-            {/* Botão Comunidade/Chat com o Badge Vermelho de Mensagens Não Lidas */}
-            <button
-              onClick={() => {
-                if (!usuarioLogado) setModalLoginAberto(true);
-                else navegarPara('/comunidade', 'comunidade');
-              }}
-              className={`text-[11px] py-1 rounded font-medium relative flex items-center justify-center gap-1 ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
-            >
-              Comunidade
-              {totalNaoLidas > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-md">
-                  {totalNaoLidas}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
+          <div className="p-3 border-b border-slate-800">
+            {usuarioLogado ? (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => navegarPara(`/${usuarioLogado.username}`, 'perfilUrl')}>
+                    <img src={usuarioLogado.foto} alt="Avatar" className="w-7 h-7 rounded-full object-cover" />
+                    <div>
+                      <p className="text-[10px] text-slate-400">Meu Link:</p>
+                      <p className="text-xs font-bold text-blue-400">@{usuarioLogado.username}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      BancoDeDados.fazerLogout();
+                      setUsuarioLogado(null);
+                      navegarPara('/', 'biblia');
+                    }}
+                    className="text-[10px] text-red-400 bg-red-500/10 px-2 py-1 rounded"
+                  >
+                    Sair
+                  </button>
+                </div>
 
-        {/* LISTA DE LIVROS */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {abaPrincipal === 'biblia' && (
-            <>
-              <div className="text-[10px] font-bold text-slate-500 px-3 py-1">TODOS OS LIVROS</div>
-              {bibliaCompleta.map((livro, index) => (
                 <button
-                  key={livro.abbrev}
-                  onClick={() => {
-                    setLivroIndex(index);
-                    setCapituloAtual(1);
-                    setMenuAberto(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium flex justify-between items-center ${
-                    livroIndex === index ? "bg-blue-600 text-white shadow-md" : "hover:bg-slate-800 text-slate-300"
-                  }`}
+                  onClick={() => navegarPara('/editarPerfil', 'editarPerfil')}
+                  className="w-full bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold py-1.5 rounded-lg transition"
                 >
-                  <span>{livro.name}</span>
-                  <span className="text-[10px] opacity-50">{livro.chapters?.length} cap.</span>
+                  Editar Perfil
                 </button>
-              ))}
-            </>
-          )}
-        </div>
-      </aside>
+
+                <button
+                  onClick={() => {
+                    const link = `${window.location.origin}/${usuarioLogado.username}`;
+                    navigator.clipboard.writeText(link);
+                    alert(`Link copiado: ${link}`);
+                  }}
+                  className="w-full bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold py-1.5 rounded-lg"
+                >
+                  Copiar Meu Link de Perfil
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setModalLoginAberto(true); setMenuAberto(false); }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-lg shadow-md flex items-center justify-center gap-1.5"
+              >
+                Entrar na Comunidade
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
+              </button>
+            )}
+
+            <div className="mt-3">
+              <select
+                value={versaoSelecionada}
+                onChange={(e) => {
+                  setVersaoSelecionada(e.target.value);
+                  setCapituloAtual(1);
+                }}
+                className="w-full bg-slate-800 border border-slate-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none"
+              >
+                {traducoesDisponiveis.map((t) => (
+                  <option key={t.id} value={t.id}>{t.nome}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-3 gap-1 mt-2 bg-slate-800 p-1 rounded-lg text-center">
+              <button
+                onClick={() => navegarPara('/', 'biblia')}
+                className={`text-[11px] py-1 rounded font-medium ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+              >
+                Bíblia
+              </button>
+              <button
+                onClick={() => {
+                  if (!usuarioLogado) setModalLoginAberto(true);
+                  else navegarPara('/devocional', 'devocional');
+                }}
+                className={`text-[11px] py-1 rounded font-medium ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+              >
+                Devocionais
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (!usuarioLogado) setModalLoginAberto(true);
+                  else navegarPara('/comunidade', 'comunidade');
+                }}
+                className={`text-[11px] py-1 rounded font-medium relative flex items-center justify-center gap-1 ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+              >
+                Comunidade
+                {totalNaoLidas > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-md">
+                    {totalNaoLidas}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* LISTA DE LIVROS */}
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {abaPrincipal === 'biblia' && (
+              <>
+                <div className="text-[10px] font-bold text-slate-500 px-3 py-1">TODOS OS LIVROS</div>
+                {bibliaCompleta.map((livro, index) => (
+                  <button
+                    key={livro.abbrev}
+                    onClick={() => {
+                      setLivroIndex(index);
+                      setCapituloAtual(1);
+                      setMenuAberto(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium flex justify-between items-center ${
+                      livroIndex === index ? "bg-blue-600 text-white shadow-md" : "hover:bg-slate-800 text-slate-300"
+                    }`}
+                  >
+                    <span>{livro.name}</span>
+                    <span className="text-[10px] opacity-50">{livro.chapters?.length} cap.</span>
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+        </aside>
+      )}
 
       {menuAberto && (
         <div 
@@ -438,12 +456,14 @@ export default function App() {
         
         <header className={`border-b px-4 sm:px-6 py-3 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-xs ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-            <button
-              onClick={() => setMenuAberto(!menuAberto)}
-              className={`p-2 rounded-lg text-xs font-semibold transition ${darkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}
-            >
-              ☰ Menu / Livros
-            </button>
+            {!modoFoco && (
+              <button
+                onClick={() => setMenuAberto(!menuAberto)}
+                className={`p-2 rounded-lg text-xs font-semibold transition ${darkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}
+              >
+                ☰ Menu / Livros
+              </button>
+            )}
 
             <div className="flex items-center gap-2 overflow-hidden">
               <h2 className="text-base sm:text-lg font-bold truncate max-w-[140px] sm:max-w-xs">
@@ -473,7 +493,30 @@ export default function App() {
             </div>
           </div>
 
+          {/* CONTROLES EXTRAS: MODO FOCO E TAMANHO DE FONTE (Item 6) */}
           {abaPrincipal === 'biblia' && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setModoFoco(!modoFoco)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${modoFoco ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-700/20 border-slate-600'}`}
+                title="Modo Leitura Imersiva / Foco"
+              >
+                {modoFoco ? '📖 Sair do Modo Foco' : '✨ Modo Foco'}
+              </button>
+
+              <select
+                value={tamanhoFonte}
+                onChange={(e) => setTamanhoFonte(e.target.value)}
+                className={`text-xs rounded-lg px-2 py-1 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300'}`}
+              >
+                <option value="text-sm">Fonte Pequena</option>
+                <option value="text-base sm:text-lg">Fonte Normal</option>
+                <option value="text-xl sm:text-2xl">Fonte Grande</option>
+              </select>
+            </div>
+          )}
+
+          {abaPrincipal === 'biblia' && !modoFoco && (
             <div className="flex items-center gap-2 w-full sm:w-auto justify-between">
               <input
                 type="text"
@@ -535,55 +578,90 @@ export default function App() {
                 ))}
               </div>
             ) : (
-              <div className="space-y-2.5 text-base sm:text-lg leading-relaxed">
-                {versiculosDoCapitulo.map((textoVersiculo, index) => {
-                  const numeroV = index + 1;
-                  const chaveMarcacao = `${livroAtualObj.name}_${capituloAtual}_${numeroV}`;
-                  const corDestaqueAtual = marcacoes[chaveMarcacao];
-                  const isFavorito = favoritos.some(
-                    (f) => f.livro === livroAtualObj.name && f.capitulo === capituloAtual && f.numero === numeroV
-                  );
-                  const isSelecionado = versiculosSelecionados.some(v => v.numero === numeroV);
+              <div className="space-y-4">
+                {/* MENSAGEM DO DIA (Item 8) */}
+                <div className={`p-4 rounded-2xl border shadow-sm ${darkMode ? 'bg-blue-950/30 border-blue-800/40 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-900'}`}>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">🌟 Mensagem do Dia</h4>
+                  <p className="text-sm italic">"Lâmpada para os meus pés é a tua palavra, e luz para o meu caminho." — Salmos 119:105</p>
+                </div>
 
-                  return (
-                    <div 
-                      key={index} 
-                      onClick={() => toggleSelecaoVersiculo(numeroV, textoVersiculo)}
-                      className={`group flex flex-col sm:flex-row sm:items-start justify-between gap-2 py-2.5 px-3 rounded-xl transition border cursor-pointer select-none ${
-                        isSelecionado 
-                          ? 'bg-blue-600/20 border-blue-500/60 shadow-sm' 
-                          : corDestaqueAtual 
-                          ? `${corDestaqueAtual} border-opacity-40` 
-                          : 'border-transparent hover:bg-blue-500/5'
-                      }`}
-                      title="Clique para selecionar o versículo"
-                    >
-                      <div className="flex items-start gap-3 flex-1">
-                        <p className="flex-1 leading-relaxed">
-                          <span className="text-xs font-extrabold text-blue-500 mr-2.5 align-super bg-blue-500/10 px-1.5 py-0.5 rounded-md">{numeroV}</span>
-                          {textoVersiculo}
-                        </p>
-                      </div>
+                <div className={`space-y-2.5 ${tamanhoFonte} leading-relaxed`}>
+                  {versiculosDoCapitulo.map((textoVersiculo, index) => {
+                    const numeroV = index + 1;
+                    const chaveMarcacao = `${livroAtualObj.name}_${capituloAtual}_${numeroV}`;
+                    const corDestaqueAtual = marcacoes[chaveMarcacao];
+                    const isFavorito = favoritos.some(
+                      (f) => f.livro === livroAtualObj.name && f.capitulo === capituloAtual && f.numero === numeroV
+                    );
+                    const isSelecionado = versiculosSelecionados.some(v => v.numero === numeroV);
+                    const notaPessoal = notasPessoais[chaveMarcacao];
 
-                      <div className="flex items-center justify-end gap-2 pt-2 sm:pt-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex gap-1.5 bg-slate-800/80 p-1 rounded-lg">
-                          <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-amber-400/15 text-amber-200 border-amber-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-amber-400" title="Amarelo"></button>
-                          <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-emerald-500/15 text-emerald-200 border-emerald-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-emerald-500" title="Verde"></button>
-                          <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-blue-500/15 text-blue-200 border-blue-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-blue-500" title="Azul"></button>
-                          <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-pink-500/15 text-pink-200 border-pink-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-pink-500" title="Rosa"></button>
+                    return (
+                      <div 
+                        key={index} 
+                        onClick={() => toggleSelecaoVersiculo(numeroV, textoVersiculo)}
+                        className={`group flex flex-col gap-2 py-2.5 px-3 rounded-xl transition border cursor-pointer select-none ${
+                          isSelecionado 
+                            ? 'bg-blue-600/20 border-blue-500/60 shadow-sm' 
+                            : corDestaqueAtual 
+                            ? `${corDestaqueAtual} border-opacity-40` 
+                            : 'border-transparent hover:bg-blue-500/5'
+                        }`}
+                        title="Clique para selecionar o versículo"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="flex-1 leading-relaxed">
+                            <span className="text-xs font-extrabold text-blue-500 mr-2.5 align-super bg-blue-500/10 px-1.5 py-0.5 rounded-md">{numeroV}</span>
+                            {textoVersiculo}
+                          </p>
+
+                          <div className="flex items-center justify-end gap-2 pt-2 sm:pt-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex gap-1.5 bg-slate-800/80 p-1 rounded-lg">
+                              <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-amber-400/15 text-amber-200 border-amber-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-amber-400" title="Amarelo"></button>
+                              <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-emerald-500/15 text-emerald-200 border-emerald-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-emerald-500" title="Verde"></button>
+                              <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-blue-500/15 text-blue-200 border-blue-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-blue-500" title="Azul"></button>
+                              <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-pink-500/15 text-pink-200 border-pink-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-pink-500" title="Rosa"></button>
+                            </div>
+
+                            <button onClick={() => setNotaVersiculoAtiva(chaveMarcacao)} className="text-xs bg-slate-700/20 hover:bg-slate-700/40 px-2 py-1 rounded" title="Adicionar Nota">📝</button>
+
+                            <button
+                              onClick={() => toggleFavorito(livroAtualObj.name, capituloAtual, numeroV, textoVersiculo)}
+                              className={`text-sm px-1.5 py-0.5 rounded ${isFavorito ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
+                              title="Favoritar"
+                            >
+                              {isFavorito ? '❤️' : '🤍'}
+                            </button>
+                          </div>
                         </div>
 
-                        <button
-                          onClick={() => toggleFavorito(livroAtualObj.name, capituloAtual, numeroV, textoVersiculo)}
-                          className={`text-sm px-1.5 py-0.5 rounded ${isFavorito ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
-                          title="Favoritar"
-                        >
-                          {isFavorito ? '❤️' : '🤍'}
-                        </button>
+                        {/* EXIBIR NOTA PESSOAL (Item 5) */}
+                        {notaPessoal && (
+                          <div className="bg-amber-500/10 border border-amber-500/30 p-2 rounded-lg text-xs text-amber-300 italic" onClick={(e) => e.stopPropagation()}>
+                            <b>Nota Pessoal:</b> {notaPessoal}
+                          </div>
+                        )}
+
+                        {/* MODAL DE NOTA */}
+                        {notaVersiculoAtiva === chaveMarcacao && (
+                          <div className="p-3 bg-slate-800 rounded-xl space-y-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                            <input 
+                              type="text" 
+                              placeholder="Escreva sua anotação pessoal..." 
+                              value={textoNota} 
+                              onChange={(e) => setTextoNota(e.target.value)} 
+                              className="w-full text-xs p-2 rounded bg-slate-900 border border-slate-700 text-white"
+                            />
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => setNotaVersiculoAtiva(null)} className="text-xs px-2 py-1 opacity-70">Cancelar</button>
+                              <button onClick={() => salvarNotaVersiculo(chaveMarcacao)} className="bg-blue-600 text-white text-xs px-3 py-1 rounded font-bold">Salvar Nota</button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )
           )}
