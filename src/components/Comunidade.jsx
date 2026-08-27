@@ -9,6 +9,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [perfisReais, setPerfisReais] = useState([]);
   const [notificacoes, setNotificacoes] = useState([]);
   const [pedidosOracao, setPedidosOracao] = useState([]);
+  const [carregandoComunidade, setCarregandoComunidade] = useState(true);
   
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
   const [chatComUsuario, setChatComUsuario] = useState(null);
@@ -27,35 +28,49 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
   useEffect(() => {
     async function carregarDadosIniciais() {
-      await BancoDeDados.salvarNovoPerfilNaRede({
-        username: usuarioLogado.username,
-        senha: usuarioLogado.senha,
-        nome: usuarioLogado.nome,
-        biografia: usuarioLogado.biografia || '',
-        foto: usuarioLogado.foto || '',
-        data_nascimento: usuarioLogado.dataNascimento || ''
-      });
-      const perfis = await BancoDeDados.getPerfisCadastrados();
-      const pubs = await BancoDeDados.getPublicacoes();
-      const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
-      setPerfisReais(perfis);
-      setPublicacoes(pubs);
-      setNotificacoes(notifs);
-      setStories(BancoDeDados.getStories());
-      setPedidosOracao(BancoDeDados.getPedidosOracao());
+      try {
+        await BancoDeDados.salvarNovoPerfilNaRede({
+          username: usuarioLogado.username,
+          senha: usuarioLogado.senha,
+          nome: usuarioLogado.nome,
+          biografia: usuarioLogado.biografia || '',
+          foto: usuarioLogado.foto || '',
+          data_nascimento: usuarioLogado.dataNascimento || ''
+        });
+
+        const perfis = await BancoDeDados.getPerfisCadastrados();
+        const pubs = await BancoDeDados.getPublicacoes();
+        const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+        const st = await BancoDeDados.getStories();
+        const pedidos = await BancoDeDados.getPedidosOracao();
+
+        setPerfisReais(perfis || []);
+        setPublicacoes(pubs || []);
+        setNotificacoes(notifs || []);
+        setStories(st || []);
+        setPedidosOracao(pedidos || []);
+      } catch (err) {
+        console.error("Erro ao carregar comunidade do Supabase:", err);
+      } finally {
+        setCarregandoComunidade(false);
+      }
     }
+
     carregarDadosIniciais();
 
     const intervalo = setInterval(async () => {
-      const pubs = await BancoDeDados.getPublicacoes();
-      const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
-      const perfis = await BancoDeDados.getPerfisCadastrados();
-      const pedidos = BancoDeDados.getPedidosOracao();
-      setPublicacoes(pubs);
-      setNotificacoes(notifs);
-      setPerfisReais(perfis);
-      setPedidosOracao(pedidos);
-    }, 4000);
+      try {
+        const pubs = await BancoDeDados.getPublicacoes();
+        const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+        const perfis = await BancoDeDados.getPerfisCadastrados();
+        const pedidos = await BancoDeDados.getPedidosOracao();
+
+        setPublicacoes(pubs || []);
+        setNotificacoes(notifs || []);
+        setPerfisReais(perfis || []);
+        setPedidosOracao(pedidos || []);
+      } catch (e) {}
+    }, 5000);
 
     return () => clearInterval(intervalo);
   }, [usuarioLogado]);
@@ -67,7 +82,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
     if (!mostrarNotificacoes) {
       await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
       const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
-      setNotificacoes(notifs);
+      setNotificacoes(notifs || []);
     }
   };
 
@@ -129,7 +144,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
     }
   };
 
-  const criarPedidoOracao = (e) => {
+  const criarPedidoOracao = async (e) => {
     e.preventDefault();
     if (!novoPedidoTexto.trim()) return;
     const pedido = {
@@ -139,10 +154,18 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       texto: novoPedidoTexto.trim(),
       apoios: 0
     };
-    const atualizados = BancoDeDados.salvarPedidoOracao(pedido);
-    setPedidosOracao([...atualizados]);
+    const atualizados = await BancoDeDados.salvarPedidoOracao(pedido);
+    setPedidosOracao(atualizados || []);
     setNovoPedidoTexto('');
   };
+
+  if (carregandoComunidade) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-xs opacity-60 animate-pulse">Carregando comunidade na nuvem...</p>
+      </div>
+    );
+  }
 
   if (perfilSelecionado) {
     return (
@@ -359,7 +382,10 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button 
-                        onClick={() => setPedidosOracao(BancoDeDados.apoiarPedidoOracao(p.id))} 
+                        onClick={async () => {
+                          const atualizados = await BancoDeDados.apoiarPedidoOracao(p.id);
+                          setPedidosOracao(atualizados || []);
+                        }} 
                         className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg font-bold transition"
                       >
                         ❤️ Apoiar ({p.apoios || 0})
@@ -367,10 +393,10 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
                       {souDonoDoPedido && (
                         <button 
-                          onClick={() => {
+                          onClick={async () => {
                             if (window.confirm('Deseja excluir este pedido de oração?')) {
-                              const atualizados = BancoDeDados.excluirPedidoOracao(p.id);
-                              setPedidosOracao([...atualizados]);
+                              const atualizados = await BancoDeDados.excluirPedidoOracao(p.id);
+                              setPedidosOracao(atualizados || []);
                             }
                           }} 
                           className="text-slate-400 hover:text-red-500 p-1 font-bold transition"
