@@ -239,14 +239,63 @@ export const BancoDeDados = {
         headers,
         body: JSON.stringify(novaMensagem)
       });
-      if (!response.ok) throw new Error('Erro ao enviar mensagem.');
-      return await response.json();
+      if (response.ok) {
+        await BancoDeDados.adicionarNotificacao(
+          novaMensagem.destinatario,
+          `@${novaMensagem.remetente} enviou uma nova mensagem.`,
+          'mensagem'
+        );
+      }
     } catch (err) {
       console.error('Erro ao enviar mensagem:', err);
     }
   },
 
-  // Stories e Notificações (LocalStorage auxiliar)
+  // Notificações na Nuvem (Supabase)
+  getNotificacoes: async (username) => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?select=*&destinatario=eq.${username}&order=id.desc`, {
+        method: 'GET',
+        headers
+      });
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (err) {
+      return [];
+    }
+  },
+
+  adicionarNotificacao: async (usernameDestino, texto, tipo) => {
+    try {
+      const novaNotif = {
+        id: Date.now(),
+        destinatario: usernameDestino,
+        texto,
+        tipo,
+        lida: false,
+        horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(novaNotif)
+      });
+    } catch (e) {
+      console.error('Erro ao adicionar notificação:', e);
+    }
+  },
+
+  marcarNotificacoesLidas: async (username) => {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?destinatario=eq.${username}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ lida: true })
+      });
+    } catch (e) {}
+  },
+
+  // Stories (LocalStorage auxiliar)
   getStories: () => {
     const s = localStorage.getItem('supa_stories');
     return s ? JSON.parse(s) : [];
@@ -269,19 +318,5 @@ export const BancoDeDados = {
       return st;
     });
     localStorage.setItem('supa_stories', JSON.stringify(atualizados));
-  },
-  getNotificacoes: (username) => {
-    const n = localStorage.getItem(`supa_notif_${username}`);
-    return n ? JSON.parse(n) : [];
-  },
-  adicionarNotificacao: (usernameDestino, texto, tipo) => {
-    const atuais = BancoDeDados.getNotificacoes(usernameDestino);
-    const nova = { texto, tipo, lida: false, horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
-    localStorage.setItem(`supa_notif_${usernameDestino}`, JSON.stringify([nova, ...atuais]));
-  },
-  marcarNotificacoesLidas: (username) => {
-    const atuais = BancoDeDados.getNotificacoes(username);
-    const lidas = atuais.map(n => ({ ...n, lida: true }));
-    localStorage.setItem(`supa_notif_${username}`, JSON.stringify(lidas));
   }
 };
