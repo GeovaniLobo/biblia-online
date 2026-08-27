@@ -8,7 +8,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
   const [senha, setSenha] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
   
-  // Foto padrão de avatar anônimo pré-selecionada
   const avatarPadrao = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
   const [foto, setFoto] = useState(avatarPadrao);
   
@@ -113,8 +112,9 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
         onLoginSucesso(novoPerfil);
       }
     } catch (err) {
-      console.error(err);
-      setErro('Ocorreu um erro ao conectar com o servidor.');
+      console.error("Erro detalhado no cadastro:", err);
+      // Exibe o erro técnico exato na tela para sabermos se é algo do banco ou da rede
+      setErro(`Erro técnico: ${err.message || JSON.stringify(err)}`);
     } finally {
       setCarregando(false);
     }
@@ -154,7 +154,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
         </div>
 
         {erro && (
-          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs text-center font-medium">
+          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs text-center font-medium break-words">
             {erro}
           </div>
         )}
@@ -162,7 +162,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
           {!isLogin && (
             <>
-              {/* Avatar Anônimo Pré-selecionado com Preview */}
               <div className="flex flex-col items-center gap-2 pb-2">
                 <img 
                   src={foto} 
@@ -179,7 +178,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
                 <label className="block text-[11px] font-bold uppercase tracking-wider mb-1 opacity-70">Seu Nome Completo</label>
                 <input
                   type="text"
-                  placeholder="Ex: Ana Souza"
+                  placeholder="Ex: Geovani Lobo"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
                   required={!isLogin}

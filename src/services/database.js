@@ -39,9 +39,9 @@ export const BancoDeDados = {
   },
 
   cadastrarPerfil: async (novoPerfil) => {
-    const { data, error } = await supabase.from('perfis').insert([novoPerfil]);
+    const { data, error } = await supabase.from('perfis').insert([novoPerfil]).select();
     if (error) {
-      console.error('Erro Supabase ao cadastrar:', error.message || error);
+      console.error('Erro Supabase ao cadastrar:', error);
       throw error;
     }
     return data;
