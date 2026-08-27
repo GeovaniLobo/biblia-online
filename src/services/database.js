@@ -232,7 +232,7 @@ export const BancoDeDados = {
     } catch (e) {}
   },
 
-  // --- STORIES ---
+  // --- STORIES COM SUPORTE A IMAGENS ---
   getStories: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/stories?select=*&order=id.desc`, { method: 'GET', headers });

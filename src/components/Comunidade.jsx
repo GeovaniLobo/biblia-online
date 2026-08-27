@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BancoDeDados } from '../services/database';
 import PerfilPublico from './PerfilPublico';
 import ChatPrivado from './ChatPrivado';
@@ -15,6 +15,11 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [chatComUsuario, setChatComUsuario] = useState(null);
   const [mostrarNotificacoes, setMostrarNotificacoes] = useState(false);
 
+  // Estados dos Stories Estilo Instagram
+  const [storyAberto, setStoryAberto] = useState(null); // Story visualizado em tela cheia
+  const [menuPerfilAberto, setMenuPerfilAberto] = useState(false); // Modal ao clicar na foto de perfil
+  const fileInputRef = useRef(null); // Referência para abrir a câmera/arquivo de foto
+
   const [novoComentario, setNovoComentario] = useState({});
   const [pubTexto, setPubTexto] = useState('');
   const [pubImagem, setPubImagem] = useState('');
@@ -24,7 +29,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [textoEditado, setTextoEditado] = useState('');
   const [temaEditado, setTemaEditado] = useState('');
   const [novoPedidoTexto, setNovoPedidoTexto] = useState('');
-  const [storyTexto, setStoryTexto] = useState('');
 
   useEffect(() => {
     async function carregarDadosIniciais() {
@@ -79,19 +83,27 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
   const perfilAtualNoBanco = perfisReais.find(p => p.username === usuarioLogado.username) || { amigos: [], pedidos_enviados: [], pedidos_recebidos: [] };
 
-  const publicarStory = async () => {
-    if (!storyTexto.trim()) return;
-    const novoStory = {
-      id: Date.now(),
-      autor: usuarioLogado.nome,
-      username: usuarioLogado.username,
-      avatar: usuarioLogado.foto,
-      texto: storyTexto.trim(),
-      visualizadores: []
+  // Função para lidar com a foto tirada pela câmera ou escolhida da galeria para o Story
+  const handleCapturarFotoStory = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const imagemBase64 = reader.result;
+      const novoStory = {
+        id: Date.now(),
+        autor: usuarioLogado.nome,
+        username: usuarioLogado.username,
+        avatar: usuarioLogado.foto,
+        imagem: imagemBase64,
+        visualizadores: []
+      };
+      const atualizados = await BancoDeDados.salvarStory(novoStory);
+      setStories(atualizados || []);
+      setMenuPerfilAberto(false);
     };
-    const atualizados = await BancoDeDados.salvarStory(novoStory);
-    setStories(atualizados || []);
-    setStoryTexto('');
+    reader.readAsDataURL(file);
   };
 
   const publicarPost = async (e) => {
@@ -184,40 +196,128 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const naoLidas = notificacoes.filter(n => !n.lida).length;
   const amigosLista = perfisReais.filter(p => (perfilAtualNoBanco.amigos || []).includes(p.username));
 
+  // Agrupar stories por usuário
+  const storiesPorUsuario = stories.reduce((acc, st) => {
+    if (!acc[st.username]) acc[st.username] = [];
+    acc[st.username].push(st);
+    return acc;
+  }, {});
+
   return (
     <div className={`space-y-6 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6 relative ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
+      {/* INPUT OCULTO PARA ABRIR A CÂMERA OU GALERIA DIRETAMENTE */}
+      <input 
+        type="file" 
+        accept="image/*" 
+        capture="environment" 
+        ref={fileInputRef} 
+        onChange={handleCapturarFotoStory} 
+        className="hidden" 
+      />
+
+      {/* MODAL / TELA CHEIA DO STORY ESTILO INSTAGRAM */}
+      {storyAberto && (
+        <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
+          <div className="relative max-w-md w-full h-[80vh] bg-slate-900 rounded-2xl overflow-hidden flex flex-col justify-between p-4 border border-slate-700 shadow-2xl">
+            <div className="flex justify-between items-center z-10">
+              <div className="flex items-center gap-2">
+                <img src={storyAberto.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover border border-white" />
+                <span className="text-white text-xs font-bold">{storyAberto.autor}</span>
+              </div>
+              <button onClick={() => setStoryAberto(null)} className="text-white font-bold text-lg bg-black/50 w-8 h-8 rounded-full flex items-center justify-center">✕</button>
+            </div>
+
+            <div className="flex-1 flex items-center justify-center my-2 overflow-hidden">
+              {storyAberto.imagem ? (
+                <img src={storyAberto.imagem} className="max-h-full max-w-full object-contain rounded-xl" />
+              ) : (
+                <p className="text-white text-center text-lg font-medium p-6">{storyAberto.texto}</p>
+              )}
+            </div>
+
+            <div className="text-center text-[10px] text-slate-400">Toque em X para fechar</div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL AO CLICAR NA FOTO DE PERFIL (PERGUNTA SE QUER ADICIONAR STORY OU ENTRAR NO PERFIL) */}
+      {menuPerfilAberto && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className={`p-6 rounded-2xl max-w-xs w-full space-y-4 text-center shadow-2xl border ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <img src={usuarioLogado.foto} className="w-16 h-16 rounded-full object-cover mx-auto border-2 border-blue-500 shadow-md" />
+            <h4 className="text-sm font-bold">O que você deseja fazer?</h4>
+
+            <div className="space-y-2 pt-2">
+              <button 
+                onClick={() => {
+                  setMenuPerfilAberto(false);
+                  fileInputRef.current.click(); // Abre a câmera do celular ou seletor de arquivos
+                }} 
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-sm"
+              >
+                📸 Adicionar Novo Story (Câmera)
+              </button>
+
+              <button 
+                onClick={() => {
+                  setMenuPerfilAberto(false);
+                  setPerfilSelecionado({
+                    username: usuarioLogado.username,
+                    nome: usuarioLogado.nome,
+                    biografia: usuarioLogado.biografia,
+                    foto: usuarioLogado.foto
+                  });
+                }} 
+                className={`w-full text-xs font-bold py-2.5 rounded-xl border transition ${darkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-white' : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'}`}
+              >
+                👤 Entrar no Meu Perfil
+              </button>
+
+              <button 
+                onClick={() => setMenuPerfilAberto(false)} 
+                className="w-full text-xs text-red-400 font-semibold py-1.5 hover:underline"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* COLUNA ESQUERDA & CENTRO (FEED E STORIES) */}
       <div className="lg:col-span-2 space-y-6">
         
-        {/* STORIES */}
+        {/* CARROSSEL DE STORIES ESTILO INSTAGRAM */}
         <div className={`p-4 rounded-2xl border flex items-center gap-4 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-          <div className="flex flex-col items-center flex-shrink-0 cursor-pointer">
-            <div className="w-14 h-14 rounded-full border-2 border-blue-500 p-0.5 flex items-center justify-center bg-blue-500/10">
+          
+          {/* FOTO DO USUÁRIO LOGADO COM O CLIQUE QUE ABRE O MENU */}
+          <div className="flex flex-col items-center flex-shrink-0 cursor-pointer" onClick={() => setMenuPerfilAberto(true)}>
+            <div className="w-14 h-14 rounded-full border-2 border-blue-500 p-0.5 flex items-center justify-center bg-blue-500/10 relative">
               <img src={usuarioLogado.foto} className="w-full h-full rounded-full object-cover" />
+              <span className="absolute bottom-0 right-0 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-md">+</span>
             </div>
             <span className="text-[10px] font-bold mt-1">Seu Story</span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <input 
-              type="text" 
-              placeholder="Criar story rápido..." 
-              value={storyTexto} 
-              onChange={(e) => setStoryTexto(e.target.value)} 
-              className={`text-xs px-3 py-2 rounded-xl border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300'}`}
-            />
-            <button onClick={publicarStory} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-xl font-bold">Publicar</button>
-          </div>
+          {/* OUTROS STORIES DOS AMIGOS */}
+          {Object.keys(storiesPorUsuario).map(username => {
+            const userStories = storiesPorUsuario[username];
+            const ultimoStory = userStories[userStories.length - 1];
 
-          {stories.map(st => (
-            <div key={st.id} className="flex flex-col items-center flex-shrink-0">
-              <div className="w-14 h-14 rounded-full border-2 border-purple-500 p-0.5 flex items-center justify-center bg-purple-500/10">
-                <img src={st.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover" />
+            return (
+              <div 
+                key={username} 
+                onClick={() => setStoryAberto(ultimoStory)}
+                className="flex flex-col items-center flex-shrink-0 cursor-pointer group"
+              >
+                <div className="w-14 h-14 rounded-full border-2 border-purple-500 p-0.5 flex items-center justify-center bg-purple-500/10 transition group-hover:scale-105">
+                  <img src={ultimoStory.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover" />
+                </div>
+                <span className="text-[10px] font-bold mt-1 truncate max-w-[60px]">{ultimoStory.autor}</span>
               </div>
-              <span className="text-[10px] font-bold mt-1 truncate max-w-[60px]">{st.autor}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* CRIAR PUBLICAÇÃO */}
@@ -352,7 +452,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         </div>
       </div>
 
-      {/* COLUNA DIREITA (CHAT LATERAL E AMIGOS) */}
+      {/* COLUNA DIREITA (CHAT LATERAL) */}
       <div className="space-y-6">
         <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
           <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
