@@ -23,6 +23,13 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [textoEditado, setTextoEditado] = useState('');
   const [temaEditado, setTemaEditado] = useState('');
 
+  const [modalStoryAberto, setModalStoryAberto] = useState(false);
+  const [storyTexto, setStoryTexto] = useState('');
+  const [storyImagem, setStoryImagem] = useState('');
+
+  const [autorStoryAtivo, setAutorStoryAtivo] = useState(null);
+  const [indiceStoryAtual, setIndiceStoryAtual] = useState(0);
+
   const [novoPedidoTexto, setNovoPedidoTexto] = useState('');
 
   useEffect(() => {
@@ -46,15 +53,14 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
     }
     carregarDadosIniciais();
 
+    // Polling automático a cada 4 segundos para tempo real (feed, notificações e contadores)
     const intervalo = setInterval(async () => {
       const pubs = await BancoDeDados.getPublicacoes();
       const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
       const perfis = await BancoDeDados.getPerfisCadastrados();
-      const pedidos = BancoDeDados.getPedidosOracao();
       setPublicacoes(pubs);
       setNotificacoes(notifs);
       setPerfisReais(perfis);
-      setPedidosOracao(pedidos);
     }, 4000);
 
     return () => clearInterval(intervalo);
@@ -71,7 +77,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
     }
   };
 
-  const hojeStr = new Date().toISOString().slice(5, 10);
+  const hojeStr = new Date().toISOString().slice(5, 10); // MM-DD
   const aniversariantesHoje = perfisReais.filter(p => p.data_nascimento && p.data_nascimento.slice(5, 10) === hojeStr);
 
   const publicarPost = async (e) => {
@@ -140,7 +146,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       apoios: 0
     };
     const atualizados = BancoDeDados.salvarPedidoOracao(pedido);
-    setPedidosOracao([...atualizados]);
+    setPedidosOracao(atualizados);
     setNovoPedidoTexto('');
   };
 
@@ -174,26 +180,10 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
   const naoLidas = notificacoes.filter(n => !n.lida).length;
 
-  const perfisAmigosOuPendentes = perfisReais.filter(p => {
-    if (p.username === usuarioLogado.username) return false;
-    const ehAmigo = perfilAtualNoBanco.amigos?.includes(p.username);
-    const envieiPedido = perfilAtualNoBanco.pedidos_enviados?.includes(p.username);
-    const recebiPedido = perfilAtualNoBanco.pedidos_recebidos?.includes(p.username);
-    return ehAmigo || envieiPedido || recebiPedido;
-  });
-
-  const sugestoesAmizade = perfisReais.filter(p => {
-    if (p.username === usuarioLogado.username) return false;
-    const ehAmigo = perfilAtualNoBanco.amigos?.includes(p.username);
-    const envieiPedido = perfilAtualNoBanco.pedidos_enviados?.includes(p.username);
-    const recebiPedido = perfilAtualNoBanco.pedidos_recebidos?.includes(p.username);
-    return !ehAmigo && !envieiPedido && !recebiPedido;
-  });
-
   return (
-    <div className={`space-y-8 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-8 relative ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+    <div className="space-y-8 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-8 relative">
       <div className="space-y-6">
-        <div className={`p-6 rounded-2xl border text-center space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
+        <div className={`p-6 rounded-2xl border text-center space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
           <img src={usuarioLogado.foto} alt="Perfil" className="w-20 h-20 rounded-full object-cover mx-auto border-2 border-blue-500 shadow-md" />
           <div>
             <h3 className="text-lg font-bold">{usuarioLogado.nome}</h3>
@@ -210,6 +200,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
               {naoLidas > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{naoLidas}</span>}
             </button>
 
+            {/* POPUP DE NOTIFICAÇÕES CLICÁVEIS E REDIRECIONÁVEIS */}
             {mostrarNotificacoes && (
               <div className={`absolute left-0 right-0 mt-2 p-3 rounded-2xl border shadow-2xl z-35 max-h-60 overflow-y-auto space-y-2 text-left ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                 <h4 className="text-xs font-bold opacity-60 border-b pb-1">Suas Notificações</h4>
@@ -250,8 +241,9 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           </div>
         </div>
 
+        {/* Seção Aniversariantes do Dia */}
         {aniversariantesHoje.length > 0 && (
-          <div className={`p-4 rounded-2xl border space-y-2 text-center ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-amber-50 border-amber-200 text-slate-900'}`}>
+          <div className={`p-4 rounded-2xl border space-y-2 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-amber-50 border-amber-200'}`}>
             <h4 className="text-xs font-bold uppercase tracking-wider text-amber-500">Aniversariantes de Hoje</h4>
             {aniversariantesHoje.map(aniv => (
               <div key={aniv.username} className="flex items-center justify-center gap-2">
@@ -262,54 +254,54 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           </div>
         )}
 
-        <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
+        <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
           <h4 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-            Amigos & Pedidos
+            Membros & Amizades
           </h4>
           <div className="space-y-2 max-h-72 overflow-y-auto">
-            {perfisAmigosOuPendentes.length === 0 ? (
-              <p className="text-[11px] opacity-50 text-center py-4">Nenhum amigo adicionado ainda.</p>
-            ) : (
-              perfisAmigosOuPendentes.map((perfil) => {
-                const ehAmigo = perfilAtualNoBanco.amigos?.includes(perfil.username);
-                const envieiPedido = perfilAtualNoBanco.pedidos_enviados?.includes(perfil.username);
-                const recebiPedido = perfilAtualNoBanco.pedidos_recebidos?.includes(perfil.username);
+            {perfisReais.filter(p => p.username !== usuarioLogado.username).map((perfil) => {
+              const ehAmigo = perfilAtualNoBanco.amigos?.includes(perfil.username);
+              const envieiPedido = perfilAtualNoBanco.pedidos_enviados?.includes(perfil.username);
+              const recebiPedido = perfilAtualNoBanco.pedidos_recebidos?.includes(perfil.username);
 
-                return (
-                  <div key={perfil.username} className={`flex items-center justify-between text-xs p-2.5 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/50 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => setPerfilSelecionado(perfil)}>
-                      <img src={perfil.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-7 h-7 rounded-full object-cover" />
-                      <div>
-                        <span className="font-bold hover:text-blue-500 truncate block max-w-[80px]">{perfil.nome}</span>
-                        <span className="text-[9px] opacity-50">@{perfil.username}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      {ehAmigo ? (
-                        <button onClick={() => setChatComUsuario(perfil.username)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white p-2 rounded-xl font-bold flex items-center justify-center transition" title="Abrir Chat">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                        </button>
-                      ) : envieiPedido ? (
-                        <span className="text-[10px] text-amber-500 italic font-semibold px-2">Pendente</span>
-                      ) : recebiPedido ? (
-                        <div className="flex gap-1">
-                          <button onClick={async () => { await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, perfil.username); setPerfisReais(await BancoDeDados.getPerfisCadastrados()); }} className="bg-emerald-500 text-white px-2 py-1 rounded text-[10px] font-bold">Aceitar</button>
-                          <button onClick={async () => { await BancoDeDados.rejeitarPedidoAmizade(usuarioLogado.username, perfil.username); setPerfisReais(await BancoDeDados.getPerfisCadastrados()); }} className="bg-red-500 text-white px-1.5 py-1 rounded text-[10px]">✕</button>
-                        </div>
-                      ) : null}
+              return (
+                <div key={perfil.username} className={`flex items-center justify-between text-xs p-2.5 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => setPerfilSelecionado(perfil)}>
+                    <img src={perfil.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-7 h-7 rounded-full object-cover" />
+                    <div>
+                      <span className="font-bold hover:text-blue-500 truncate block max-w-[80px]">{perfil.nome}</span>
+                      <span className="text-[9px] opacity-50">@{perfil.username}</span>
                     </div>
                   </div>
-                );
-              })
-            )}
+
+                  <div className="flex items-center gap-1">
+                    {ehAmigo ? (
+                      <button onClick={() => setChatComUsuario(perfil.username)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white p-2 rounded-xl font-bold flex items-center justify-center transition" title="Abrir Chat">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                      </button>
+                    ) : envieiPedido ? (
+                      <span className="text-[10px] text-amber-500 italic font-semibold px-2">Pendente</span>
+                    ) : recebiPedido ? (
+                      <div className="flex gap-1">
+                        <button onClick={async () => { await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, perfil.username); setPerfisReais(await BancoDeDados.getPerfisCadastrados()); }} className="bg-emerald-500 text-white px-2 py-1 rounded text-[10px] font-bold">Aceitar</button>
+                        <button onClick={async () => { await BancoDeDados.rejeitarPedidoAmizade(usuarioLogado.username, perfil.username); setPerfisReais(await BancoDeDados.getPerfisCadastrados()); }} className="bg-red-500 text-white px-1.5 py-1 rounded text-[10px]">✕</button>
+                      </div>
+                    ) : (
+                      <button onClick={async () => { await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, perfil.username); setPerfisReais(await BancoDeDados.getPerfisCadastrados()); }} className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-xl font-bold transition flex items-center justify-center shadow-sm" title="Adicionar Amigo">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
       <div className="md:col-span-2 space-y-6">
-        <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
+        <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
           <h3 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
             Criar Publicação
@@ -319,7 +311,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             <textarea rows="3" placeholder="Compartilhe algo com a comunidade..." value={pubTexto} onChange={(e) => setPubTexto(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
             {pubImagem && <img src={pubImagem} alt="Preview" className="w-full h-32 object-cover rounded-xl" />}
             <div className="flex justify-between items-center">
-              <label className={`text-xs px-3 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
+              <label className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 Imagem
                 <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files[0]; if(f) { const r = new FileReader(); r.onloadend = () => setPubImagem(r.result); r.readAsDataURL(f); } }} className="hidden" />
@@ -329,89 +321,26 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           </form>
         </div>
 
-        {/* PEDIDOS DE ORAÇÃO GLOBAL */}
-        <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-          <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração</h3>
+        {/* Seção de Pedidos de Oração */}
+        <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+          <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Pedidos de Oração</h3>
           <form onSubmit={criarPedidoOracao} className="flex gap-2">
-            <input 
-              type="text" 
-              placeholder="Compartilhe um pedido de oração..." 
-              value={novoPedidoTexto} 
-              onChange={(e) => setNovoPedidoTexto(e.target.value)} 
-              className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} 
-            />
-            <button type="submit" className="bg-blue-600 text-white text-xs px-4 py-2 rounded-xl font-bold transition hover:bg-blue-700">Pedir Oração</button>
+            <input type="text" placeholder="Compartilhe um pedido de oração..." value={novoPedidoTexto} onChange={(e) => setNovoPedidoTexto(e.target.value)} className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
+            <button type="submit" className="bg-blue-600 text-white text-xs px-4 py-2 rounded-xl font-bold">Pedir Oração</button>
           </form>
-
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {pedidosOracao.length === 0 ? (
-              <p className="text-[11px] opacity-50 text-center py-4">Nenhum pedido de oração no momento. Seja o primeiro a compartilhar!</p>
-            ) : (
-              pedidosOracao.map(p => {
-                const souDonoDoPedido = p.username === usuarioLogado.username;
-
-                return (
-                  <div key={p.id} className={`p-3 rounded-xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-                    <div className="flex-1 min-w-0">
-                      <span className="font-bold text-blue-500 mr-1">@{p.username}:</span>
-                      <span className="break-words">{p.texto}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button 
-                        onClick={() => setPedidosOracao(BancoDeDados.apoiarPedidoOracao(p.id))} 
-                        className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg font-bold transition"
-                      >
-                        ❤️ Apoiar ({p.apoios || 0})
-                      </button>
-
-                      {souDonoDoPedido && (
-                        <button 
-                          onClick={() => {
-                            if (window.confirm('Deseja excluir este pedido de oração?')) {
-                              const atualizados = BancoDeDados.excluirPedidoOracao(p.id);
-                              setPedidosOracao([...atualizados]);
-                            }
-                          }} 
-                          className="text-slate-400 hover:text-red-500 p-1 font-bold transition"
-                          title="Excluir pedido"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {pedidosOracao.map(p => (
+              <div key={p.id} className={`p-3 rounded-xl border flex items-center justify-between text-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div>
+                  <p className="font-bold">@{p.username}: {p.texto}</p>
+                </div>
+                <button onClick={() => setPedidosOracao(BancoDeDados.apoiarPedidoOracao(p.id))} className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1 rounded-lg font-bold transition">
+                  Apoiar ({p.apoios || 0})
+                </button>
+              </div>
+            ))}
           </div>
         </div>
-
-        {sugestoesAmizade.length > 0 && (
-          <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
-            <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Sugestões de Amizade</h3>
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700">
-              {sugestoesAmizade.map(perfil => (
-                <div key={perfil.username} className={`flex-shrink-0 w-36 p-3 rounded-xl border flex flex-col items-center text-center space-y-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-                  <img src={perfil.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-12 h-12 rounded-full object-cover cursor-pointer border border-blue-500" onClick={() => setPerfilSelecionado(perfil)} />
-                  <div className="w-full truncate">
-                    <span className="font-bold text-xs truncate block cursor-pointer hover:text-blue-500" onClick={() => setPerfilSelecionado(perfil)}>{perfil.nome}</span>
-                    <span className="text-[10px] opacity-50 block">@{perfil.username}</span>
-                  </div>
-                  <button 
-                    onClick={async () => { 
-                      await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, perfil.username); 
-                      setPerfisReais(await BancoDeDados.getPerfisCadastrados()); 
-                    }} 
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-[11px] py-1.5 rounded-lg font-bold transition shadow-sm"
-                  >
-                    Adicionar
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div className="space-y-6">
           <h3 className="text-md font-bold opacity-70 flex items-center gap-1.5">
@@ -422,17 +351,13 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             const souDono = post.username === usuarioLogado.username;
             const estaEditando = postEditandoId === post.id;
 
-            const perfilAutorReal = perfisReais.find(p => p.username === post.username) || {};
-            const avatarAtualizado = perfilAutorReal.foto || post.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
-            const nomeAtualizado = perfilAutorReal.nome || post.autor;
-
             return (
-              <div key={post.id} className={`p-6 rounded-2xl border shadow-xs space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+              <div key={post.id} className={`p-6 rounded-2xl border shadow-xs space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { const encontrado = perfisReais.find(p => p.username === post.username || p.nome === post.autor); if (encontrado) setPerfilSelecionado(encontrado); }}>
-                    <img src={avatarAtualizado} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-blue-500/30" />
+                    <img src={post.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
                     <div>
-                      <p className="text-sm font-bold group-hover:text-blue-500 transition">{nomeAtualizado}</p>
+                      <p className="text-sm font-bold group-hover:text-blue-500 transition">{post.autor}</p>
                       <p className="text-[10px] opacity-50">@{post.username || 'usuario'}</p>
                     </div>
                   </div>
