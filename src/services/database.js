@@ -93,7 +93,6 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
-  // --- REAÇÕES DO FEED CORRIGIDAS E BLINDADAS ---
   reagirPublicacao: async (id, tipoReacao, usernameUsuario) => {
     try {
       const pubs = await BancoDeDados.getPublicacoes();
@@ -102,12 +101,10 @@ export const BancoDeDados = {
         let reacoes = p.reacoes || { amem: [], gloria: [], amor: [] };
         if (!reacoes.amem) reacoes = { amem: [], gloria: [], amor: [] };
 
-        // Remove o usuário de todas as reações para alternar corretamente
         Object.keys(reacoes).forEach(tipo => {
           reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== usernameUsuario);
         });
 
-        // Adiciona na nova reação escolhida
         reacoes[tipoReacao].push(usernameUsuario);
         const totalReacoes = (reacoes.amem.length + reacoes.gloria.length + reacoes.amor.length);
 
@@ -239,7 +236,7 @@ export const BancoDeDados = {
     } catch (e) {}
   },
 
-  // --- STORIES COM SUPORTE TOTAL AO SUPABASE ---
+  // --- STORIES COMPATIBILIZADOS ---
   getStories: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/stories?select=*&order=id.desc`, { method: 'GET', headers });
@@ -264,17 +261,24 @@ export const BancoDeDados = {
         tipo: story.tipo || 'imagem',
         textoCompartilhado: story.textoCompartilhado || '',
         temaCompartilhado: story.temaCompartilhado || '',
+        texto_compartilhado: story.textoCompartilhado || '',
+        tema_compartilhado: story.temaCompartilhado || '',
         reacoes: story.reacoes || { amem: [], gloria: [], amor: [] },
         comentarios: story.comentarios || []
       };
 
-      await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
       });
+
+      if (!response.ok) {
+        const errJson = await response.json();
+        console.error("Erro do Supabase ao salvar story:", errJson);
+      }
     } catch (err) {
-      console.error("Erro ao salvar story:", err);
+      console.error("Erro na requisição do story:", err);
     }
     return await BancoDeDados.getStories();
   },
