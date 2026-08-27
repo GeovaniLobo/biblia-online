@@ -9,8 +9,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [perfisReais, setPerfisReais] = useState([]);
   const [notificacoes, setNotificacoes] = useState([]);
   const [pedidosOracao, setPedidosOracao] = useState([]);
-  const [planosLeitura, setPlanosLeitura] = useState([]);
-  const [conquistas, setConquistas] = useState([]);
   
   const [carregandoComunidade, setCarregandoComunidade] = useState(true);
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
@@ -26,6 +24,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [textoEditado, setTextoEditado] = useState('');
   const [temaEditado, setTemaEditado] = useState('');
   const [novoPedidoTexto, setNovoPedidoTexto] = useState('');
+  const [storyTexto, setStoryTexto] = useState('');
 
   useEffect(() => {
     async function carregarDadosIniciais() {
@@ -44,18 +43,14 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
         const st = await BancoDeDados.getStories();
         const pedidos = await BancoDeDados.getPedidosOracao();
-        const planos = BancoDeDados.getPlanosLeitura(usuarioLogado.username);
-        const confs = BancoDeDados.getConquistas(usuarioLogado.username);
 
         setPerfisReais(perfis || []);
         setPublicacoes(pubs || []);
         setNotificacoes(notifs || []);
         setStories(st || []);
         setPedidosOracao(pedidos || []);
-        setPlanosLeitura(planos || []);
-        setConquistas(confs || []);
       } catch (err) {
-        console.error("Erro ao carregar comunidade do Supabase:", err);
+        console.error("Erro ao carregar dados:", err);
       } finally {
         setCarregandoComunidade(false);
       }
@@ -69,11 +64,13 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
         const perfis = await BancoDeDados.getPerfisCadastrados();
         const pedidos = await BancoDeDados.getPedidosOracao();
+        const st = await BancoDeDados.getStories();
 
         setPublicacoes(pubs || []);
         setNotificacoes(notifs || []);
         setPerfisReais(perfis || []);
         setPedidosOracao(pedidos || []);
+        setStories(st || []);
       } catch (e) {}
     }, 5000);
 
@@ -82,17 +79,20 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
   const perfilAtualNoBanco = perfisReais.find(p => p.username === usuarioLogado.username) || { amigos: [], pedidos_enviados: [], pedidos_recebidos: [] };
 
-  const abrirNotificacoes = async () => {
-    setMostrarNotificacoes(!mostrarNotificacoes);
-    if (!mostrarNotificacoes) {
-      await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
-      const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
-      setNotificacoes(notifs || []);
-    }
+  const publicarStory = async () => {
+    if (!storyTexto.trim()) return;
+    const novoStory = {
+      id: Date.now(),
+      autor: usuarioLogado.nome,
+      username: usuarioLogado.username,
+      avatar: usuarioLogado.foto,
+      texto: storyTexto.trim(),
+      visualizadores: []
+    };
+    const atualizados = await BancoDeDados.salvarStory(novoStory);
+    setStories(atualizados || []);
+    setStoryTexto('');
   };
-
-  const hojeStr = new Date().toISOString().slice(5, 10);
-  const aniversariantesHoje = perfisReais.filter(p => p.data_nascimento && p.data_nascimento.slice(5, 10) === hojeStr);
 
   const publicarPost = async (e) => {
     e.preventDefault();
@@ -165,7 +165,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   if (carregandoComunidade) {
     return (
       <div className="flex justify-center items-center h-64">
-        <p className="text-xs opacity-60 animate-pulse">Carregando comunidade na nuvem...</p>
+        <p className="text-xs opacity-60 animate-pulse">Carregando comunidade...</p>
       </div>
     );
   }
@@ -181,225 +181,48 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
     );
   }
 
-  if (chatComUsuario) {
-    return (
-      <div className="space-y-4 max-w-3xl mx-auto w-full">
-        <button onClick={() => setChatComUsuario(null)} className="text-xs text-blue-500 hover:underline font-semibold flex items-center gap-1">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-          Voltar para o Feed
-        </button>
-        <ChatPrivado 
-          destinatario={chatComUsuario} 
-          usuarioLogado={usuarioLogado} 
-          darkMode={darkMode} 
-          onVerPerfil={(perfil) => setPerfilSelecionado(perfil)} 
-        />
-      </div>
-    );
-  }
-
   const naoLidas = notificacoes.filter(n => !n.lida).length;
-
-  const perfisAmigosOuPendentes = perfisReais.filter(p => {
-    if (p.username === usuarioLogado.username) return false;
-    const ehAmigo = perfilAtualNoBanco.amigos?.includes(p.username);
-    const envieiPedido = perfilAtualNoBanco.pedidos_enviados?.includes(p.username);
-    const recebiPedido = perfilAtualNoBanco.pedidos_recebidos?.includes(p.username);
-    return ehAmigo || envieiPedido || recebiPedido;
-  });
-
-  const sugestoesAmizade = perfisReais.filter(p => {
-    if (p.username === usuarioLogado.username) return false;
-    const ehAmigo = perfilAtualNoBanco.amigos?.includes(p.username);
-    const envieiPedido = perfilAtualNoBanco.pedidos_enviados?.includes(p.username);
-    const recebiPedido = perfilAtualNoBanco.pedidos_recebidos?.includes(p.username);
-    return !ehAmigo && !envieiPedido && !recebiPedido;
-  });
+  const amigosLista = perfisReais.filter(p => (perfilAtualNoBanco.amigos || []).includes(p.username));
 
   return (
-    <div className={`space-y-8 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-8 relative ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
-      <div className="space-y-6">
-        <div className={`p-6 rounded-2xl border text-center space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
-          <img src={usuarioLogado.foto} alt="Perfil" className="w-20 h-20 rounded-full object-cover mx-auto border-2 border-blue-500 shadow-md" />
-          <div>
-            <h3 className="text-lg font-bold">{usuarioLogado.nome}</h3>
-            <p className="text-xs text-blue-400 font-semibold">@{usuarioLogado.username}</p>
-            <p className="text-xs opacity-75 mt-1">{usuarioLogado.biografia}</p>
+    <div className={`space-y-6 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6 relative ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+      
+      {/* COLUNA ESQUERDA & CENTRO (FEED E STORIES) */}
+      <div className="lg:col-span-2 space-y-6">
+        
+        {/* STORIES */}
+        <div className={`p-4 rounded-2xl border flex items-center gap-4 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+          <div className="flex flex-col items-center flex-shrink-0 cursor-pointer">
+            <div className="w-14 h-14 rounded-full border-2 border-blue-500 p-0.5 flex items-center justify-center bg-blue-500/10">
+              <img src={usuarioLogado.foto} className="w-full h-full rounded-full object-cover" />
+            </div>
+            <span className="text-[10px] font-bold mt-1">Seu Story</span>
           </div>
 
-          <div className="relative pt-2">
-            <button onClick={abrirNotificacoes} className={`w-full py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-between ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-800'}`}>
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-                Notificações
-              </span>
-              {naoLidas > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{naoLidas}</span>}
-            </button>
+          <div className="flex items-center gap-2">
+            <input 
+              type="text" 
+              placeholder="Criar story rápido..." 
+              value={storyTexto} 
+              onChange={(e) => setStoryTexto(e.target.value)} 
+              className={`text-xs px-3 py-2 rounded-xl border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300'}`}
+            />
+            <button onClick={publicarStory} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-xl font-bold">Publicar</button>
+          </div>
 
-            {mostrarNotificacoes && (
-              <div className={`absolute top-full left-0 right-0 mt-2 p-3 rounded-2xl border shadow-2xl z-50 max-h-60 overflow-y-auto space-y-2 text-left ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-                <h4 className="text-xs font-bold opacity-60 border-b pb-1">Suas Notificações</h4>
-                {notificacoes.length === 0 ? (
-                  <p className="text-xs opacity-50 text-center py-4">Nenhuma notificação por enquanto.</p>
-                ) : (
-                  notificacoes.map((notif, idx) => {
-                    const matchUsername = notif.texto.match(/@([a-zA-Z0-9_]+)/);
-                    const usernameExtraido = matchUsername ? matchUsername[1] : null;
-
-                    return (
-                      <div 
-                        key={idx} 
-                        onClick={() => {
-                          if (usernameExtraido) {
-                            if (notif.tipo === 'mensagem' || notif.texto.includes('mensagem')) {
-                              setChatComUsuario(usernameExtraido);
-                              setMostrarNotificacoes(false);
-                            } else {
-                              const perfilEncontrado = perfisReais.find(p => p.username === usernameExtraido);
-                              if (perfilEncontrado) {
-                                setPerfilSelecionado(perfilEncontrado);
-                                setMostrarNotificacoes(false);
-                              }
-                            }
-                          }
-                        }}
-                        className={`p-2.5 rounded-xl text-xs cursor-pointer transition ${!notif.lida ? 'bg-blue-500/15 font-semibold border border-blue-500/30' : 'opacity-75 hover:opacity-100'} ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}
-                      >
-                        <p>{notif.texto}</p>
-                        <span className="text-[9px] opacity-40 block mt-0.5">{notif.horario}</span>
-                      </div>
-                    );
-                  })
-                )}
+          {stories.map(st => (
+            <div key={st.id} className="flex flex-col items-center flex-shrink-0">
+              <div className="w-14 h-14 rounded-full border-2 border-purple-500 p-0.5 flex items-center justify-center bg-purple-500/10">
+                <img src={st.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover" />
               </div>
-            )}
-          </div>
+              <span className="text-[10px] font-bold mt-1 truncate max-w-[60px]">{st.autor}</span>
+            </div>
+          ))}
         </div>
 
-        {/* PLANOS DE LEITURA EM GRUPO (Item 4) */}
-        <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
-          <h4 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
-            📖 Planos de Leitura
-          </h4>
-          <div className="space-y-3">
-            {planosLeitura.map(plano => {
-              const progresso = Math.round((plano.diasConcluidos / plano.totalDias) * 100);
-              return (
-                <div key={plano.id} className={`p-3 rounded-xl border space-y-2 ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                  <div className="flex justify-between items-center text-xs font-bold">
-                    <span>{plano.nome}</span>
-                    <span className="text-blue-500">{progresso}%</span>
-                  </div>
-                  <div className="w-full bg-slate-700/30 h-2 rounded-full overflow-hidden">
-                    <div className="bg-blue-600 h-full transition-all" style={{ width: `${progresso}%` }}></div>
-                  </div>
-                  <div className="flex justify-between items-center text-[10px] opacity-75">
-                    <span>Dia {plano.diasConcluidos} de {plano.totalDias}</span>
-                    <button 
-                      onClick={() => {
-                        const atualizados = BancoDeDados.salvarProgressoPlano(usuarioLogado.username, plano.id);
-                        setPlanosLeitura([...atualizados]);
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-lg font-bold"
-                    >
-                      Avançar Dia +1
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* CONQUISTAS E MEDALHAS (Item 10) */}
-        <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
-          <h4 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
-            🏆 Conquistas & Medalhas
-          </h4>
-          <div className="grid grid-cols-2 gap-2">
-            {conquistas.map(c => (
-              <div key={c.id} className={`p-2.5 rounded-xl border flex flex-col items-center text-center space-y-1 ${c.desbloqueada ? 'border-amber-500/50 bg-amber-500/10' : 'opacity-40 border-slate-700'}`}>
-                <span className="text-2xl">{c.icone}</span>
-                <span className="font-bold text-[11px]">{c.titulo}</span>
-                <span className="text-[9px] opacity-75 leading-tight">{c.desc}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {aniversariantesHoje.length > 0 && (
-          <div className={`p-4 rounded-2xl border space-y-2 text-center ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-amber-50 border-amber-200 text-slate-900'}`}>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-500">Aniversariantes de Hoje</h4>
-            {aniversariantesHoje.map(aniv => (
-              <div key={aniv.username} className="flex items-center justify-center gap-2">
-                <img src={aniv.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover" />
-                <span className="text-xs font-bold">{aniv.nome}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
+        {/* CRIAR PUBLICAÇÃO */}
         <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
-          <h4 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
-            Amigos & Pedidos
-          </h4>
-          <div className="space-y-2 max-h-72 overflow-y-auto">
-            {perfisAmigosOuPendentes.length === 0 ? (
-              <p className="text-[11px] opacity-50 text-center py-4">Nenhum amigo adicionado ainda.</p>
-            ) : (
-              perfisAmigosOuPendentes.map((perfil) => {
-                const ehAmigo = perfilAtualNoBanco.amigos?.includes(perfil.username);
-                const envieiPedido = perfilAtualNoBanco.pedidos_enviados?.includes(perfil.username);
-                const recebiPedido = perfilAtualNoBanco.pedidos_recebidos?.includes(perfil.username);
-
-                const mensagensNaoLidasDoAmigo = notificacoes.filter(
-                  n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${perfil.username}`)
-                ).length;
-
-                return (
-                  <div key={perfil.username} className={`flex items-center justify-between text-xs p-2.5 rounded-xl border ${darkMode ? 'bg-slate-800/40 border-slate-700/50 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => setPerfilSelecionado(perfil)}>
-                      <img src={perfil.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-7 h-7 rounded-full object-cover" />
-                      <div>
-                        <span className="font-bold hover:text-blue-500 truncate block max-w-[80px]">{perfil.nome}</span>
-                        <span className="text-[9px] opacity-50">@{perfil.username}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      {ehAmigo ? (
-                        <div className="relative">
-                          <button onClick={() => setChatComUsuario(perfil.username)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white p-2 rounded-xl font-bold flex items-center justify-center transition" title="Abrir Chat">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                          </button>
-                          {mensagensNaoLidasDoAmigo > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-md">
-                              {mensagensNaoLidasDoAmigo}
-                            </span>
-                          )}
-                        </div>
-                      ) : envieiPedido ? (
-                        <span className="text-[10px] text-amber-500 italic font-semibold px-2">Pendente</span>
-                      ) : recebiPedido ? (
-                        <div className="flex gap-1">
-                          <button onClick={async () => { await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, perfil.username); setPerfisReais(await BancoDeDados.getPerfisCadastrados()); }} className="bg-emerald-500 text-white px-2 py-1 rounded text-[10px] font-bold">Aceitar</button>
-                          <button onClick={async () => { await BancoDeDados.rejeitarPedidoAmizade(usuarioLogado.username, perfil.username); setPerfisReais(await BancoDeDados.getPerfisCadastrados()); }} className="bg-red-500 text-white px-1.5 py-1 rounded text-[10px]">✕</button>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="md:col-span-2 space-y-6">
-        <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
-          <h3 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
-            Criar Publicação
-          </h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Criar Publicação</h3>
           <form onSubmit={publicarPost} className="space-y-3">
             <input type="text" placeholder="Tema da publicação..." value={pubTema} onChange={(e) => setPubTema(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border font-bold ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
             <textarea rows="3" placeholder="Compartilhe algo com a comunidade..." value={pubTexto} onChange={(e) => setPubTexto(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
@@ -414,7 +237,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           </form>
         </div>
 
-        {/* PEDIDOS DE ORAÇÃO GLOBAL */}
+        {/* MURAL DE PEDIDOS DE ORAÇÃO */}
         <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
           <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração</h3>
           <form onSubmit={criarPedidoOracao} className="flex gap-2">
@@ -430,11 +253,10 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {pedidosOracao.length === 0 ? (
-              <p className="text-[11px] opacity-50 text-center py-4">Nenhum pedido de oração no momento. Seja o primeiro a compartilhar!</p>
+              <p className="text-[11px] opacity-50 text-center py-4">Nenhum pedido de oração no momento.</p>
             ) : (
               pedidosOracao.map(p => {
                 const souDonoDoPedido = p.username === usuarioLogado.username;
-
                 return (
                   <div key={p.id} className={`p-3 rounded-xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
                     <div className="flex-1 min-w-0">
@@ -443,29 +265,11 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <button 
-                        onClick={async () => {
-                          const atualizados = await BancoDeDados.apoiarPedidoOracao(p.id);
-                          setPedidosOracao(atualizados || []);
-                        }} 
-                        className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg font-bold transition"
-                      >
+                      <button onClick={async () => { const atualizados = await BancoDeDados.apoiarPedidoOracao(p.id); setPedidosOracao(atualizados || []); }} className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg font-bold transition">
                         ❤️ Apoiar ({p.apoios || 0})
                       </button>
-
                       {souDonoDoPedido && (
-                        <button 
-                          onClick={async () => {
-                            if (window.confirm('Deseja excluir este pedido de oração?')) {
-                              const atualizados = await BancoDeDados.excluirPedidoOracao(p.id);
-                              setPedidosOracao(atualizados || []);
-                            }
-                          }} 
-                          className="text-slate-400 hover:text-red-500 p-1 font-bold transition"
-                          title="Excluir pedido"
-                        >
-                          ✕
-                        </button>
+                        <button onClick={async () => { if (window.confirm('Excluir pedido?')) { const atualizados = await BancoDeDados.excluirPedidoOracao(p.id); setPedidosOracao(atualizados || []); }}} className="text-slate-400 hover:text-red-500 p-1 font-bold transition">✕</button>
                       )}
                     </div>
                   </div>
@@ -475,40 +279,12 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           </div>
         </div>
 
-        {sugestoesAmizade.length > 0 && (
-          <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
-            <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Sugestões de Amizade</h3>
-            <div className="flex gap-4 overflow-x-auto pb-2">
-              {sugestoesAmizade.map(perfil => (
-                <div key={perfil.username} className={`flex-shrink-0 w-36 p-3 rounded-xl border flex flex-col items-center text-center space-y-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-                  <img src={perfil.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-12 h-12 rounded-full object-cover cursor-pointer border border-blue-500" onClick={() => setPerfilSelecionado(perfil)} />
-                  <div className="w-full truncate">
-                    <span className="font-bold text-xs truncate block cursor-pointer hover:text-blue-500" onClick={() => setPerfilSelecionado(perfil)}>{perfil.nome}</span>
-                    <span className="text-[10px] opacity-50 block">@{perfil.username}</span>
-                  </div>
-                  <button 
-                    onClick={async () => { 
-                      await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, perfil.username); 
-                      setPerfisReais(await BancoDeDados.getPerfisCadastrados()); 
-                    }} 
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-[11px] py-1.5 rounded-lg font-bold transition shadow-sm"
-                  >
-                    Adicionar
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
+        {/* FEED */}
         <div className="space-y-6">
-          <h3 className="text-md font-bold opacity-70 flex items-center gap-1.5">
-            Feed da Comunidade
-          </h3>
+          <h3 className="text-md font-bold opacity-70">Feed da Comunidade</h3>
           {publicacoes.map((post) => {
             const souDono = post.username === usuarioLogado.username;
             const estaEditando = postEditandoId === post.id;
-
             const perfilAutorReal = perfisReais.find(p => p.username === post.username) || {};
             const avatarAtualizado = perfilAutorReal.foto || post.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
             const nomeAtualizado = perfilAutorReal.nome || post.autor;
@@ -521,7 +297,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             return (
               <div key={post.id} className={`p-6 rounded-2xl border shadow-xs space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { const encontrado = perfisReais.find(p => p.username === post.username || p.nome === post.autor); if (encontrado) setPerfilSelecionado(encontrado); }}>
+                  <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { const encontrado = perfisReais.find(p => p.username === post.username); if (encontrado) setPerfilSelecionado(encontrado); }}>
                     <img src={avatarAtualizado} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-blue-500/30" />
                     <div>
                       <p className="text-sm font-bold group-hover:text-blue-500 transition">{nomeAtualizado}</p>
@@ -554,24 +330,14 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                   </div>
                 )}
 
-                {/* REAÇÕES BÍBLICAS MÚLTIPLAS (Item 7) */}
                 <div className="flex items-center gap-2 pt-2 border-t border-slate-700/50">
-                  <button 
-                    onClick={() => reagir(post.id, 'amem')} 
-                    className={`text-xs px-3 py-1 rounded-lg font-bold border transition ${meuAmem ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800/40 text-slate-300 border-slate-700'}`}
-                  >
+                  <button onClick={() => reagir(post.id, 'amem')} className={`text-xs px-3 py-1 rounded-lg font-bold border transition ${meuAmem ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800/40 text-slate-300 border-slate-700'}`}>
                     ❤️ Amém ({(reacoes.amem || []).length})
                   </button>
-                  <button 
-                    onClick={() => reagir(post.id, 'gloria')} 
-                    className={`text-xs px-3 py-1 rounded-lg font-bold border transition ${meuGloria ? 'bg-amber-600 text-white border-amber-500' : 'bg-slate-800/40 text-slate-300 border-slate-700'}`}
-                  >
+                  <button onClick={() => reagir(post.id, 'gloria')} className={`text-xs px-3 py-1 rounded-lg font-bold border transition ${meuGloria ? 'bg-amber-600 text-white border-amber-500' : 'bg-slate-800/40 text-slate-300 border-slate-700'}`}>
                     🙌 Glória ({(reacoes.gloria || []).length})
                   </button>
-                  <button 
-                    onClick={() => reagir(post.id, 'amor')} 
-                    className={`text-xs px-3 py-1 rounded-lg font-bold border transition ${meuAmor ? 'bg-pink-600 text-white border-pink-500' : 'bg-slate-800/40 text-slate-300 border-slate-700'}`}
-                  >
+                  <button onClick={() => reagir(post.id, 'amor')} className={`text-xs px-3 py-1 rounded-lg font-bold border transition ${meuAmor ? 'bg-pink-600 text-white border-pink-500' : 'bg-slate-800/40 text-slate-300 border-slate-700'}`}>
                     ✨ Amor ({(reacoes.amor || []).length})
                   </button>
                 </div>
@@ -585,6 +351,41 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           })}
         </div>
       </div>
+
+      {/* COLUNA DIREITA (CHAT LATERAL E AMIGOS) */}
+      <div className="space-y-6">
+        <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>
+          <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
+
+          {chatComUsuario ? (
+            <div className="space-y-3">
+              <button onClick={() => setChatComUsuario(null)} className="text-xs text-blue-500 hover:underline font-semibold">← Fechar Chat</button>
+              <ChatPrivado destinatario={chatComUsuario} usuarioLogado={usuarioLogado} darkMode={darkMode} onVerPerfil={(p) => setPerfilSelecionado(p)} />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs opacity-60">Selecione um amigo abaixo para conversar:</p>
+              {amigosLista.length === 0 ? (
+                <p className="text-xs opacity-40 text-center py-6">Nenhum amigo conectado no chat ainda.</p>
+              ) : (
+                amigosLista.map(amigo => (
+                  <div key={amigo.username} onClick={() => setChatComUsuario(amigo.username)} className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}>
+                    <div className="flex items-center gap-2">
+                      <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover" />
+                      <div>
+                        <p className="text-xs font-bold">{amigo.nome}</p>
+                        <p className="text-[10px] opacity-50">@{amigo.username}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded-lg font-bold">Abrir Chat</span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 }
