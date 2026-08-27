@@ -3,77 +3,72 @@ import { BancoDeDados } from '../services/database';
 
 export default function ChatPrivado({ destinatario, usuarioLogado, darkMode }) {
   const [mensagens, setMensagens] = useState([]);
-  const [texto, setTexto] = useState('');
+  const [textoMensagem, setTextoMensagem] = useState('');
+  const [perfilAlvoObj, setPerfilAlvoObj] = useState(null);
 
   useEffect(() => {
-    let montado = true;
+    async function carregar() {
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      const alvo = perfis.find(p => p.username === destinatario);
+      setPerfilAlvoObj(alvo);
 
-    const buscarMensagens = async () => {
-      const dados = await BancoDeDados.getMensagensChat(usuarioLogado.username, destinatario);
-      if (montado) {
-        setMensagens(dados || []);
-      }
-    };
+      const msgs = await BancoDeDados.getMensagensChat(usuarioLogado.username, destinatario);
+      setMensagens(msgs);
+    }
+    carregar();
 
-    buscarMensagens();
+    // Polling automático para mensagens em tempo real (sem F5)
+    const intervalo = setInterval(async () => {
+      const msgs = await BancoDeDados.getMensagensChat(usuarioLogado.username, destinatario);
+      setMensagens(msgs);
+    }, 3000);
 
-    // Atualiza a cada 2 segundos para buscar novas mensagens da nuvem em tempo real
-    const intervalo = setInterval(buscarMensagens, 2000);
-    return () => {
-      montado = false;
-      clearInterval(intervalo);
-    };
-  }, [destinatario, usuarioLogado.username]);
+    return () => clearInterval(intervalo);
+  }, [destinatario, usuarioLogado]);
 
-  const enviarMensagem = async (e) => {
+  const enviar = async (e) => {
     e.preventDefault();
-    if (!texto.trim()) return;
+    if (!textoMensagem.trim()) return;
 
-    const novaMensagem = {
+    const nova = {
       id: Date.now(),
       remetente: usuarioLogado.username,
       destinatario: destinatario,
-      texto: texto.trim(),
+      texto: textoMensagem.trim(),
       horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setTexto('');
-    await BancoDeDados.enviarMensagemChat(novaMensagem);
-    
-    // Atualiza imediatamente a lista local
-    const atualizadas = await BancoDeDados.getMensagensChat(usuarioLogado.username, destinatario);
-    setMensagens(atualizadas || []);
+    await BancoDeDados.enviarMensagemChat(nova);
+    setTextoMensagem('');
+    const msgs = await BancoDeDados.getMensagensChat(usuarioLogado.username, destinatario);
+    setMensagens(msgs);
   };
 
   return (
-    <div className={`flex flex-col h-[75vh] rounded-2xl border shadow-md overflow-hidden ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-      
-      {/* Cabeçalho do Chat */}
-      <div className={`p-4 border-b flex items-center gap-3 ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
-        <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-sm">
-          {destinatario.charAt(0).toUpperCase()}
-        </div>
+    <div className={`p-6 rounded-2xl border shadow-md space-y-4 max-w-2xl mx-auto w-full ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+      <div className="flex items-center gap-3 border-b pb-4 border-slate-700/50">
+        <img 
+          src={perfilAlvoObj?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
+          alt="Perfil" 
+          className="w-10 h-10 rounded-full object-cover border-2 border-blue-500 shadow-xs" 
+        />
         <div>
-          <h3 className="text-sm font-bold">@{destinatario}</h3>
-          <p className="text-[10px] text-emerald-500 font-semibold">● Online na Nuvem</p>
+          <h3 className="font-bold text-sm">{perfilAlvoObj?.nome || destinatario}</h3>
+          <p className="text-[10px] text-blue-400 font-semibold">@{destinatario}</p>
         </div>
       </div>
 
-      {/* Lista de Mensagens */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-3">
+      <div className="h-80 overflow-y-auto space-y-3 p-3 rounded-xl bg-slate-800/10 border border-slate-700/20">
         {mensagens.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center opacity-50 space-y-1">
-            <p className="text-xs">Nenhuma mensagem na nuvem ainda.</p>
-            <p className="text-[10px]">Envie uma saudação para iniciar a conversa!</p>
-          </div>
+          <p className="text-xs opacity-50 text-center py-20">Inicie uma conversa em tempo real com @{destinatario}!</p>
         ) : (
-          mensagens.map((msg) => {
-            const souEu = msg.remetente === usuarioLogado.username;
+          mensagens.map((msg, idx) => {
+            const minhaMsg = msg.remetente === usuarioLogado.username;
             return (
-              <div key={msg.id} className={`flex ${souEu ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[75%] p-3 rounded-2xl text-xs space-y-1 shadow-sm ${souEu ? 'bg-blue-600 text-white rounded-br-xs' : darkMode ? 'bg-slate-800 text-slate-200 rounded-bl-xs' : 'bg-slate-100 text-slate-800 rounded-bl-xs'}`}>
-                  <p className="leading-relaxed break-words">{msg.texto}</p>
-                  <span className={`block text-[9px] text-right ${souEu ? 'text-blue-200' : 'opacity-40'}`}>{msg.horario}</span>
+              <div key={idx} className={`flex flex-col ${minhaMsg ? 'items-end' : 'items-start'}`}>
+                <div className={`max-w-xs p-3 rounded-2xl text-xs shadow-sm ${minhaMsg ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'}`}>
+                  <p>{msg.texto}</p>
+                  <span className="text-[9px] opacity-60 block text-right mt-1">{msg.horario}</span>
                 </div>
               </div>
             );
@@ -81,23 +76,19 @@ export default function ChatPrivado({ destinatario, usuarioLogado, darkMode }) {
         )}
       </div>
 
-      {/* Formulário de Envio */}
-      <form onSubmit={enviarMensagem} className={`p-3 border-t flex gap-2 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-        <input
-          type="text"
-          placeholder="Digite sua mensagem..."
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          className={`flex-1 text-xs rounded-xl px-4 py-3 border focus:outline-none focus:ring-2 focus:ring-blue-500 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-300'}`}
+      <form onSubmit={enviar} className="flex gap-2">
+        <input 
+          type="text" 
+          placeholder="Digite sua mensagem..." 
+          value={textoMensagem} 
+          onChange={(e) => setTextoMensagem(e.target.value)} 
+          className={`w-full text-xs rounded-xl px-4 py-3 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} 
         />
-        <button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-3 rounded-xl text-xs transition shadow-md"
-        >
-          Enviar 🚀
+        <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md">
+          Enviar
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
         </button>
       </form>
-
     </div>
   );
 }

@@ -8,6 +8,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [stories, setStories] = useState([]);
   const [perfisReais, setPerfisReais] = useState([]);
   const [notificacoes, setNotificacoes] = useState([]);
+  const [pedidosOracao, setPedidosOracao] = useState([]);
   
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
   const [chatComUsuario, setChatComUsuario] = useState(null);
@@ -29,6 +30,8 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [autorStoryAtivo, setAutorStoryAtivo] = useState(null);
   const [indiceStoryAtual, setIndiceStoryAtual] = useState(0);
 
+  const [novoPedidoTexto, setNovoPedidoTexto] = useState('');
+
   useEffect(() => {
     async function carregarDadosIniciais() {
       await BancoDeDados.salvarNovoPerfilNaRede({
@@ -44,10 +47,23 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
       setPerfisReais(perfis);
       setPublicacoes(pubs);
-      setStories(BancoDeDados.getStories());
       setNotificacoes(notifs);
+      setStories(BancoDeDados.getStories());
+      setPedidosOracao(BancoDeDados.getPedidosOracao());
     }
     carregarDadosIniciais();
+
+    // Polling automático a cada 4 segundos para tempo real (feed, notificações e contadores)
+    const intervalo = setInterval(async () => {
+      const pubs = await BancoDeDados.getPublicacoes();
+      const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      setPublicacoes(pubs);
+      setNotificacoes(notifs);
+      setPerfisReais(perfis);
+    }, 4000);
+
+    return () => clearInterval(intervalo);
   }, [usuarioLogado]);
 
   const perfilAtualNoBanco = perfisReais.find(p => p.username === usuarioLogado.username) || { amigos: [], pedidos_enviados: [], pedidos_recebidos: [] };
@@ -60,6 +76,9 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
       setNotificacoes(notifs);
     }
   };
+
+  const hojeStr = new Date().toISOString().slice(5, 10); // MM-DD
+  const aniversariantesHoje = perfisReais.filter(p => p.data_nascimento && p.data_nascimento.slice(5, 10) === hojeStr);
 
   const storiesAgrupados = stories.reduce((acc, story) => {
     const key = story.username || story.autor;
@@ -154,6 +173,21 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
     }
   };
 
+  const criarPedidoOracao = (e) => {
+    e.preventDefault();
+    if (!novoPedidoTexto.trim()) return;
+    const pedido = {
+      id: Date.now(),
+      autor: usuarioLogado.nome,
+      username: usuarioLogado.username,
+      texto: novoPedidoTexto.trim(),
+      apoios: 0
+    };
+    const atualizados = BancoDeDados.salvarPedidoOracao(pedido);
+    setPedidosOracao(atualizados);
+    setNovoPedidoTexto('');
+  };
+
   if (perfilSelecionado) {
     return (
       <PerfilPublico
@@ -169,7 +203,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
     return (
       <div className="space-y-4 max-w-3xl mx-auto w-full">
         <button onClick={() => setChatComUsuario(null)} className="text-xs text-blue-500 hover:underline font-semibold flex items-center gap-1">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round5" d="M15 19l-7-7 7-7" /></svg>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
           Voltar para o Feed
         </button>
         <ChatPrivado destinatario={chatComUsuario} usuarioLogado={usuarioLogado} darkMode={darkMode} />
@@ -222,6 +256,19 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           </div>
         </div>
 
+        {/* Seção Aniversariantes do Dia */}
+        {aniversariantesHoje.length > 0 && (
+          <div className={`p-4 rounded-2xl border space-y-2 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-amber-50 border-amber-200'}`}>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-500">Aniversariantes de Hoje</h4>
+            {aniversariantesHoje.map(aniv => (
+              <div key={aniv.username} className="flex items-center justify-center gap-2">
+                <img src={aniv.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover" />
+                <span className="text-xs font-bold">{aniv.nome}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
           <h4 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-1.5">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
@@ -245,9 +292,8 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
                   <div className="flex items-center gap-1">
                     {ehAmigo ? (
-                      <button onClick={() => setChatComUsuario(perfil.username)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-2 py-1 rounded-lg font-bold flex items-center gap-1 text-[11px]">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                        Chat
+                      <button onClick={() => setChatComUsuario(perfil.username)} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white p-2 rounded-xl font-bold flex items-center justify-center transition" title="Abrir Chat">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                       </button>
                     ) : envieiPedido ? (
                       <span className="text-[10px] text-amber-500 italic font-semibold px-2">Pendente</span>
@@ -257,8 +303,8 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                         <button onClick={async () => { await BancoDeDados.rejeitarPedidoAmizade(usuarioLogado.username, perfil.username); setPerfisReais(await BancoDeDados.getPerfisCadastrados()); }} className="bg-red-500 text-white px-1.5 py-1 rounded text-[10px]">✕</button>
                       </div>
                     ) : (
-                      <button onClick={async () => { await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, perfil.username); setPerfisReais(await BancoDeDados.getPerfisCadastrados()); }} className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] flex items-center gap-0.5">
-                        <span>+</span> Adicionar
+                      <button onClick={async () => { await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, perfil.username); setPerfisReais(await BancoDeDados.getPerfisCadastrados()); }} className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-xl font-bold transition flex items-center justify-center shadow-sm" title="Adicionar Amigo">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
                       </button>
                     )}
                   </div>
@@ -276,8 +322,8 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             Criar Publicação
           </h3>
           <form onSubmit={publicarPost} className="space-y-3">
-            <input type="text" placeholder="Tema..." value={pubTema} onChange={(e) => setPubTema(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border font-bold ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
-            <textarea rows="3" placeholder="Compartilhe algo..." value={pubTexto} onChange={(e) => setPubTexto(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
+            <input type="text" placeholder="Tema da publicação..." value={pubTema} onChange={(e) => setPubTema(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border font-bold ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
+            <textarea rows="3" placeholder="Compartilhe algo com a comunidade..." value={pubTexto} onChange={(e) => setPubTexto(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
             {pubImagem && <img src={pubImagem} alt="Preview" className="w-full h-32 object-cover rounded-xl" />}
             <div className="flex justify-between items-center">
               <label className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition">
@@ -290,14 +336,22 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           </form>
         </div>
 
-        <div className={`p-4 rounded-2xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {listaAutoresStories.map((grupo) => (
-              <div key={grupo.username || grupo.autor} onClick={() => abrirGrupoStories(grupo)} className="flex flex-col items-center flex-shrink-0 w-20 text-center cursor-pointer group">
-                <div className="w-14 h-14 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 to-pink-500">
-                  <img src={grupo.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-full h-full object-cover rounded-full" />
+        {/* Seção de Pedidos de Oração */}
+        <div className={`p-5 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+          <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Pedidos de Oração</h3>
+          <form onSubmit={criarPedidoOracao} className="flex gap-2">
+            <input type="text" placeholder="Compartilhe um pedido de oração..." value={novoPedidoTexto} onChange={(e) => setNovoPedidoTexto(e.target.value)} className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
+            <button type="submit" className="bg-blue-600 text-white text-xs px-4 py-2 rounded-xl font-bold">Pedir Oração</button>
+          </form>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {pedidosOracao.map(p => (
+              <div key={p.id} className={`p-3 rounded-xl border flex items-center justify-between text-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div>
+                  <p className="font-bold">@{p.username}: {p.texto}</p>
                 </div>
-                <span className="text-[11px] mt-1 truncate w-full font-semibold">{grupo.autor}</span>
+                <button onClick={() => setPedidosOracao(BancoDeDados.apoiarPedidoOracao(p.id))} className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1 rounded-lg font-bold transition">
+                  Apoiar ({p.apoios || 0})
+                </button>
               </div>
             ))}
           </div>
@@ -315,13 +369,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             return (
               <div key={post.id} className={`p-6 rounded-2xl border shadow-xs space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className="flex items-center justify-between">
-                  <div 
-                    className="flex items-center gap-3 cursor-pointer group" 
-                    onClick={() => { 
-                      const encontrado = perfisReais.find(p => p.username === post.username || p.nome === post.autor); 
-                      if (encontrado) setPerfilSelecionado(encontrado);
-                    }}
-                  >
+                  <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { const encontrado = perfisReais.find(p => p.username === post.username || p.nome === post.autor); if (encontrado) setPerfilSelecionado(encontrado); }}>
                     <img src={post.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
                     <div>
                       <p className="text-sm font-bold group-hover:text-blue-500 transition">{post.autor}</p>
@@ -331,8 +379,8 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
                   {souDono && !estaEditando && (
                     <div className="flex gap-2">
-                      <button onClick={() => { setPostEditandoId(post.id); setTextoEditado(post.texto); setTemaEditado(post.tema); }} className="text-xs text-blue-400 hover:underline font-semibold flex items-center gap-1">Editar</button>
-                      <button onClick={() => excluirPost(post.id)} className="text-xs text-red-400 hover:underline font-semibold flex items-center gap-1">Excluir</button>
+                      <button onClick={() => { setPostEditandoId(post.id); setTextoEditado(post.texto); setTemaEditado(post.tema); }} className="text-xs text-blue-400 hover:underline font-semibold">Editar</button>
+                      <button onClick={() => excluirPost(post.id)} className="text-xs text-red-400 hover:underline font-semibold">Excluir</button>
                     </div>
                   )}
                 </div>
@@ -370,37 +418,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           })}
         </div>
       </div>
-
-      {modalStoryAberto && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className={`w-full max-w-md p-6 rounded-2xl border ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            <h3 className="text-lg font-bold mb-4">Adicionar Story</h3>
-            <form onSubmit={publicarStory} className="space-y-4">
-              <textarea rows="3" placeholder="Texto..." value={storyTexto} onChange={(e) => setStoryTexto(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
-              <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files[0]; if(f) { const r = new FileReader(); r.onloadend = () => setStoryImagem(r.result); r.readAsDataURL(f); } }} className="text-xs" />
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setModalStoryAberto(false)} className="text-xs opacity-70">Cancelar</button>
-                <button type="submit" className="bg-blue-600 text-white px-4 py-2 text-xs rounded-xl font-bold">Publicar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {autorStoryAtivo !== null && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
-          <div className="relative w-full max-w-sm h-[80vh] bg-slate-900 rounded-3xl overflow-hidden border border-slate-700 flex flex-col justify-between p-6 text-white">
-            <button onClick={() => setAutorStoryAtivo(null)} className="absolute top-4 right-4 text-lg font-bold">✕</button>
-            <div className="flex-1 flex items-center justify-center text-center">
-              <p className="text-xl">"{autorStoryAtivo.itens[indiceStoryAtual].texto}"</p>
-            </div>
-            <div className="bg-black/80 p-3 rounded-xl text-center text-xs">
-              <p className="font-bold mb-1">Visto por ({autorStoryAtivo.itens[indiceStoryAtual].visualizadores?.length || 0}):</p>
-              {autorStoryAtivo.itens[indiceStoryAtual].visualizadores?.join(', ') || 'Ninguém ainda'}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

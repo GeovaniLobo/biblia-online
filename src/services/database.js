@@ -126,7 +126,6 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
-  // Gerenciamento de Amizades via Supabase
   enviarPedidoAmizade: async (usernameRemetente, usernameDestinatario) => {
     try {
       const perfis = await BancoDeDados.getPerfisCadastrados();
@@ -218,7 +217,6 @@ export const BancoDeDados = {
     }
   },
 
-  // Mensagens de Chat em Tempo Real
   getMensagensChat: async (usuarioA, usuarioB) => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat?select=*&or=(and(remetente.eq.${usuarioA},destinatario.eq.${usuarioB}),and(remetente.eq.${usuarioB},destinatario.eq.${usuarioA}))&order=id.asc`, {
@@ -251,7 +249,6 @@ export const BancoDeDados = {
     }
   },
 
-  // Notificações na Nuvem (Supabase)
   getNotificacoes: async (username) => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?select=*&destinatario=eq.${username}&order=id.desc`, {
@@ -295,7 +292,6 @@ export const BancoDeDados = {
     } catch (e) {}
   },
 
-  // Stories (LocalStorage auxiliar)
   getStories: () => {
     const s = localStorage.getItem('supa_stories');
     return s ? JSON.parse(s) : [];
@@ -318,5 +314,23 @@ export const BancoDeDados = {
       return st;
     });
     localStorage.setItem('supa_stories', JSON.stringify(atualizados));
+  },
+
+  // Pedidos de Oração
+  getPedidosOracao: () => {
+    const p = localStorage.getItem('supa_pedidos_oracao');
+    return p ? JSON.parse(p) : [];
+  },
+  salvarPedidoOracao: (pedido) => {
+    const atual = BancoDeDados.getPedidosOracao();
+    const novos = [pedido, ...atual];
+    localStorage.setItem('supa_pedidos_oracao', JSON.stringify(novos));
+    return novos;
+  },
+  apoiarPedidoOracao: (id) => {
+    const atual = BancoDeDados.getPedidosOracao();
+    const novos = atual.map(p => p.id === id ? { ...p, apoios: (p.apoios || 0) + 1 } : p);
+    localStorage.setItem('supa_pedidos_oracao', JSON.stringify(novos));
+    return novos;
   }
 };
