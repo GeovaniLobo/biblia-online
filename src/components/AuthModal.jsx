@@ -113,7 +113,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
       }
     } catch (err) {
       console.error("Erro detalhado no cadastro:", err);
-      // Exibe o erro técnico exato na tela para sabermos se é algo do banco ou da rede
       setErro(`Erro técnico: ${err.message || JSON.stringify(err)}`);
     } finally {
       setCarregando(false);
@@ -132,7 +131,10 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
         </button>
 
         <div className="text-center mb-6">
-          <h2 className="text-xl font-bold tracking-tight">Bíblia Online 📖</h2>
+          <h2 className="text-xl font-bold tracking-tight flex items-center justify-center gap-2">
+            Bíblia Online
+            <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+          </h2>
           <p className="text-xs text-slate-400 mt-1">Comunidade Global de Fé e Conexões</p>
         </div>
 
@@ -168,8 +170,9 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
                   alt="Preview" 
                   className="w-20 h-20 rounded-full object-cover border-2 border-blue-500 shadow-md" 
                 />
-                <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition shadow-md">
-                  📁 Escolher Foto do Dispositivo
+                <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition shadow-md flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  Escolher Foto do Dispositivo
                   <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                 </label>
               </div>
@@ -178,7 +181,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
                 <label className="block text-[11px] font-bold uppercase tracking-wider mb-1 opacity-70">Seu Nome Completo</label>
                 <input
                   type="text"
-                  placeholder="Ex: Geovani Lobo"
+                  placeholder="Digite seu nome completo"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
                   required={!isLogin}
@@ -202,7 +205,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
             <label className="block text-[11px] font-bold uppercase tracking-wider mb-1 opacity-70">Seu @ (Usuário)</label>
             <input
               type="text"
-              placeholder="Ex: geovanilobo"
+              placeholder="Digite seu nome de usuário"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -214,7 +217,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
             <label className="block text-[11px] font-bold uppercase tracking-wider mb-1 opacity-70">Senha</label>
             <input
               type="password"
-              placeholder="Sua senha"
+              placeholder="Digite sua senha"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               required
@@ -225,9 +228,12 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
           <button
             type="submit"
             disabled={carregando}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow-lg text-xs tracking-wide disabled:opacity-50 mt-2"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow-lg text-xs tracking-wide disabled:opacity-50 mt-2 flex items-center justify-center gap-1.5"
           >
-            {carregando ? 'Aguarde...' : isLogin ? 'Entrar na Comunidade 🚀' : 'Cadastrar e Entrar ✨'}
+            {carregando ? 'Aguarde...' : isLogin ? 'Entrar na Comunidade' : 'Cadastrar e Entrar'}
+            {!carregando && (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+            )}
           </button>
         </form>
 

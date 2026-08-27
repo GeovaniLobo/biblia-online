@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BancoDeDados } from '../services/database';
 
-export default function ChatPrivado({ destinatario, usuarioLogado, darkMode }) {
+export default function ChatPrivado({ destinatario, usuarioLogado, darkMode, onVerPerfil }) {
   const [mensagens, setMensagens] = useState([]);
   const [textoMensagem, setTextoMensagem] = useState('');
   const [perfilAlvoObj, setPerfilAlvoObj] = useState(null);
@@ -17,7 +17,6 @@ export default function ChatPrivado({ destinatario, usuarioLogado, darkMode }) {
     }
     carregar();
 
-    // Polling automático para mensagens em tempo real (sem F5)
     const intervalo = setInterval(async () => {
       const msgs = await BancoDeDados.getMensagensChat(usuarioLogado.username, destinatario);
       setMensagens(msgs);
@@ -44,16 +43,30 @@ export default function ChatPrivado({ destinatario, usuarioLogado, darkMode }) {
     setMensagens(msgs);
   };
 
+  const fotoPerfilAlvo = perfilAlvoObj?.foto || perfilAlvoObj?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+
+  const handleAbrirPerfil = () => {
+    if (perfilAlvoObj && onVerPerfil) {
+      onVerPerfil(perfilAlvoObj);
+    }
+  };
+
   return (
     <div className={`p-6 rounded-2xl border shadow-md space-y-4 max-w-2xl mx-auto w-full ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-      <div className="flex items-center gap-3 border-b pb-4 border-slate-700/50">
+      
+      {/* Cabeçalho Clicável para abrir o Perfil */}
+      <div 
+        onClick={handleAbrirPerfil}
+        className="flex items-center gap-3 border-b pb-4 border-slate-700/50 cursor-pointer group transition hover:opacity-80"
+        title="Ver perfil completo"
+      >
         <img 
-          src={perfilAlvoObj?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
+          src={fotoPerfilAlvo} 
           alt="Perfil" 
           className="w-10 h-10 rounded-full object-cover border-2 border-blue-500 shadow-xs" 
         />
         <div>
-          <h3 className="font-bold text-sm">{perfilAlvoObj?.nome || destinatario}</h3>
+          <h3 className="font-bold text-sm group-hover:text-blue-500 transition">{perfilAlvoObj?.nome || destinatario}</h3>
           <p className="text-[10px] text-blue-400 font-semibold">@{destinatario}</p>
         </div>
       </div>

@@ -23,6 +23,7 @@ export default function App() {
   const [modalLoginAberto, setModalLoginAberto] = useState(false);
   const [abaPrincipal, setAbaPrincipal] = useState('biblia'); // 'biblia', 'devocional', 'comunidade', 'perfilUrl', 'editarPerfil'
   const [perfilUrlAlvo, setPerfilUrlAlvo] = useState(null);
+  const [totalNaoLidas, setTotalNaoLidas] = useState(0);
 
   const [favoritos, setFavoritos] = useState(() => {
     const salvos = localStorage.getItem('favoritos_biblia');
@@ -41,6 +42,21 @@ export default function App() {
     { id: 'ra', nome: 'Almeida Revista e Atualizada (RA)' },
     { id: 'ntlh', nome: 'Nova Tradução na Linguagem de Hoje (NTLH)' }
   ];
+
+  // Polling automático para atualizar o contador de mensagens/notificações no menu lateral
+  useEffect(() => {
+    if (!usuarioLogado) return;
+
+    async function checarNotificacoes() {
+      const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+      const naoLidas = notifs.filter(n => !n.lida).length;
+      setTotalNaoLidas(naoLidas);
+    }
+
+    checarNotificacoes();
+    const intervalo = setInterval(checarNotificacoes, 4000);
+    return () => clearInterval(intervalo);
+  }, [usuarioLogado]);
 
   // Roteamento robusto para URLs limpas (ex: /geovanilobo)
   useEffect(() => {
@@ -258,13 +274,21 @@ export default function App() {
       {/* BARRA LATERAL (RESPONSIVA) */}
       <aside className={`fixed md:relative inset-y-0 left-0 z-50 flex flex-col border-r transition-all duration-300 ${menuAberto ? 'w-72 sm:w-80 translate-x-0' : '-translate-x-full md:w-0 md:translate-x-0 md:overflow-hidden'} bg-slate-900 border-slate-800 text-slate-300 shadow-2xl md:shadow-none`}>
         <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-          <h1 className="text-white font-bold text-base tracking-wider">BÍBLIA ONLINE 📖</h1>
+          <h1 className="text-white font-bold text-base tracking-wider flex items-center gap-2">
+            BÍBLIA ONLINE
+            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+          </h1>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs transition"
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs transition flex items-center justify-center"
+              title="Alternar Tema"
             >
-              {darkMode ? '☀️' : '🌙'}
+              {darkMode ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+              )}
             </button>
             <button
               onClick={() => setMenuAberto(false)}
@@ -302,7 +326,7 @@ export default function App() {
                 onClick={() => navegarPara('/editarPerfil', 'editarPerfil')}
                 className="w-full bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold py-1.5 rounded-lg transition"
               >
-                ✏️ Editar Perfil
+                Editar Perfil
               </button>
 
               <button
@@ -313,15 +337,16 @@ export default function App() {
                 }}
                 className="w-full bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold py-1.5 rounded-lg"
               >
-                🔗 Copiar Meu Link de Perfil
+                Copiar Meu Link de Perfil
               </button>
             </div>
           ) : (
             <button
               onClick={() => { setModalLoginAberto(true); setMenuAberto(false); }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-lg shadow-md"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-lg shadow-md flex items-center justify-center gap-1.5"
             >
-              Entrar na Comunidade 🚀
+              Entrar na Comunidade
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
             </button>
           )}
 
@@ -356,14 +381,21 @@ export default function App() {
             >
               Devocionais
             </button>
+            
+            {/* Botão Comunidade/Chat com o Badge Vermelho de Mensagens Não Lidas */}
             <button
               onClick={() => {
                 if (!usuarioLogado) setModalLoginAberto(true);
                 else navegarPara('/comunidade', 'comunidade');
               }}
-              className={`text-[11px] py-1 rounded font-medium ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+              className={`text-[11px] py-1 rounded font-medium relative flex items-center justify-center gap-1 ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
             >
               Comunidade
+              {totalNaoLidas > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-md">
+                  {totalNaoLidas}
+                </span>
+              )}
             </button>
           </div>
         </div>

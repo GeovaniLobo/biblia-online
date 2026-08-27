@@ -80,25 +80,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const hojeStr = new Date().toISOString().slice(5, 10); // MM-DD
   const aniversariantesHoje = perfisReais.filter(p => p.data_nascimento && p.data_nascimento.slice(5, 10) === hojeStr);
 
-  const storiesAgrupados = stories.reduce((acc, story) => {
-    const key = story.username || story.autor;
-    if (!acc[key]) {
-      acc[key] = { username: story.username, autor: story.autor, avatar: story.avatar, itens: [] };
-    }
-    acc[key].itens.push(story);
-    return acc;
-  }, {});
-  const listaAutoresStories = Object.values(storiesAgrupados);
-
-  const abrirGrupoStories = (grupo) => {
-    setAutorStoryAtivo(grupo);
-    setIndiceStoryAtual(0);
-    grupo.itens.forEach(item => {
-      BancoDeDados.registrarVisualizacaoStory(item.id, usuarioLogado.username);
-    });
-    setStories(BancoDeDados.getStories());
-  };
-
   const publicarPost = async (e) => {
     e.preventDefault();
     if (!pubTexto.trim() && !pubImagem) return;
@@ -131,25 +112,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
     const atualizados = await BancoDeDados.atualizarPublicacao(id, textoEditado, temaEditado);
     setPublicacoes([...atualizados]);
     setPostEditandoId(null);
-  };
-
-  const publicarStory = (e) => {
-    e.preventDefault();
-    if (!storyTexto.trim() && !storyImagem) return;
-    const story = {
-      id: Date.now(),
-      autor: usuarioLogado.nome,
-      username: usuarioLogado.username,
-      avatar: usuarioLogado.foto,
-      texto: storyTexto.trim(),
-      imagem: storyImagem,
-      visualizadores: []
-    };
-    const atualizados = BancoDeDados.salvarStory(story);
-    setStories(atualizados);
-    setStoryTexto('');
-    setStoryImagem('');
-    setModalStoryAberto(false);
   };
 
   const curtir = async (id, usernameAutorPost) => {
@@ -206,7 +168,12 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
           Voltar para o Feed
         </button>
-        <ChatPrivado destinatario={chatComUsuario} usuarioLogado={usuarioLogado} darkMode={darkMode} />
+        <ChatPrivado 
+          destinatario={chatComUsuario} 
+          usuarioLogado={usuarioLogado} 
+          darkMode={darkMode} 
+          onVerPerfil={(perfil) => setPerfilSelecionado(perfil)} 
+        />
       </div>
     );
   }
@@ -224,11 +191,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             <p className="text-xs opacity-75 mt-1">{usuarioLogado.biografia}</p>
           </div>
 
-          <button onClick={() => setModalStoryAberto(true)} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-xl text-xs font-bold transition shadow-md flex items-center justify-center gap-1.5">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-            Adicionar Story
-          </button>
-
           <div className="relative pt-2">
             <button onClick={abrirNotificacoes} className={`w-full py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-between ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-800'}`}>
               <span className="flex items-center gap-2">
@@ -238,18 +200,41 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
               {naoLidas > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{naoLidas}</span>}
             </button>
 
+            {/* POPUP DE NOTIFICAÇÕES CLICÁVEIS E REDIRECIONÁVEIS */}
             {mostrarNotificacoes && (
-              <div className={`absolute left-0 right-0 mt-2 p-3 rounded-2xl border shadow-2xl z-30 max-h-60 overflow-y-auto space-y-2 text-left ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+              <div className={`absolute left-0 right-0 mt-2 p-3 rounded-2xl border shadow-2xl z-35 max-h-60 overflow-y-auto space-y-2 text-left ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                 <h4 className="text-xs font-bold opacity-60 border-b pb-1">Suas Notificações</h4>
                 {notificacoes.length === 0 ? (
                   <p className="text-xs opacity-50 text-center py-4">Nenhuma notificação por enquanto.</p>
                 ) : (
-                  notificacoes.map((notif, idx) => (
-                    <div key={idx} className={`p-2 rounded-xl text-xs ${!notif.lida ? 'bg-blue-500/10 font-semibold' : 'opacity-75'}`}>
-                      <p>{notif.texto}</p>
-                      <span className="text-[9px] opacity-40">{notif.horario}</span>
-                    </div>
-                  ))
+                  notificacoes.map((notif, idx) => {
+                    const matchUsername = notif.texto.match(/@([a-zA-Z0-9_]+)/);
+                    const usernameExtraido = matchUsername ? matchUsername[1] : null;
+
+                    return (
+                      <div 
+                        key={idx} 
+                        onClick={() => {
+                          if (usernameExtraido) {
+                            if (notif.tipo === 'mensagem' || notif.texto.includes('mensagem')) {
+                              setChatComUsuario(usernameExtraido);
+                              setMostrarNotificacoes(false);
+                            } else {
+                              const perfilEncontrado = perfisReais.find(p => p.username === usernameExtraido);
+                              if (perfilEncontrado) {
+                                setPerfilSelecionado(perfilEncontrado);
+                                setMostrarNotificacoes(false);
+                              }
+                            }
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl text-xs cursor-pointer transition ${!notif.lida ? 'bg-blue-500/15 font-semibold border border-blue-500/30' : 'opacity-75 hover:opacity-100'} ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}
+                      >
+                        <p>{notif.texto}</p>
+                        <span className="text-[9px] opacity-40 block mt-0.5">{notif.horario}</span>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             )}
