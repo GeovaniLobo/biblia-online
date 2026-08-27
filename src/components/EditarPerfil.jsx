@@ -8,20 +8,45 @@ export default function EditarPerfil({ usuarioLogado, onSalvo, onVoltar, darkMod
   const [senha, setSenha] = useState(usuarioLogado.senha || '');
   const [carregando, setCarregando] = useState(false);
 
-  // Função para converter a imagem enviada do dispositivo em Base64
+  // Função para redimensionar e converter a imagem com segurança
   const handleFileChange = (e) => {
     const arquivo = e.target.files[0];
-    if (arquivo) {
-      if (arquivo.size > 2 * 1024 * 1024) {
-        alert('A imagem é muito grande! Escolha uma imagem com menos de 2MB.');
-        return;
-      }
-      const leitor = new FileReader();
-      leitor.onloadend = () => {
-        setFoto(leitor.result);
+    if (!arquivo) return;
+
+    const leitor = new FileReader();
+    leitor.onload = (evento) => {
+      const img = new Image();
+      img.src = evento.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 300;
+        const MAX_HEIGHT = 300;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Converte para JPEG comprimido
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setFoto(dataUrl);
       };
-      leitor.readAsDataURL(arquivo);
-    }
+    };
+    leitor.readAsDataURL(arquivo);
   };
 
   const handleSubmit = async (e) => {
@@ -42,7 +67,7 @@ export default function EditarPerfil({ usuarioLogado, onSalvo, onVoltar, darkMod
       onSalvo(usuarioAtualizado);
     } catch (erro) {
       console.error('Erro ao salvar perfil:', erro);
-      alert('Erro ao atualizar o perfil.');
+      alert('Erro ao atualizar o perfil. Verifique os dados.');
     } finally {
       setCarregando(false);
     }
@@ -60,7 +85,6 @@ export default function EditarPerfil({ usuarioLogado, onSalvo, onVoltar, darkMod
 
       <form onSubmit={handleSubmit} className={`p-8 rounded-3xl border shadow-lg space-y-5 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         
-        {/* Foto e Botão de Upload do Dispositivo */}
         <div className="flex flex-col items-center gap-3">
           <img src={foto || 'https://via.placeholder.com/150'} alt="Avatar Preview" className="w-24 h-24 rounded-full object-cover border-2 border-blue-500 shadow-md" />
           <p className="text-xs opacity-60">@{usuarioLogado.username} (não pode ser alterado)</p>

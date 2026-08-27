@@ -42,25 +42,44 @@ export default function App() {
     { id: 'ntlh', nome: 'Nova Tradução na Linguagem de Hoje (NTLH)' }
   ];
 
+  // Roteamento baseado no Pathname limpo (ex: /geovanilobo)
   useEffect(() => {
     const tratarRotaUrl = async () => {
-      const hash = window.location.hash.replace('#/', '').replace('#', '');
-      if (hash && hash !== 'biblia' && hash !== 'devocional' && hash !== 'comunidade' && hash !== 'editarPerfil') {
+      const path = window.location.pathname.replace('/', '').trim();
+      
+      if (path && !['biblia', 'devocional', 'comunidade', 'editarPerfil'].includes(path)) {
         const perfis = await BancoDeDados.getPerfisCadastrados();
-        const encontrado = perfis.find(p => p.username === hash);
+        const encontrado = perfis.find(p => p.username.toLowerCase() === path.toLowerCase());
         if (encontrado) {
           setPerfilUrlAlvo(encontrado);
           setAbaPrincipal('perfilUrl');
         }
-      } else if (!hash || hash === 'biblia') {
+      } else if (path === 'comunidade') {
+        setAbaPrincipal('comunidade');
+        setPerfilUrlAlvo(null);
+      } else if (path === 'devocional') {
+        setAbaPrincipal('devocional');
+        setPerfilUrlAlvo(null);
+      } else if (path === 'editarPerfil') {
+        setAbaPrincipal('editarPerfil');
+        setPerfilUrlAlvo(null);
+      } else {
+        setAbaPrincipal('biblia');
         setPerfilUrlAlvo(null);
       }
     };
 
     tratarRotaUrl();
-    window.addEventListener('hashchange', tratarRotaUrl);
-    return () => window.removeEventListener('hashchange', tratarRotaUrl);
+    window.addEventListener('popstate', tratarRotaUrl);
+    return () => window.removeEventListener('popstate', tratarRotaUrl);
   }, []);
+
+  const navegarPara = (rota, aba) => {
+    window.history.pushState({}, '', rota);
+    setAbaPrincipal(aba);
+    if (aba !== 'perfilUrl') setPerfilUrlAlvo(null);
+    setMenuAberto(false);
+  };
 
   useEffect(() => {
     setCarregando(true);
@@ -254,7 +273,7 @@ export default function App() {
           {usuarioLogado ? (
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => { window.location.hash = `#/${usuarioLogado.username}`; setMenuAberto(false); }}>
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => navegarPara(`/${usuarioLogado.username}`, 'perfilUrl')}>
                   <img src={usuarioLogado.foto} alt="Avatar" className="w-7 h-7 rounded-full object-cover" />
                   <div>
                     <p className="text-[10px] text-slate-400">Meu Link:</p>
@@ -265,8 +284,7 @@ export default function App() {
                   onClick={() => {
                     BancoDeDados.fazerLogout();
                     setUsuarioLogado(null);
-                    window.location.hash = '';
-                    setAbaPrincipal('biblia');
+                    navegarPara('/', 'biblia');
                   }}
                   className="text-[10px] text-red-400 bg-red-500/10 px-2 py-1 rounded"
                 >
@@ -275,7 +293,7 @@ export default function App() {
               </div>
 
               <button
-                onClick={() => { setAbaPrincipal('editarPerfil'); setMenuAberto(false); }}
+                onClick={() => navegarPara('/editarPerfil', 'editarPerfil')}
                 className="w-full bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold py-1.5 rounded-lg transition"
               >
                 ✏️ Editar Perfil
@@ -283,7 +301,7 @@ export default function App() {
 
               <button
                 onClick={() => {
-                  const link = `${window.location.origin}/#/${usuarioLogado.username}`;
+                  const link = `${window.location.origin}/${usuarioLogado.username}`;
                   navigator.clipboard.writeText(link);
                   alert(`Link copiado: ${link}`);
                 }}
@@ -318,7 +336,7 @@ export default function App() {
 
           <div className="grid grid-cols-3 gap-1 mt-2 bg-slate-800 p-1 rounded-lg text-center">
             <button
-              onClick={() => { window.location.hash = ''; setAbaPrincipal('biblia'); setPerfilUrlAlvo(null); setMenuAberto(false); }}
+              onClick={() => navegarPara('/', 'biblia')}
               className={`text-[11px] py-1 rounded font-medium ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
             >
               Bíblia
@@ -326,7 +344,7 @@ export default function App() {
             <button
               onClick={() => {
                 if (!usuarioLogado) setModalLoginAberto(true);
-                else { window.location.hash = 'devocional'; setAbaPrincipal('devocional'); setPerfilUrlAlvo(null); setMenuAberto(false); }
+                else navegarPara('/devocional', 'devocional');
               }}
               className={`text-[11px] py-1 rounded font-medium ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
             >
@@ -335,7 +353,7 @@ export default function App() {
             <button
               onClick={() => {
                 if (!usuarioLogado) setModalLoginAberto(true);
-                else { window.location.hash = 'comunidade'; setAbaPrincipal('comunidade'); setPerfilUrlAlvo(null); setMenuAberto(false); }
+                else navegarPara('/comunidade', 'comunidade');
               }}
               className={`text-[11px] py-1 rounded font-medium ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
             >
@@ -540,14 +558,18 @@ export default function App() {
           )}
 
           {abaPrincipal === 'comunidade' && usuarioLogado && (
-            <Comunidade usuarioLogado={usuarioLogado} darkMode={darkMode} />
+            <Comunidade 
+              usuarioLogado={usuarioLogado} 
+              darkMode={darkMode} 
+              onVerPerfil={(username) => navegarPara(`/${username}`, 'perfilUrl')}
+            />
           )}
 
           {abaPrincipal === 'perfilUrl' && perfilUrlAlvo && usuarioLogado && (
             <PerfilPublico
               perfilAlvo={perfilUrlAlvo}
               usuarioLogado={usuarioLogado}
-              onVoltar={() => { window.location.hash = 'comunidade'; setAbaPrincipal('comunidade'); }}
+              onVoltar={() => navegarPara('/comunidade', 'comunidade')}
               darkMode={darkMode}
               onToggleDarkMode={() => setDarkMode(!darkMode)}
             />
@@ -558,9 +580,9 @@ export default function App() {
               usuarioLogado={usuarioLogado}
               onSalvo={(usuarioAtualizado) => {
                 setUsuarioLogado(usuarioAtualizado);
-                setAbaPrincipal('comunidade');
+                navegarPara('/comunidade', 'comunidade');
               }}
-              onVoltar={() => setAbaPrincipal('comunidade')}
+              onVoltar={() => navegarPara('/comunidade', 'comunidade')}
               darkMode={darkMode}
             />
           )}
@@ -608,8 +630,7 @@ export default function App() {
         onLoginSucesso={(perfil) => {
           setUsuarioLogado(perfil);
           setModalLoginAberto(false);
-          window.location.hash = 'comunidade';
-          setAbaPrincipal('comunidade');
+          navegarPara('/comunidade', 'comunidade');
         }}
         darkMode={darkMode}
       />
