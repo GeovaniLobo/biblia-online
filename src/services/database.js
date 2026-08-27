@@ -232,20 +232,32 @@ export const BancoDeDados = {
     } catch (e) {}
   },
 
-  // --- STORIES COM SUPORTE A IMAGENS ---
+  // --- STORIES ROBUSTOS ---
   getStories: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/stories?select=*&order=id.desc`, { method: 'GET', headers });
       if (!response.ok) return [];
-      return await response.json();
+      const data = await response.json();
+      return data || [];
     } catch (err) { return []; }
   },
 
   salvarStory: async (story) => {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/stories`, { method: 'POST', headers, body: JSON.stringify(story) });
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(story)
+      });
+      if (!response.ok) {
+        const errJson = await response.json();
+        console.error("Erro do Supabase ao salvar story:", errJson);
+      }
       return await BancoDeDados.getStories();
-    } catch (err) { return []; }
+    } catch (err) {
+      console.error("Erro na requisição do story:", err);
+      return await BancoDeDados.getStories();
+    }
   },
 
   getPedidosOracao: async () => {
