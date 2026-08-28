@@ -352,7 +352,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         </div>
       </div>
 
-      {/* COLUNA DIREITA (CHAT LATERAL) */}
+      {/* COLUNA DIREITA (CHAT LATERAL COM CONTADOR DE NÃO LIDAS) */}
       <div className="space-y-6">
         <div className={`p-5 rounded-2xl border space-y-4 shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
           <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
@@ -368,25 +368,44 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
               {amigosLista.length === 0 ? (
                 <p className="text-xs opacity-40 text-center py-6">Nenhum amigo conectado no chat ainda.</p>
               ) : (
-                amigosLista.map(amigo => (
-                  <div key={amigo.username} onClick={() => setChatComUsuario(amigo.username)} className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}>
-                    <div className="flex items-center gap-2">
-                      <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover" />
-                      <div>
-                        <p className="text-xs font-bold">{amigo.nome}</p>
-                        <p className="text-[10px] opacity-50">@{amigo.username}</p>
+                amigosLista.map(amigo => {
+                  // Conta quantas notificações do tipo mensagem existem vindas desse amigo
+                  const naoLidasDoAmigo = notificacoes.filter(
+                    n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
+                  ).length;
+
+                  return (
+                    <div 
+                      key={amigo.username} 
+                      onClick={() => setChatComUsuario(amigo.username)} 
+                      className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover" />
+                        <div>
+                          <p className="text-xs font-bold">{amigo.nome}</p>
+                          <p className="text-[10px] opacity-50">@{amigo.username}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {naoLidasDoAmigo > 0 && (
+                          <span className="bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs animate-bounce">
+                            {naoLidasDoAmigo}
+                          </span>
+                        )}
+                        <button 
+                          title="Abrir chat"
+                          className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
-                    <button 
-                      title="Abrir chat"
-                      className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                    </button>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}
