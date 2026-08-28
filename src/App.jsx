@@ -546,8 +546,8 @@ export default function App() {
           )}
         </header>
 
-        {/* CONTEÚDO */}
-        <section className="flex-1 overflow-y-auto p-4 sm:p-6 lg:px-16 max-w-4xl mx-auto w-full pb-32">
+        {/* CONTEÚDO (Largura dinâmica: max-w-4xl para Bíblia/Devocionais e w-full de ponta a ponta para Comunidade) */}
+        <section className={`flex-1 overflow-y-auto p-4 sm:p-6 w-full pb-32 ${abaPrincipal === 'comunidade' ? 'max-w-full px-4 sm:px-8' : 'max-w-4xl mx-auto lg:px-16'}`}>
           
           {abaPrincipal === 'biblia' && (
             carregando ? (
