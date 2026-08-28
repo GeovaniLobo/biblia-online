@@ -99,26 +99,32 @@ export const BancoDeDados = {
   },
 
   salvarPublicacao: async (pub) => {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(pub)
-    });
-    if (!response.ok) throw new Error('Erro ao salvar publicação.');
-    return await BancoDeDados.getPublicacoes();
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(pub)
+      });
+      if (!response.ok) return await BancoDeDados.getPublicacoes();
+      return await BancoDeDados.getPublicacoes();
+    } catch (err) { return []; }
   },
 
   excluirPublicacao: async (id) => {
-    await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, { method: 'DELETE', headers });
-    return await BancoDeDados.getPublicacoes();
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, { method: 'DELETE', headers });
+      return await BancoDeDados.getPublicacoes();
+    } catch (err) { return []; }
   },
 
   atualizarPublicacao: async (id, texto, tema) => {
-    await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ texto, tema })
-    });
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ texto, tema })
+      });
+    } catch (e) {}
     return await BancoDeDados.getPublicacoes();
   },
 
@@ -148,17 +154,19 @@ export const BancoDeDados = {
   },
 
   adicionarComentarioPub: async (id, comentario) => {
-    const pubs = await BancoDeDados.getPublicacoes();
-    const p = pubs.find(x => x.id === id);
-    if (p) {
-      const comentariosAtuais = p.comentarios || [];
-      const novosComentarios = [...comentariosAtuais, comentario];
-      await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ comentarios: novosComentarios })
-      });
-    }
+    try {
+      const pubs = await BancoDeDados.getPublicacoes();
+      const p = pubs.find(x => x.id === id);
+      if (p) {
+        const comentariosAtuais = p.comentarios || [];
+        const novosComentarios = [...comentariosAtuais, comentario];
+        await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ comentarios: novosComentarios })
+        });
+      }
+    } catch (e) {}
     return await BancoDeDados.getPublicacoes();
   },
 
@@ -241,7 +249,8 @@ export const BancoDeDados = {
 
   salvarPedidoOracao: async (pedido) => {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao`, { method: 'POST', headers, body: JSON.stringify(pedido) });
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao`, { method: 'POST', headers, body: JSON.stringify(pedido) });
+      if (!response.ok) return await BancoDeDados.getPedidosOracao();
       return await BancoDeDados.getPedidosOracao();
     } catch (err) { return []; }
   },
