@@ -162,61 +162,88 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const amigosLista = perfisReais.filter(p => (perfilAtualNoBanco.amigos || []).includes(p.username));
 
   return (
-    <div className={`space-y-6 max-w-5xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6 relative ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+    <div className={`w-full px-4 md:px-8 py-4 grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-12 gap-6 relative ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
-      {/* COLUNA ESQUERDA & CENTRO (FEED E MURAL) */}
-      <div className="lg:col-span-2 space-y-6">
+      {/* ================= COLUNA 1: PERFIL DO USUÁRIO (Esquerda) ================= */}
+      <div className="lg:col-span-1 xl:col-span-3 space-y-6">
+        <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+          <img 
+            src={usuarioLogado.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
+            alt="Meu Avatar" 
+            className="w-20 h-20 rounded-full object-cover mx-auto border-4 border-blue-500 shadow-md" 
+          />
+          <div>
+            <h3 className="font-extrabold text-sm">{usuarioLogado.nome}</h3>
+            <p className="text-xs text-blue-500 font-bold mt-0.5">@{usuarioLogado.username}</p>
+            <p className="text-xs opacity-75 mt-2 line-clamp-3">{usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.'}</p>
+          </div>
+
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
+            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+              <span className="block font-extrabold text-blue-500 text-sm">{perfilAtualNoBanco.amigos?.length || 0}</span>
+              <span className="text-[10px] opacity-60 uppercase font-bold">Amigos</span>
+            </div>
+            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+              <span className="block font-extrabold text-indigo-500 text-sm">{publicacoes.filter(p => p.username === usuarioLogado.username).length}</span>
+              <span className="text-[10px] opacity-60 uppercase font-bold">Posts</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= COLUNA 2: FEED E PUBLICAÇÕES (Centro) ================= */}
+      <div className="lg:col-span-2 xl:col-span-6 space-y-6">
 
         {/* CRIAR PUBLICAÇÃO */}
-        <div className={`p-5 rounded-2xl border space-y-4 shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+        <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
           <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Criar Publicação</h3>
           <form onSubmit={publicarPost} className="space-y-3">
-            <input type="text" placeholder="Tema da publicação..." value={pubTema} onChange={(e) => setPubTema(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border font-bold ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
-            <textarea rows="3" placeholder="Compartilhe algo com a comunidade..." value={pubTexto} onChange={(e) => setPubTexto(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
-            {pubImagem && <img src={pubImagem} alt="Preview" className="w-full h-32 object-cover rounded-xl" />}
+            <input type="text" placeholder="Tema da publicação..." value={pubTema} onChange={(e) => setPubTema(e.target.value)} className={`w-full text-sm rounded-xl px-4 py-2.5 border font-bold ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
+            <textarea rows="3" placeholder="Compartilhe algo com a comunidade..." value={pubTexto} onChange={(e) => setPubTexto(e.target.value)} className={`w-full text-sm rounded-xl px-4 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
+            {pubImagem && <img src={pubImagem} alt="Preview" className="w-full h-48 object-cover rounded-2xl shadow-sm" />}
             <div className="flex justify-between items-center">
-              <label className={`text-xs px-3 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
-                Imagem
+              <label className={`text-xs px-4 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition font-semibold ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
+                📷 Imagem
                 <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files[0]; if(f) { const r = new FileReader(); r.onloadend = () => setPubImagem(r.result); r.readAsDataURL(f); } }} className="hidden" />
               </label>
-              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-xs font-bold transition shadow-sm">Publicar</button>
+              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-md">Publicar</button>
             </div>
           </form>
         </div>
 
         {/* MURAL DE PEDIDOS DE ORAÇÃO */}
-        <div className={`p-5 rounded-2xl border space-y-3 shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-          <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração</h3>
+        <div className={`p-6 rounded-3xl border shadow-md space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+          <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração 🙏</h3>
           <form onSubmit={criarPedidoOracao} className="flex gap-2">
             <input 
               type="text" 
               placeholder="Compartilhe um pedido de oração..." 
               value={novoPedidoTexto} 
               onChange={(e) => setNovoPedidoTexto(e.target.value)} 
-              className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} 
+              className={`w-full text-xs rounded-xl px-4 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} 
             />
-            <button type="submit" className="bg-blue-600 text-white text-xs px-4 py-2 rounded-xl font-bold transition hover:bg-blue-700 shadow-sm flex-shrink-0">Pedir Oração</button>
+            <button type="submit" className="bg-blue-600 text-white text-xs px-5 py-2.5 rounded-xl font-bold transition hover:bg-blue-700 shadow-sm flex-shrink-0">Pedir Oração</button>
           </form>
 
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
             {pedidosOracao.length === 0 ? (
               <p className="text-[11px] opacity-50 text-center py-4">Nenhum pedido de oração no momento.</p>
             ) : (
               pedidosOracao.map(p => {
                 const souDonoDoPedido = p.username === usuarioLogado.username;
                 return (
-                  <div key={p.id} className={`p-3 rounded-xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                  <div key={p.id} className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
                     <div className="flex-1 min-w-0">
                       <span className="font-bold text-blue-500 mr-1">@{p.username}:</span>
                       <span className="break-words">{p.texto}</span>
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <button onClick={async () => { const atualizados = await BancoDeDados.apoiarPedidoOracao(p.id); setPedidosOracao(atualizados || []); }} className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg font-bold transition">
+                      <button onClick={async () => { const atualizados = await BancoDeDados.apoiarPedidoOracao(p.id); setPedidosOracao(atualizados || []); }} className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3.5 py-1.5 rounded-xl font-bold transition">
                         ❤️ Apoiar ({p.apoios || 0})
                       </button>
                       {souDonoDoPedido && (
-                        <button onClick={async () => { if (window.confirm('Excluir pedido?')) { const atualizados = await BancoDeDados.excluirPedidoOracao(p.id); setPedidosOracao(atualizados || []); }}} className="text-slate-400 hover:text-red-500 p-1 font-bold transition">✕</button>
+                        <button onClick={async () => { if (window.confirm('Excluir pedido?')) { const atualizados = await BancoDeDados.excluirPedidoOracao(p.id); setPedidosOracao(atualizados || []); }}} className="text-slate-400 hover:text-red-500 p-1.5 font-bold transition">✕</button>
                       )}
                     </div>
                   </div>
@@ -242,10 +269,10 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
             const meuAmor = (reacoes.amor || []).includes(usuarioLogado.username);
 
             return (
-              <div key={post.id} className={`p-6 rounded-2xl border shadow-sm space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+              <div key={post.id} className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { const encontrado = perfisReais.find(p => p.username === post.username); if (encontrado) setPerfilSelecionado(encontrado); }}>
-                    <img src={avatarAtualizado} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-blue-500/30" />
+                    <img src={avatarAtualizado} alt="Avatar" className="w-11 h-11 rounded-full object-cover border-2 border-blue-500/30 shadow-sm" />
                     <div>
                       <p className="text-sm font-bold group-hover:text-blue-500 transition">{nomeAtualizado}</p>
                       <p className="text-[10px] opacity-50">@{post.username || 'usuario'}</p>
@@ -272,16 +299,16 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                 ) : (
                   <div className="space-y-2">
                     <h4 className="text-lg font-bold">{post.tema}</h4>
-                    {post.imagem && <img src={post.imagem} alt="Post" className="w-full h-64 object-cover rounded-xl" />}
+                    {post.imagem && <img src={post.imagem} alt="Post" className="w-full h-80 object-cover rounded-2xl shadow-sm" />}
                     <p className="text-sm leading-relaxed opacity-90">{post.texto}</p>
                   </div>
                 )}
 
                 {/* BOTÕES DE REAÇÃO COM CONTRASTE PERFEITO */}
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
                   <button 
                     onClick={() => reagir(post.id, 'amem')} 
-                    className={`text-xs px-3 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${
+                    className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${
                       meuAmem 
                         ? 'bg-blue-600 text-white border-blue-500 shadow-sm' 
                         : darkMode 
@@ -297,7 +324,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
                   <button 
                     onClick={() => reagir(post.id, 'gloria')} 
-                    className={`text-xs px-3 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${
+                    className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${
                       meuGloria 
                         ? 'bg-amber-600 text-white border-amber-500 shadow-sm' 
                         : darkMode 
@@ -313,7 +340,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
 
                   <button 
                     onClick={() => reagir(post.id, 'amor')} 
-                    className={`text-xs px-3 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${
+                    className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${
                       meuAmor 
                         ? 'bg-pink-600 text-white border-pink-500 shadow-sm' 
                         : darkMode 
@@ -342,7 +369,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                   )}
 
                   <form onSubmit={(e) => comentar(post.id, post.username, e)} className="flex gap-2">
-                    <input type="text" placeholder="Comentar..." value={novoComentario[post.id] || ''} onChange={(e) => setNovoComentario({ ...novoComentario, [post.id]: e.target.value })} className={`w-full text-xs rounded-xl px-3 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
+                    <input type="text" placeholder="Comentar..." value={novoComentario[post.id] || ''} onChange={(e) => setNovoComentario({ ...novoComentario, [post.id]: e.target.value })} className={`w-full text-xs rounded-xl px-3.5 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
                     <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition shadow-sm">Enviar</button>
                   </form>
                 </div>
@@ -352,9 +379,9 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         </div>
       </div>
 
-      {/* COLUNA DIREITA (CHAT LATERAL COM CONTADOR DE NÃO LIDAS) */}
-      <div className="space-y-6">
-        <div className={`p-5 rounded-2xl border space-y-4 shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+      {/* ================= COLUNA 3: CHAT E MENSAGENS LARGO (Direita) ================= */}
+      <div className="lg:col-span-1 xl:col-span-3 space-y-6">
+        <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
           <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
 
           {chatComUsuario ? (
@@ -363,13 +390,12 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
               <ChatPrivado destinatario={chatComUsuario} usuarioLogado={usuarioLogado} darkMode={darkMode} onVerPerfil={(p) => setPerfilSelecionado(p)} />
             </div>
           ) : (
-            <div className="space-y-2">
-              <p className="text-xs opacity-60">Selecione um amigo abaixo para conversar:</p>
+            <div className="space-y-3">
+              <p className="text-xs opacity-60">Selecione um amigo para conversar:</p>
               {amigosLista.length === 0 ? (
-                <p className="text-xs opacity-40 text-center py-6">Nenhum amigo conectado no chat ainda.</p>
+                <p className="text-xs opacity-40 text-center py-8">Nenhum amigo conectado no chat ainda.</p>
               ) : (
                 amigosLista.map(amigo => {
-                  // Conta quantas notificações do tipo mensagem existem vindas desse amigo
                   const naoLidasDoAmigo = notificacoes.filter(
                     n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
                   ).length;
@@ -378,17 +404,17 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                     <div 
                       key={amigo.username} 
                       onClick={() => setChatComUsuario(amigo.username)} 
-                      className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
                     >
-                      <div className="flex items-center gap-2">
-                        <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover" />
-                        <div>
-                          <p className="text-xs font-bold">{amigo.nome}</p>
-                          <p className="text-[10px] opacity-50">@{amigo.username}</p>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold truncate">{amigo.nome}</p>
+                          <p className="text-[10px] opacity-50 truncate">@{amigo.username}</p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         {naoLidasDoAmigo > 0 && (
                           <span className="bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs animate-bounce">
                             {naoLidasDoAmigo}
@@ -396,7 +422,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                         )}
                         <button 
                           title="Abrir chat"
-                          className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center"
+                          className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
