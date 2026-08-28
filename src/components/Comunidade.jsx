@@ -31,7 +31,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [midiaStoryUrl, setMidiaStoryUrl] = useState('');
   const [tipoMidia, setTipoMidia] = useState('imagem');
 
-  // Estados de Busca para Menção (@)
+  // Estados de Busca para Menção Flutuante (@)
   const [termoBuscaMencao, setTermoBuscaMencao] = useState('');
   const [menuSugestoesMencaoAberto, setMenuSugestoesMencaoAberto] = useState(false);
 
@@ -97,13 +97,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return () => clearInterval(intervalo);
   }, [usuarioLogado]);
 
-  // Lista de stories do autor atualmente em exibição
   const listaStoriesDoAutorAtual = usuarioStoryVisualizando 
     ? stories.filter(s => s.username === usuarioStoryVisualizando) 
     : [];
   const storyAtivoObj = listaStoriesDoAutorAtual[indiceStoryAtual];
 
-  // Controle do Timer Automático do Story Atual com dependência correta de índice
   useEffect(() => {
     if (!usuarioStoryVisualizando || !storyAtivoObj) {
       setProgressoStory(0);
@@ -308,7 +306,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return membro.nome.toLowerCase().includes(termo) || membro.username.toLowerCase().includes(termo);
   });
 
-  // Filtro de sugestão para menção (@)
   const perfisSugeridosMencao = perfisReais.filter(p => {
     if (!termoBuscaMencao) return true;
     const t = termoBuscaMencao.toLowerCase();
@@ -379,7 +376,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       </div>
 
-      {/* MODAL DE CRIAÇÃO DE STORY COM AUTOCOMPLETAR DE MENÇÃO */}
+      {/* MODAL DE CRIAÇÃO DE STORY COM BALÃO FLUTUANTE DE MENÇÃO */}
       {modalCriarStoryAberto && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -395,18 +392,18 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
             {tipoStoryCriacao === 'texto' ? (
               <div className="space-y-4">
+                {/* CAIXA DE TEXTO COM BALÃO FLUTUANTE INTEGRADO */}
                 <div 
-                  className="w-full h-56 rounded-2xl p-6 flex flex-col justify-between items-center text-center shadow-inner transition"
+                  className="w-full h-56 rounded-2xl p-6 flex flex-col justify-center items-center text-center shadow-inner transition relative"
                   style={{ backgroundColor: corFundoStory }}
                 >
                   <textarea 
-                    rows="3"
-                    placeholder="Digite sua mensagem. Digite @ para mencionar alguém..."
+                    rows="4"
+                    placeholder="Digite sua mensagem. Digite @ para mencionar..."
                     value={textoStory}
                     onChange={(e) => {
                       const val = e.target.value;
                       setTextoStory(val);
-                      // Verifica se o usuário digitou @ para abrir o menu de menção
                       const ultimoIndiceArroba = val.lastIndexOf('@');
                       if (ultimoIndiceArroba !== -1 && (ultimoIndiceArroba === 0 || val[ultimoIndiceArroba - 1] === ' ')) {
                         const termo = val.substring(ultimoIndiceArroba + 1);
@@ -420,44 +417,39 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         setMenuSugestoesMencaoAberto(false);
                       }
                     }}
-                    className="w-full bg-transparent text-white placeholder-white/70 text-base font-bold text-center focus:outline-none resize-none"
+                    className="w-full bg-transparent text-white placeholder-white/70 text-lg font-bold text-center focus:outline-none resize-none"
                   />
-                  {mencaoStory && (
-                    <span className="bg-black/40 text-white text-[10px] font-bold px-3 py-1 rounded-full">
-                      Mencionando: @{mencaoStory}
-                    </span>
+
+                  {/* BALÃO FLUTUANTE DE SUGESTÃO DE MENÇÃO */}
+                  {menuSugestoesMencaoAberto && (
+                    <div className="absolute bottom-2 left-4 right-4 max-h-36 overflow-y-auto bg-slate-900/95 border border-slate-700 rounded-2xl p-2 shadow-2xl z-20 space-y-1 text-left backdrop-blur-md">
+                      <p className="text-[10px] uppercase font-bold text-slate-400 px-2">Sugestões de Menção:</p>
+                      {perfisSugeridosMencao.length === 0 ? (
+                        <p className="text-xs text-slate-400 text-center py-2">Nenhum perfil encontrado.</p>
+                      ) : (
+                        perfisSugeridosMencao.map(p => (
+                          <div 
+                            key={p.username}
+                            onClick={() => {
+                              const ultimoIndiceArroba = textoStory.lastIndexOf('@');
+                              const textoBase = textoStory.substring(0, ultimoIndiceArroba);
+                              setTextoStory(`${textoBase}@${p.username} `);
+                              setMencaoStory(p.username);
+                              setMenuSugestoesMencaoAberto(false);
+                            }}
+                            className="flex items-center gap-2.5 p-2 rounded-xl cursor-pointer hover:bg-slate-800 transition"
+                          >
+                            <img src={p.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover border border-blue-500 shadow-sm" />
+                            <div>
+                              <p className="text-xs font-bold text-white leading-tight">{p.nome}</p>
+                              <p className="text-[10px] text-blue-400">@{p.username}</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   )}
                 </div>
-
-                {/* MENU FLUTUANTE DE SUGESTÕES DE MENÇÃO */}
-                {menuSugestoesMencaoAberto && (
-                  <div className={`max-h-40 overflow-y-auto rounded-2xl border p-2 space-y-1 shadow-lg ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}>
-                    <p className="text-[10px] uppercase font-bold opacity-60 px-2">Sugestões de Menção:</p>
-                    {perfisSugeridosMencao.length === 0 ? (
-                      <p className="text-xs opacity-50 text-center py-2">Nenhum perfil encontrado.</p>
-                    ) : (
-                      perfisSugeridosMencao.map(p => (
-                        <div 
-                          key={p.username}
-                          onClick={() => {
-                            const ultimoIndiceArroba = textoStory.lastIndexOf('@');
-                            const textoBase = textoStory.substring(0, ultimoIndiceArroba);
-                            setTextoStory(`${textoBase}@${p.username} `);
-                            setMencaoStory(p.username);
-                            setMenuSugestoesMencaoAberto(false);
-                          }}
-                          className={`flex items-center gap-2 p-2 rounded-xl cursor-pointer transition ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-white'}`}
-                        >
-                          <img src={p.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-7 h-7 rounded-full object-cover border border-blue-500" />
-                          <div className="text-left">
-                            <p className="text-xs font-bold leading-tight">{p.nome}</p>
-                            <p className="text-[10px] opacity-60">@{p.username}</p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
 
                 <div>
                   <label className="text-xs font-bold opacity-70 block mb-2">Escolha a cor de fundo:</label>
@@ -542,6 +534,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   )}
                 </div>
 
+                {/* CAMPO DE MENÇÃO COM BALÃO FLUTUANTE NA MÍDIA */}
                 <div className="space-y-1 relative">
                   <label className="text-xs font-bold opacity-70 block">Mencionar amigo (@username):</label>
                   <input 
@@ -558,7 +551,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   />
                   
                   {menuSugestoesMencaoAberto && (
-                    <div className={`absolute left-0 right-0 bottom-full mb-1 max-h-36 overflow-y-auto rounded-xl border p-2 space-y-1 shadow-lg z-20 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-300'}`}>
+                    <div className={`absolute left-0 right-0 bottom-full mb-1 max-h-36 overflow-y-auto rounded-2xl border p-2 space-y-1 shadow-2xl z-20 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-300'}`}>
                       {perfisSugeridosMencao.map(p => (
                         <div 
                           key={p.username}
@@ -566,10 +559,13 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                             setMencaoStory(p.username);
                             setMenuSugestoesMencaoAberto(false);
                           }}
-                          className={`flex items-center gap-2 p-1.5 rounded-lg cursor-pointer transition ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}
+                          className={`flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}
                         >
-                          <img src={p.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-6 h-6 rounded-full object-cover" />
-                          <span className="text-xs font-bold">@{p.username}</span>
+                          <img src={p.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-7 h-7 rounded-full object-cover" />
+                          <div>
+                            <p className="text-xs font-bold leading-tight">{p.nome}</p>
+                            <p className="text-[10px] opacity-60">@{p.username}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -590,12 +586,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
-      {/* ================= VISUALIZADOR DE STORIES SEQUENCIAL PERFEITO ================= */}
+      {/* ================= VISUALIZADOR DE STORIES SEQUENCIAL ================= */}
       {usuarioStoryVisualizando && storyAtivoObj && (
         <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
           <div className="relative max-w-md w-full h-[85vh] bg-slate-900 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-slate-800">
             
-            {/* BARRAS DE PROGRESSO MÚLTIPLAS NO TOPO */}
             <div className="absolute top-0 left-0 right-0 p-2 z-30 flex gap-1 bg-gradient-to-b from-black/80 to-transparent">
               {listaStoriesDoAutorAtual.map((st, idx) => (
                 <div key={st.id} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
@@ -609,7 +604,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               ))}
             </div>
 
-            {/* CABEÇALHO DO STORY */}
             <div className="absolute top-5 left-4 right-4 z-20 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <img src={storyAtivoObj.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-amber-500 shadow-md" />
@@ -621,11 +615,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <button onClick={() => setUsuarioStoryVisualizando(null)} className="bg-black/50 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm hover:bg-black">✕</button>
             </div>
 
-            {/* ÁREAS DE CLIQUE PARA NAVEGAR (ESQUERDA = VOLTAR / DIREITA = AVANÇAR) */}
             <div onClick={voltarStory} className="absolute left-0 top-16 bottom-20 w-1/2 z-20 cursor-pointer" title="Anterior"></div>
             <div onClick={avancarStory} className="absolute right-0 top-16 bottom-20 w-1/2 z-20 cursor-pointer" title="Próximo"></div>
 
-            {/* CONTEÚDO DO STORY */}
             <div className="flex-1 flex items-center justify-center w-full h-full relative bg-black">
               {storyAtivoObj.tipo === 'texto' ? (
                 <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center" style={{ backgroundColor: storyAtivoObj.cor_fundo || '#2563eb' }}>
@@ -643,7 +635,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               )}
             </div>
 
-            {/* RODAPÉ: REPOSTAR OU EXCLUIR */}
             <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center z-30">
               {storyAtivoObj.username === usuarioLogado.username ? (
                 <button onClick={async () => { await BancoDeDados.excluirStory(storyAtivoObj.id); setStories(await BancoDeDados.getStories()); setUsuarioStoryVisualizando(null); }} className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg hover:bg-red-700 w-full">Excluir Story</button>
