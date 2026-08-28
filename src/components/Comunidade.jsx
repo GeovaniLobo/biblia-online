@@ -72,7 +72,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         setPedidosOracao(pedidos || []);
         setStories(strs || []);
       } catch (e) {}
-    }, 5000);
+    }, 4000);
 
     return () => clearInterval(intervalo);
   }, [usuarioLogado]);
@@ -206,6 +206,18 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return membro.nome.toLowerCase().includes(termo) || membro.username.toLowerCase().includes(termo);
   });
 
+  // Verifica se o usuário logado possui story ativo
+  const meuStoryAtivo = stories.find(s => s.username === usuarioLogado.username);
+
+  // Agrupa stories por usuário para exibir apenas um card por pessoa no carrossel
+  const usuariosComStoriesMap = {};
+  stories.forEach(st => {
+    if (!usuariosComStoriesMap[st.username]) {
+      usuariosComStoriesMap[st.username] = st; // Pega o mais recente
+    }
+  });
+  const listaStoriesUnicos = Object.values(usuariosComStoriesMap);
+
   return (
     <div className={`w-full px-4 sm:px-6 lg:px-10 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
@@ -252,9 +264,25 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         {/* COLUNA 1: PERFIL */}
         <div className="lg:col-span-3 space-y-6">
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-            <div onClick={() => onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado)} className="cursor-pointer group inline-block">
-              <img src={usuarioLogado.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-20 h-20 rounded-full object-cover mx-auto border-4 border-blue-500 shadow-md group-hover:opacity-90 transition" />
+            <div 
+              onClick={() => {
+                if (meuStoryAtivo) {
+                  setStoryVisualizando(meuStoryAtivo);
+                } else {
+                  onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado);
+                }
+              }} 
+              className="cursor-pointer group inline-block relative"
+            >
+              {/* AURA / ANEL DE STORY ATIVO */}
+              <div className={`w-24 h-24 rounded-full p-1 mx-auto flex items-center justify-center transition ${meuStoryAtivo ? 'bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400 animate-pulse shadow-lg' : 'border-4 border-blue-500'}`}>
+                <img src={usuarioLogado.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 shadow-md group-hover:opacity-90 transition" />
+              </div>
+              {meuStoryAtivo && (
+                <span className="absolute bottom-0 right-1 bg-blue-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md">Story</span>
+              )}
             </div>
+
             <div>
               <h3 onClick={() => onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado)} className="font-extrabold text-sm cursor-pointer hover:text-blue-500 transition">{usuarioLogado.nome}</h3>
               <p onClick={() => onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
@@ -276,29 +304,35 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         {/* COLUNA 2: STORIES + FEED */}
         <div className="lg:col-span-6 space-y-6">
 
-          {/* CARROSSEL DE STORIES (ESTILO FACEBOOK) */}
+          {/* CARROSSEL DE STORIES */}
           <div className={`p-4 rounded-3xl border shadow-md flex gap-3 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
             {/* Adicionar Story */}
             <label className={`relative flex-shrink-0 w-28 h-44 rounded-2xl border flex flex-col justify-end items-center pb-3 cursor-pointer overflow-hidden transition hover:scale-105 shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}>
               <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${usuarioLogado.foto})` }}></div>
               <div className="absolute top-3 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">+</div>
-              <span className="relative z-10 text-[11px] font-bold text-center px-1">Adicionar ao story</span>
+              <span className="relative z-10 text-[11px] font-bold text-center px-1">Adicionar story</span>
               <input type="file" accept="image/*" onChange={criarStory} className="hidden" />
             </label>
 
-            {/* Lista de Stories */}
-            {stories.map((st) => (
-              <div 
-                key={st.id} 
-                onClick={() => setStoryVisualizando(st)}
-                className="relative flex-shrink-0 w-28 h-44 rounded-2xl overflow-hidden cursor-pointer shadow-md transition hover:scale-105 border-2 border-blue-500"
-              >
-                <img src={st.imagem} alt="Story" className="absolute inset-0 w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
-                <img src={st.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="absolute top-2.5 left-2.5 w-8 h-8 rounded-full object-cover border-2 border-blue-500 shadow-sm" />
-                <span className="absolute bottom-2.5 left-2.5 right-2.5 text-white text-[11px] font-bold truncate">{st.autor}</span>
-              </div>
-            ))}
+            {/* Lista de Stories de todos os usuários */}
+            {listaStoriesUnicos.map((st) => {
+              const perfilAutor = perfisReais.find(p => p.username === st.username) || {};
+              const avatarStory = perfilAutor.foto || st.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+              const nomeStory = perfilAutor.nome || st.autor;
+
+              return (
+                <div 
+                  key={st.id} 
+                  onClick={() => setStoryVisualizando(st)}
+                  className="relative flex-shrink-0 w-28 h-44 rounded-2xl overflow-hidden cursor-pointer shadow-md transition hover:scale-105 border-2 border-blue-500"
+                >
+                  <img src={st.imagem} alt="Story" className="absolute inset-0 w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+                  <img src={avatarStory} className="absolute top-2.5 left-2.5 w-8 h-8 rounded-full object-cover border-2 border-blue-500 shadow-sm" />
+                  <span className="absolute bottom-2.5 left-2.5 right-2.5 text-white text-[11px] font-bold truncate">{nomeStory}</span>
+                </div>
+              );
+            })}
           </div>
 
           {/* CRIAR PUBLICAÇÃO */}
