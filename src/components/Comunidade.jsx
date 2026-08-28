@@ -4,6 +4,15 @@ import PerfilPublico from './PerfilPublico';
 import ChatPrivado from './ChatPrivado';
 
 export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
+  // Proteção caso usuarioLogado venha nulo/indefinido
+  if (!usuarioLogado) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-xs opacity-60">Carregando dados do usuário...</p>
+      </div>
+    );
+  }
+
   const [publicacoes, setPublicacoes] = useState([]);
   const [perfisReais, setPerfisReais] = useState([]);
   const [notificacoes, setNotificacoes] = useState([]);
@@ -52,12 +61,13 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [novoPedidoTexto, setNovoPedidoTexto] = useState('');
 
   useEffect(() => {
+    let montado = true;
     async function carregarDadosIniciais() {
       try {
         await BancoDeDados.salvarNovoPerfilNaRede({
           username: usuarioLogado.username,
-          senha: usuarioLogado.senha,
-          nome: usuarioLogado.nome,
+          senha: usuarioLogado.senha || '',
+          nome: usuarioLogado.nome || 'Usuário',
           biografia: usuarioLogado.biografia || '',
           foto: usuarioLogado.foto || '',
           data_nascimento: usuarioLogado.dataNascimento || ''
@@ -69,15 +79,17 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         const pedidos = await BancoDeDados.getPedidosOracao();
         const strs = await BancoDeDados.getStories();
 
-        setPerfisReais(perfis || []);
-        setPublicacoes(pubs || []);
-        setNotificacoes(notifs || []);
-        setPedidosOracao(pedidos || []);
-        setStories(strs || []);
+        if (montado) {
+          setPerfisReais(perfis || []);
+          setPublicacoes(pubs || []);
+          setNotificacoes(notifs || []);
+          setPedidosOracao(pedidos || []);
+          setStories(strs || []);
+        }
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
       } finally {
-        setCarregandoComunidade(false);
+        if (montado) setCarregandoComunidade(false);
       }
     }
 
@@ -91,15 +103,20 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         const pedidos = await BancoDeDados.getPedidosOracao();
         const strs = await BancoDeDados.getStories();
 
-        setPublicacoes(pubs || []);
-        setNotificacoes(notifs || []);
-        setPerfisReais(perfis || []);
-        setPedidosOracao(pedidos || []);
-        setStories(strs || []);
+        if (montado) {
+          setPublicacoes(pubs || []);
+          setNotificacoes(notifs || []);
+          setPerfisReais(perfis || []);
+          setPedidosOracao(pedidos || []);
+          setStories(strs || []);
+        }
       } catch (e) {}
-    }, 4000);
+    }, 5000);
 
-    return () => clearInterval(intervalo);
+    return () => {
+      montado = false;
+      clearInterval(intervalo);
+    };
   }, [usuarioLogado]);
 
   const listaStoriesDoAutorAtual = usuarioStoryVisualizando 
@@ -269,7 +286,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     const texto = novoComentario[publicacaoId];
     if (!texto || !texto.trim()) return;
 
-    // Correção efetuada aqui:
     const respostaPaiId = respondendoComentarioId[publicacaoId] || null;
 
     const comentarioObj = {
