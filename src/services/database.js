@@ -61,6 +61,30 @@ export const BancoDeDados = {
     return await response.json();
   },
 
+  // --- STORIES ---
+  getStories: async () => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/stories?select=*&order=id.desc`, { method: 'GET', headers });
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (err) { return []; }
+  },
+
+  salvarStory: async (story) => {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(story)
+    });
+    if (!response.ok) throw new Error('Erro ao salvar story.');
+    return await BancoDeDados.getStories();
+  },
+
+  excluirStory: async (id) => {
+    await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${id}`, { method: 'DELETE', headers });
+    return await BancoDeDados.getStories();
+  },
+
   getPublicacoes: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?select=*&order=id.desc`, { method: 'GET', headers });
@@ -153,39 +177,9 @@ export const BancoDeDados = {
     } catch (e) {}
   },
 
-  aceitarPedidoAmizade: async (usernameMeu, usernameAmigo) => {
+  marcarNotificacoesLidas: async (username) => {
     try {
-      const perfis = await BancoDeDados.getPerfisCadastrados();
-      const eu = perfis.find(p => p.username === usernameMeu);
-      const outro = perfis.find(p => p.username === usernameAmigo);
-      if (!eu || !outro) return;
-
-      const meusPedidos = (eu.pedidos_recebidos || []).filter(u => u !== usernameAmigo);
-      const meusAmigos = eu.amigos || [];
-      if (!meusAmigos.includes(usernameAmigo)) meusAmigos.push(usernameAmigo);
-
-      const outrosPedidos = (outro.pedidos_enviados || []).filter(u => u !== usernameMeu);
-      const outrosAmigos = outro.amigos || [];
-      if (!outrosAmigos.includes(usernameMeu)) outrosAmigos.push(usernameMeu);
-
-      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameMeu}`, { method: 'PATCH', headers, body: JSON.stringify({ pedidos_recebidos: meusPedidos, amigos: meusAmigos }) });
-      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameAmigo}`, { method: 'PATCH', headers, body: JSON.stringify({ pedidos_enviados: outrosPedidos, amigos: outrosAmigos }) });
-      await BancoDeDados.adicionarNotificacao(usernameAmigo, `@${usernameMeu} aceitou seu pedido de amizade.`, 'amizade');
-    } catch (e) {}
-  },
-
-  rejeitarPedidoAmizade: async (usernameMeu, usernameAmigo) => {
-    try {
-      const perfis = await BancoDeDados.getPerfisCadastrados();
-      const eu = perfis.find(p => p.username === usernameMeu);
-      const outro = perfis.find(p => p.username === usernameAmigo);
-      if (!eu || !outro) return;
-
-      const meusPedidos = (eu.pedidos_recebidos || []).filter(u => u !== usernameAmigo);
-      const outrosPedidos = (outro.pedidos_enviados || []).filter(u => u !== usernameMeu);
-
-      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameMeu}`, { method: 'PATCH', headers, body: JSON.stringify({ pedidos_recebidos: meusPedidos }) });
-      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameAmigo}`, { method: 'PATCH', headers, body: JSON.stringify({ pedidos_enviados: outrosPedidos }) });
+      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?destinatario=eq.${username}`, { method: 'PATCH', headers, body: JSON.stringify({ lida: true }) });
     } catch (e) {}
   },
 
@@ -225,12 +219,6 @@ export const BancoDeDados = {
         horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       await fetch(`${SUPABASE_URL}/rest/v1/notificacoes`, { method: 'POST', headers, body: JSON.stringify(novaNotif) });
-    } catch (e) {}
-  },
-
-  marcarNotificacoesLidas: async (username) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?destinatario=eq.${username}`, { method: 'PATCH', headers, body: JSON.stringify({ lida: true }) });
     } catch (e) {}
   },
 

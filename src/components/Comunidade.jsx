@@ -8,14 +8,14 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [perfisReais, setPerfisReais] = useState([]);
   const [notificacoes, setNotificacoes] = useState([]);
   const [pedidosOracao, setPedidosOracao] = useState([]);
+  const [stories, setStories] = useState([]);
   
   const [carregandoComunidade, setCarregandoComunidade] = useState(true);
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
   const [chatComUsuario, setChatComUsuario] = useState(null);
+  const [storyVisualizando, setStoryVisualizando] = useState(null);
 
-  // Estados de Busca na Comunidade
   const [termoBuscaComunidade, setTermoBuscaComunidade] = useState('');
-
   const [novoComentario, setNovoComentario] = useState({});
   const [pubTexto, setPubTexto] = useState('');
   const [pubImagem, setPubImagem] = useState('');
@@ -42,11 +42,13 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         const pubs = await BancoDeDados.getPublicacoes();
         const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
         const pedidos = await BancoDeDados.getPedidosOracao();
+        const strs = await BancoDeDados.getStories();
 
         setPerfisReais(perfis || []);
         setPublicacoes(pubs || []);
         setNotificacoes(notifs || []);
         setPedidosOracao(pedidos || []);
+        setStories(strs || []);
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
       } finally {
@@ -62,11 +64,13 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
         const perfis = await BancoDeDados.getPerfisCadastrados();
         const pedidos = await BancoDeDados.getPedidosOracao();
+        const strs = await BancoDeDados.getStories();
 
         setPublicacoes(pubs || []);
         setNotificacoes(notifs || []);
         setPerfisReais(perfis || []);
         setPedidosOracao(pedidos || []);
+        setStories(strs || []);
       } catch (e) {}
     }, 5000);
 
@@ -77,10 +81,27 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
   const abrirChatComAmigo = async (usernameAmigo) => {
     setChatComUsuario(usernameAmigo);
-    // Marca notificações de mensagens deste amigo como lidas para zerar o balão de alerta
     await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
     const notifsAtualizadas = await BancoDeDados.getNotificacoes(usuarioLogado.username);
     setNotificacoes(notifsAtualizadas || []);
+  };
+
+  const criarStory = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const novoStory = {
+        id: Date.now(),
+        username: usuarioLogado.username,
+        autor: usuarioLogado.nome,
+        avatar: usuarioLogado.foto,
+        imagem: reader.result
+      };
+      const atualizados = await BancoDeDados.salvarStory(novoStory);
+      setStories(atualizados || []);
+    };
+    reader.readAsDataURL(file);
   };
 
   const publicarPost = async (e) => {
@@ -173,15 +194,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const amigosLista = perfisReais.filter(p => (perfilAtualNoBanco.amigos || []).includes(p.username));
   const outrosUsuarios = perfisReais.filter(p => p.username !== usuarioLogado.username && !(perfilAtualNoBanco.amigos || []).includes(p.username));
 
-  // Filtragem combinada (busca por termo no feed ou pessoas)
   const publicacoesFiltradas = publicacoes.filter(post => {
     if (!termoBuscaComunidade.trim()) return true;
     const termo = termoBuscaComunidade.toLowerCase();
-    const tema = (post.tema || '').toLowerCase();
-    const texto = (post.texto || '').toLowerCase();
-    const autor = (post.autor || '').toLowerCase();
-    const username = (post.username || '').toLowerCase();
-    return tema.includes(termo) || texto.includes(termo) || autor.includes(termo) || username.includes(termo);
+    return (post.tema || '').toLowerCase().includes(termo) || (post.texto || '').toLowerCase().includes(termo) || (post.autor || '').toLowerCase().includes(termo);
   });
 
   const membrosFiltrados = outrosUsuarios.filter(membro => {
@@ -193,14 +209,35 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   return (
     <div className={`w-full px-4 sm:px-6 lg:px-10 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
-      {/* BARRA DE BUSCA GERAL NO TOPO DA COMUNIDADE */}
+      {/* VISUALIZADOR DE STORY EM TELA CHEIA */}
+      {storyVisualizando && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
+          <div className="relative max-w-md w-full h-[80vh] bg-slate-900 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-slate-800">
+            <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <img src={storyVisualizando.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-blue-500" />
+                <span className="text-white text-xs font-bold">{storyVisualizando.autor}</span>
+              </div>
+              <button onClick={() => setStoryVisualizando(null)} className="bg-black/50 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm hover:bg-black">✕</button>
+            </div>
+            <img src={storyVisualizando.imagem} alt="Story" className="w-full h-full object-cover" />
+            {storyVisualizando.username === usuarioLogado.username && (
+              <div className="absolute bottom-4 left-4 right-4 flex justify-center">
+                <button onClick={async () => { await BancoDeDados.excluirStory(storyVisualizando.id); setStories(await BancoDeDados.getStories()); setStoryVisualizando(null); }} className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg hover:bg-red-700">Excluir Story</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* BARRA DE BUSCA */}
       <div className={`max-w-4xl mx-auto p-4 rounded-2xl border shadow-sm flex items-center gap-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
         <svg className="w-5 h-5 opacity-50 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input 
           type="text" 
-          placeholder="Buscar publicações, versículos, temas ou pessoas na comunidade..." 
+          placeholder="Buscar publicações, versículos ou pessoas na comunidade..." 
           value={termoBuscaComunidade}
           onChange={(e) => setTermoBuscaComunidade(e.target.value)}
           className={`w-full text-xs sm:text-sm bg-transparent focus:outline-none ${darkMode ? 'text-white placeholder-slate-400' : 'text-slate-900 placeholder-slate-500'}`}
@@ -212,36 +249,17 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* ================= COLUNA 1: PERFIL DO USUÁRIO (3 colunas) ================= */}
+        {/* COLUNA 1: PERFIL */}
         <div className="lg:col-span-3 space-y-6">
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-            <div 
-              onClick={() => onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado)}
-              className="cursor-pointer group inline-block"
-            >
-              <img 
-                src={usuarioLogado.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
-                alt="Meu Avatar" 
-                className="w-20 h-20 rounded-full object-cover mx-auto border-4 border-blue-500 shadow-md group-hover:opacity-90 transition" 
-              />
+            <div onClick={() => onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado)} className="cursor-pointer group inline-block">
+              <img src={usuarioLogado.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-20 h-20 rounded-full object-cover mx-auto border-4 border-blue-500 shadow-md group-hover:opacity-90 transition" />
             </div>
             <div>
-              <h3 
-                onClick={() => onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado)}
-                className="font-extrabold text-sm cursor-pointer hover:text-blue-500 transition"
-              >
-                {usuarioLogado.nome}
-              </h3>
-              <p 
-                onClick={() => onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado)}
-                className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline"
-              >
-                @{usuarioLogado.username}
-              </p>
+              <h3 onClick={() => onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado)} className="font-extrabold text-sm cursor-pointer hover:text-blue-500 transition">{usuarioLogado.nome}</h3>
+              <p onClick={() => onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
               <p className="text-xs opacity-75 mt-2">{usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.'}</p>
             </div>
-
-            {/* BLOCOS DE ESTATÍSTICA COM FUNDO BRANCO E BORDA DELICADA */}
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
               <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
                 <span className="block font-extrabold text-blue-500 text-sm">{perfilAtualNoBanco.amigos?.length || 0}</span>
@@ -255,8 +273,33 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           </div>
         </div>
 
-        {/* ================= COLUNA 2: FEED E PUBLICAÇÕES (6 colunas) ================= */}
+        {/* COLUNA 2: STORIES + FEED */}
         <div className="lg:col-span-6 space-y-6">
+
+          {/* CARROSSEL DE STORIES (ESTILO FACEBOOK) */}
+          <div className={`p-4 rounded-3xl border shadow-md flex gap-3 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+            {/* Adicionar Story */}
+            <label className={`relative flex-shrink-0 w-28 h-44 rounded-2xl border flex flex-col justify-end items-center pb-3 cursor-pointer overflow-hidden transition hover:scale-105 shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}>
+              <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${usuarioLogado.foto})` }}></div>
+              <div className="absolute top-3 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">+</div>
+              <span className="relative z-10 text-[11px] font-bold text-center px-1">Adicionar ao story</span>
+              <input type="file" accept="image/*" onChange={criarStory} className="hidden" />
+            </label>
+
+            {/* Lista de Stories */}
+            {stories.map((st) => (
+              <div 
+                key={st.id} 
+                onClick={() => setStoryVisualizando(st)}
+                className="relative flex-shrink-0 w-28 h-44 rounded-2xl overflow-hidden cursor-pointer shadow-md transition hover:scale-105 border-2 border-blue-500"
+              >
+                <img src={st.imagem} alt="Story" className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+                <img src={st.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="absolute top-2.5 left-2.5 w-8 h-8 rounded-full object-cover border-2 border-blue-500 shadow-sm" />
+                <span className="absolute bottom-2.5 left-2.5 right-2.5 text-white text-[11px] font-bold truncate">{st.autor}</span>
+              </div>
+            ))}
+          </div>
 
           {/* CRIAR PUBLICAÇÃO */}
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -322,7 +365,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             <h3 className="text-md font-bold opacity-75">Feed da Comunidade</h3>
             {publicacoesFiltradas.length === 0 ? (
               <div className={`p-8 text-center rounded-3xl border shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <p className="text-xs opacity-60">Nenhuma publicação encontrada para esta busca.</p>
+                <p className="text-xs opacity-60">Nenhuma publicação encontrada.</p>
               </div>
             ) : (
               publicacoesFiltradas.map((post) => {
@@ -373,58 +416,21 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       </div>
                     )}
 
-                    {/* BOTÕES DE REAÇÃO COM CONTRASTE PERFEITO */}
                     <div className="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
-                      <button 
-                        onClick={() => reagir(post.id, 'amem')} 
-                        className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${
-                          meuAmem 
-                            ? 'bg-blue-600 text-white border-blue-500 shadow-sm' 
-                            : darkMode 
-                              ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' 
-                              : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'
-                        }`}
-                      >
-                        <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                        </svg>
+                      <button onClick={() => reagir(post.id, 'amem')} className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${meuAmem ? 'bg-blue-600 text-white border-blue-500 shadow-sm' : darkMode ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'}`}>
+                        <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                         <span>Amém ({(reacoes.amem || []).length})</span>
                       </button>
-
-                      <button 
-                        onClick={() => reagir(post.id, 'gloria')} 
-                        className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${
-                          meuGloria 
-                            ? 'bg-amber-600 text-white border-amber-500 shadow-sm' 
-                            : darkMode 
-                              ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' 
-                              : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'
-                        }`}
-                      >
-                        <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                        </svg>
+                      <button onClick={() => reagir(post.id, 'gloria')} className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${meuGloria ? 'bg-amber-600 text-white border-amber-500 shadow-sm' : darkMode ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'}`}>
+                        <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
                         <span>Glória ({(reacoes.gloria || []).length})</span>
                       </button>
-
-                      <button 
-                        onClick={() => reagir(post.id, 'amor')} 
-                        className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${
-                          meuAmor 
-                            ? 'bg-pink-600 text-white border-pink-500 shadow-sm' 
-                            : darkMode 
-                              ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' 
-                              : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'
-                        }`}
-                      >
-                        <svg className="w-4 h-4 text-pink-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                        </svg>
+                      <button onClick={() => reagir(post.id, 'amor')} className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${meuAmor ? 'bg-pink-600 text-white border-pink-500 shadow-sm' : darkMode ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'}`}>
+                        <svg className="w-4 h-4 text-pink-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
                         <span>Amor ({(reacoes.amor || []).length})</span>
                       </button>
                     </div>
                     
-                    {/* COMENTÁRIOS */}
                     <div className="space-y-3 pt-2">
                       {post.comentarios && post.comentarios.length > 0 && (
                         <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
@@ -449,10 +455,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           </div>
         </div>
 
-        {/* ================= COLUNA 3: CHAT E SUGESTÕES DE AMIGOS (3 colunas) ================= */}
+        {/* COLUNA 3: CHAT + SUGESTÕES DE AMIGOS */}
         <div className="lg:col-span-3 space-y-6">
-          
-          {/* CHAT LATERAL */}
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
 
@@ -492,10 +496,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                               {naoLidasDoAmigo}
                             </span>
                           )}
-                          <button 
-                            title="Abrir chat"
-                            className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center"
-                          >
+                          <button title="Abrir chat" className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                             </svg>
@@ -509,7 +510,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             )}
           </div>
 
-          {/* SUGESTÕES DE AMIGOS / MEMBROS (RESTAURADO ABAIXO DO CHAT) */}
+          {/* SUGESTÕES DE AMIGOS */}
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">👥 Membros da Comunidade</h4>
             <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
@@ -535,11 +536,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                           alert(`Pedido de amizade enviado para @${membro.username}!`);
                           window.location.reload();
                         }}
-                        className={`px-3 py-1.5 rounded-xl font-bold text-[10px] transition flex-shrink-0 ${
-                          enviei 
-                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30 cursor-not-allowed' 
-                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
-                        }`}
+                        className={`px-3 py-1.5 rounded-xl font-bold text-[10px] transition flex-shrink-0 ${enviei ? 'bg-amber-500/10 text-amber-400 border border-amber-500/35 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'}`}
                       >
                         {enviei ? 'Pendente' : '+ Seguir'}
                       </button>
