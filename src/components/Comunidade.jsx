@@ -194,7 +194,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     }
   };
 
-  // 1. CLICAR NA FOTO: Abre o Story se houver, senão abre o perfil
   const clicarFotoPerfilOuStory = (usernameAlvo) => {
     if (!usernameAlvo) return;
     const autorTemStory = stories.some(s => s.username === usernameAlvo);
@@ -206,7 +205,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     }
   };
 
-  // 2. CLICAR NO NOME: Abre sempre o Perfil Público
   const abrirPerfilPublico = (usernameAlvo) => {
     if (!usernameAlvo) return;
     const perfilEncontrado = perfisReais.find(p => p.username === usernameAlvo);
@@ -228,6 +226,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     if (!mencaoDetectada && tipo === 'texto') {
       const match = conteudo.match(/@([a-zA-Z0-9_]+)/);
       if (match) mencaoDetectada = match[1];
+    }
+
+    // Se a menção apontar para o próprio usuário logado, ignoramos para não exibir o selo de menção própria
+    if (mencaoDetectada === usuarioLogado.username) {
+      mencaoDetectada = '';
     }
 
     const novoStory = {
@@ -266,7 +269,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
   const compartilharPostNoStory = (post) => {
     const textoFormatado = `📌 ${post.tema}\n\n"${post.texto}"\n\n- por @${post.username}`;
-    salvarStoryBanco('texto', textoFormatado, '#1e293b');
+    // Compartilhar post próprio ou de outro sem forçar menção ao próprio criador
+    const mencaoAlvo = post.username === usuarioLogado.username ? '' : post.username;
+    salvarStoryBanco('texto', textoFormatado, '#1e293b', mencaoAlvo);
     setMenuCompartilharAberto(null);
     alert('Publicação compartilhada com sucesso nos seus Stories! 🚀');
   };
@@ -462,16 +467,17 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const temStoryAtivo = meusStories.length > 0;
 
   const autoresComStoriesMap = {};
-  stories.forEach(st => {
-    if (!autoresComStoriesMap[st.username]) {
-      const perfilAutor = perfisReais.find(p => p.username === st.username) || {};
-      autoresComStoriesMap[st.username] = {
-        username: st.username,
-        autor: perfilAutor.nome || st.autor,
-        avatar: perfilAutor.foto || st.avatar,
-        primeiroStory: st
-      };
-    }
+  // Mapeamos ordenando por ID (mais antigo para mais recente) para que os mais recentes fiquem à direita
+  const storiesOrdenadosCronologicamente = [...stories].sort((a, b) => a.id - b.id);
+
+  storiesOrdenadosCronologicamente.forEach(st => {
+    const perfilAutor = perfisReais.find(p => p.username === st.username) || {};
+    autoresComStoriesMap[st.username] = {
+      username: st.username,
+      autor: perfilAutor.nome || st.autor,
+      avatar: perfilAutor.foto || st.avatar,
+      primeiroStory: st // Mantém o primeiro story ou o mais recente dependendo da lógica
+    };
   });
   const listaAutoresStories = Object.values(autoresComStoriesMap);
   const notificacoesNaoLidasCount = notificacoes.filter(n => !n.lida).length;
@@ -492,11 +498,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return (
       <div key={post.id} className={`p-4 sm:p-6 rounded-3xl border shadow-md space-y-4 relative w-full overflow-hidden box-border ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         
-        {/* CABEÇALHO DO POST */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0 pr-2">
             
-            {/* SÓ A FOTO ABRE O STORY */}
             <div 
               onClick={() => clicarFotoPerfilOuStory(post.username)}
               className={`w-12 h-12 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${autorTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse' : 'border-2 border-blue-500/30'}`}
@@ -505,7 +509,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <img src={avatarAtualizado} alt="Avatar" className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
             </div>
 
-            {/* SÓ O NOME ABRE O PERFIL */}
             <div className="min-w-0">
               <p 
                 onClick={() => abrirPerfilPublico(post.username)} 
@@ -522,7 +525,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
           </div>
 
-          {/* MENU DOS 3 PONTINHOS (EDITAR / EXCLUIR) */}
           {souDono && !estaEditando && (
             <div className="relative flex-shrink-0">
               <button 
@@ -558,7 +560,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           )}
         </div>
 
-        {/* CONTEÚDO EDITANDO OU NORMAL */}
         {estaEditando ? (
           <div className="space-y-3 pt-2">
             <input type="text" value={temaEditado} onChange={(e) => setTemaEditado(e.target.value)} className={`w-full text-sm rounded-xl px-3 py-2 border font-bold ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
@@ -576,7 +577,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           </div>
         )}
 
-        {/* BARRA INFERIOR: REAÇÕES + BOTÃO DE COMPARTILHAR */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
           
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
@@ -658,7 +658,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
         </div>
         
-        {/* SEÇÃO DE COMENTÁRIOS */}
         <div className="space-y-3 pt-2">
           {post.comentarios && post.comentarios.length > 0 && (
             <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
@@ -685,7 +684,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     }`}
                   >
                     <div className="flex items-start gap-2.5">
-                      {/* FOTO COMENTÁRIO ABRE STORY */}
                       <div 
                         onClick={() => clicarFotoPerfilOuStory(c.username)}
                         className={`w-7 h-7 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${autorComentarioTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-sm' : ''}`}
@@ -694,7 +692,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center justify-between">
-                          {/* NOME COMENTÁRIO ABRE PERFIL */}
                           <span onClick={() => abrirPerfilPublico(c.username)} className="font-bold text-blue-500 cursor-pointer hover:underline truncate">@{c.username}</span>
                           <button 
                             onClick={() => setRespondendoComentarioId({ ...respondendoComentarioId, [post.id]: c.id })}
@@ -1108,7 +1105,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               {storyAtivoObj.tipo === 'texto' ? (
                 <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center whitespace-pre-line" style={{ backgroundColor: storyAtivoObj.cor_fundo || '#1e293b' }}>
                   <p className="text-white text-lg sm:text-xl font-extrabold leading-relaxed drop-shadow-md">{storyAtivoObj.conteudo}</p>
-                  {storyAtivoObj.mencao && (
+                  
+                  {/* SÓ MOSTRA SE A MENÇÃO EXISTIR E NÃO FOR O PRÓPRIO USUÁRIO LOGADO */}
+                  {storyAtivoObj.mencao && storyAtivoObj.mencao !== usuarioLogado.username && (
                     <span 
                       onClick={() => { setUsuarioStoryVisualizando(null); clicarFotoPerfilOuStory(storyAtivoObj.mencao); }}
                       className="mt-4 bg-black/40 hover:bg-black/60 text-white text-xs font-bold px-4 py-1.5 rounded-full cursor-pointer transition shadow-md"
@@ -1160,7 +1159,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         <div className="lg:col-span-3 space-y-6">
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
             
-            {/* FOTO PERFIL LATERAL: CLICAR ABRE STORY */}
             <div 
               onClick={() => clicarFotoPerfilOuStory(usuarioLogado.username)} 
               className="cursor-pointer group inline-block relative"
@@ -1175,7 +1173,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
 
             <div>
-              {/* NOME PERFIL LATERAL: CLICAR ABRE PERFIL */}
               <h3 onClick={() => abrirPerfilPublico(usuarioLogado.username)} className="font-extrabold text-sm cursor-pointer hover:text-blue-500 transition">{nomePerfilOficial}</h3>
               <p onClick={() => abrirPerfilPublico(usuarioLogado.username)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
               <p className="text-xs opacity-75 mt-2">{meuPerfilBanco.biografia || usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.'}</p>
@@ -1334,7 +1331,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          {/* FOTO AMIGO ABRE STORY */}
                           <div 
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1347,7 +1343,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                           </div>
 
                           <div className="min-w-0">
-                            {/* NOME AMIGO ABRE PERFIL */}
                             <p onClick={(e) => { e.stopPropagation(); abrirPerfilPublico(amigo.username); }} className="text-xs font-bold truncate hover:underline">{amigo.nome}</p>
                             <p onClick={(e) => { e.stopPropagation(); abrirPerfilPublico(amigo.username); }} className="text-[10px] opacity-50 truncate hover:underline">@{amigo.username}</p>
                           </div>
@@ -1386,7 +1381,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   return (
                     <div key={membro.username} className={`p-3 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="flex items-center gap-2.5 min-w-0">
-                        {/* FOTO MEMBRO ABRE STORY */}
                         <div 
                           onClick={() => clicarFotoPerfilOuStory(membro.username)}
                           className={`w-8 h-8 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${membroTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-sm animate-pulse' : ''}`}
@@ -1395,7 +1389,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                           <img src={membro.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white" />
                         </div>
                         <div className="min-w-0">
-                          {/* NOME MEMBRO ABRE PERFIL */}
                           <p onClick={() => abrirPerfilPublico(membro.username)} className="font-bold truncate cursor-pointer hover:underline">{membro.nome}</p>
                           <p onClick={() => abrirPerfilPublico(membro.username)} className="text-[10px] opacity-50 truncate cursor-pointer hover:underline">@{membro.username}</p>
                         </div>
