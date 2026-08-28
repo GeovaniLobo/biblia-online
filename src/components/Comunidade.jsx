@@ -140,8 +140,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     };
   }, [usuarioLogado]);
 
+  // Sincronização unificada: prioriza sempre o perfil salvo no banco de dados para evitar conflito entre PC e Celular
   const meuPerfilBanco = perfisReais.find(p => p.username === usuarioLogado.username) || {};
-  const fotoPerfilOficial = meuPerfilBanco.foto || usuarioLogado.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+  const fotoPerfilOficial = meuPerfilBanco.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
   const nomePerfilOficial = meuPerfilBanco.nome || usuarioLogado.nome || 'Usuário';
 
   const listaStoriesDoAutorAtual = usuarioStoryVisualizando 
@@ -228,7 +229,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       if (match) mencaoDetectada = match[1];
     }
 
-    // Se a menção apontar para o próprio usuário logado, ignoramos para não exibir o selo de menção própria
     if (mencaoDetectada === usuarioLogado.username) {
       mencaoDetectada = '';
     }
@@ -269,7 +269,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
   const compartilharPostNoStory = (post) => {
     const textoFormatado = `📌 ${post.tema}\n\n"${post.texto}"\n\n- por @${post.username}`;
-    // Compartilhar post próprio ou de outro sem forçar menção ao próprio criador
     const mencaoAlvo = post.username === usuarioLogado.username ? '' : post.username;
     salvarStoryBanco('texto', textoFormatado, '#1e293b', mencaoAlvo);
     setMenuCompartilharAberto(null);
@@ -467,7 +466,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const temStoryAtivo = meusStories.length > 0;
 
   const autoresComStoriesMap = {};
-  // Mapeamos ordenando por ID (mais antigo para mais recente) para que os mais recentes fiquem à direita
   const storiesOrdenadosCronologicamente = [...stories].sort((a, b) => a.id - b.id);
 
   storiesOrdenadosCronologicamente.forEach(st => {
@@ -476,7 +474,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       username: st.username,
       autor: perfilAutor.nome || st.autor,
       avatar: perfilAutor.foto || st.avatar,
-      primeiroStory: st // Mantém o primeiro story ou o mais recente dependendo da lógica
+      primeiroStory: st
     };
   });
   const listaAutoresStories = Object.values(autoresComStoriesMap);
@@ -1106,7 +1104,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center whitespace-pre-line" style={{ backgroundColor: storyAtivoObj.cor_fundo || '#1e293b' }}>
                   <p className="text-white text-lg sm:text-xl font-extrabold leading-relaxed drop-shadow-md">{storyAtivoObj.conteudo}</p>
                   
-                  {/* SÓ MOSTRA SE A MENÇÃO EXISTIR E NÃO FOR O PRÓPRIO USUÁRIO LOGADO */}
                   {storyAtivoObj.mencao && storyAtivoObj.mencao !== usuarioLogado.username && (
                     <span 
                       onClick={() => { setUsuarioStoryVisualizando(null); clicarFotoPerfilOuStory(storyAtivoObj.mencao); }}
