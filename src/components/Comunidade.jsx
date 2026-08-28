@@ -162,10 +162,10 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const amigosLista = perfisReais.filter(p => (perfilAtualNoBanco.amigos || []).includes(p.username));
 
   return (
-    <div className={`w-full px-4 md:px-8 py-4 grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-12 gap-6 relative ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+    <div className={`w-full px-4 sm:px-6 lg:px-10 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
-      {/* ================= COLUNA 1: PERFIL DO USUÁRIO (Esquerda) ================= */}
-      <div className="lg:col-span-1 xl:col-span-3 space-y-6">
+      {/* ================= COLUNA 1: PERFIL DO USUÁRIO (3 colunas de 12) ================= */}
+      <div className="lg:col-span-3 space-y-6">
         <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
           <img 
             src={usuarioLogado.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
@@ -175,7 +175,7 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
           <div>
             <h3 className="font-extrabold text-sm">{usuarioLogado.nome}</h3>
             <p className="text-xs text-blue-500 font-bold mt-0.5">@{usuarioLogado.username}</p>
-            <p className="text-xs opacity-75 mt-2 line-clamp-3">{usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.'}</p>
+            <p className="text-xs opacity-75 mt-2">{usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.'}</p>
           </div>
 
           <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
@@ -191,8 +191,8 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         </div>
       </div>
 
-      {/* ================= COLUNA 2: FEED E PUBLICAÇÕES (Centro) ================= */}
-      <div className="lg:col-span-2 xl:col-span-6 space-y-6">
+      {/* ================= COLUNA 2: FEED E PUBLICAÇÕES (6 colunas de 12) ================= */}
+      <div className="lg:col-span-6 space-y-6">
 
         {/* CRIAR PUBLICAÇÃO */}
         <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -379,8 +379,8 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         </div>
       </div>
 
-      {/* ================= COLUNA 3: CHAT E MENSAGENS LARGO (Direita) ================= */}
-      <div className="lg:col-span-1 xl:col-span-3 space-y-6">
+      {/* ================= COLUNA 3: CHAT E MENSAGENS LARGO (3 colunas de 12) ================= */}
+      <div className="lg:col-span-3 space-y-6">
         <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
           <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
 
