@@ -994,10 +994,18 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                             const meuGloriaCom = (reacoesComentario.gloria || []).includes(usuarioLogado.username);
                             const meuAmorCom = (reacoesComentario.amor || []).includes(usuarioLogado.username);
 
-                            const comentarioPai = c.resposta_a_id ? post.comentarios.find(cp => cp.id === c.resposta_a_id) : null;
+                            const ehResposta = Boolean(c.resposta_a_id);
+                            const comentarioPai = ehResposta ? post.comentarios.find(cp => cp.id === c.resposta_a_id) : null;
 
                             return (
-                              <div key={c.id || Math.random()} className={`p-3 rounded-2xl text-xs space-y-2 ${c.resposta_a_id ? 'ml-6 border-l-2 border-blue-500/40 pl-3' : ''} ${darkMode ? 'bg-slate-800/40 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+                              <div 
+                                key={c.id || Math.random()} 
+                                className={`p-3 rounded-2xl text-xs space-y-2 transition ${
+                                  ehResposta 
+                                    ? 'ml-8 pl-4 border-l-2 border-blue-500 bg-blue-500/5' 
+                                    : darkMode ? 'bg-slate-800/40 text-slate-200' : 'bg-slate-50 text-slate-800'
+                                }`}
+                              >
                                 <div className="flex items-start gap-2.5">
                                   <div 
                                     onClick={() => clicarPerfilOuStory(c.username)}
@@ -1010,19 +1018,19 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                                       <span onClick={() => clicarPerfilOuStory(c.username)} className="font-bold text-blue-500 cursor-pointer hover:underline">@{c.username}</span>
                                       <button 
                                         onClick={() => setRespondendoComentarioId({ ...respondendoComentarioId, [post.id]: c.id })}
-                                        className="text-[10px] font-semibold opacity-60 hover:opacity-100"
+                                        className="text-[10px] font-semibold opacity-60 hover:opacity-100 text-blue-400"
                                       >
                                         Responder
                                       </button>
                                     </div>
 
                                     {comentarioPai && (
-                                      <p className="text-[10px] opacity-60 italic bg-black/5 dark:bg-white/5 p-1 rounded">
-                                        Respondendo a @{comentarioPai.username}: {comentarioPai.texto.substring(0, 30)}...
+                                      <p className="text-[10px] opacity-60 italic bg-blue-500/10 px-2 py-0.5 rounded w-fit">
+                                        em resposta a @{comentarioPai.username}
                                       </p>
                                     )}
 
-                                    <p className="opacity-95 break-words">{c.texto}</p>
+                                    <p className="opacity-95 break-words leading-relaxed">{c.texto}</p>
 
                                     <div className="flex items-center gap-3 pt-1">
                                       <button onClick={() => reagirComentarioPub(post.id, c.id, 'amem')} className={`text-[10px] font-bold flex items-center gap-1 ${meuAmemCom ? 'text-red-500' : 'opacity-60 hover:opacity-100'}`}>
@@ -1044,9 +1052,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       )}
 
                       {respondendoComentarioId[post.id] && (
-                        <div className="flex items-center justify-between bg-blue-500/10 px-3 py-1.5 rounded-xl text-xs">
-                          <span>Respondendo a um comentário...</span>
-                          <button onClick={() => setRespondendoComentarioId({ ...respondendoComentarioId, [post.id]: null })} className="font-bold text-red-500">✕ Cancelar</button>
+                        <div className="flex items-center justify-between bg-blue-500/10 px-3 py-1.5 rounded-xl text-xs border border-blue-500/30">
+                          <span className="font-semibold text-blue-400">Respondendo a um comentário...</span>
+                          <button onClick={() => setRespondendoComentarioId({ ...respondendoComentarioId, [post.id]: null })} className="font-bold text-red-400 hover:underline">✕ Cancelar</button>
                         </div>
                       )}
 

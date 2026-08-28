@@ -80,7 +80,6 @@ export const BancoDeDados = {
         throw new Error('Falha ao enviar arquivo para o Storage.');
       }
 
-      // Retorna a URL pública acessível do arquivo no Storage
       return `${SUPABASE_URL}/storage/v1/object/public/stories-midia/${fileName}`;
     } catch (err) {
       console.error("Erro no upload:", err);
@@ -197,7 +196,6 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
-  // --- NOVA FUNÇÃO PARA REAGIR EM COMENTÁRIOS ---
   reagirComentarioPub: async (publicacaoId, comentarioId, tipoReacao, username) => {
     try {
       const pubs = await BancoDeDados.getPublicacoes();
