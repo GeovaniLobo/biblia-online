@@ -14,15 +14,20 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
   const [chatComUsuario, setChatComUsuario] = useState(null);
   const [enviandoMidia, setEnviandoMidia] = useState(false);
+  const [abaNotificacoesAberta, setAbaNotificacoesAberta] = useState(false);
   
-  const [storyVisualizando, setStoryVisualizando] = useState(null);
+  // Estados do Visualizador de Stories sequenciais
+  const [usuarioStoryVisualizando, setUsuarioStoryVisualizando] = useState(null); // username do autor sendo assistido
+  const [indiceStoryAtual, setIndiceStoryAtual] = useState(0);
   const [progressoStory, setProgressoStory] = useState(0);
   const timerRef = useRef(null);
 
+  // Estados do Modal de Criar Story
   const [modalCriarStoryAberto, setModalCriarStoryAberto] = useState(false);
   const [tipoStoryCriacao, setTipoStoryCriacao] = useState('texto');
   const [textoStory, setTextoStory] = useState('');
   const [corFundoStory, setCorFundoStory] = useState('#2563eb');
+  const [mencaoStory, setMencaoStory] = useState('');
   const [midiaStoryUrl, setMidiaStoryUrl] = useState('');
   const [tipoMidia, setTipoMidia] = useState('imagem');
 
@@ -88,15 +93,22 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return () => clearInterval(intervalo);
   }, [usuarioLogado]);
 
+  // Lista de stories do autor atualmente em exibição no modal
+  const listaStoriesDoAutorAtual = usuarioStoryVisualizando 
+    ? stories.filter(s => s.username === usuarioStoryVisualizando) 
+    : [];
+  const storyAtivoObj = listaStoriesDoAutorAtual[indiceStoryAtual];
+
+  // Controle do Timer Automático do Story Atual
   useEffect(() => {
-    if (!storyVisualizando) {
+    if (!usuarioStoryVisualizando || !storyAtivoObj) {
       setProgressoStory(0);
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
 
     setProgressoStory(0);
-    const duracaoTotalMs = storyVisualizando.tipo === 'video' ? 60000 : 20000;
+    const duracaoTotalMs = storyAtivoObj.tipo === 'video' ? 60000 : 20000;
     const intervaloMs = 100;
     const incrementoPorPasso = (100 / (duracaoTotalMs / intervaloMs));
 
@@ -104,7 +116,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       setProgressoStory((prev) => {
         if (prev >= 100) {
           clearInterval(timerRef.current);
-          setStoryVisualizando(null);
+          avancarStory();
           return 100;
         }
         return prev + incrementoPorPasso;
@@ -114,7 +126,23 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [storyVisualizando]);
+  }, [usuarioStoryVisualizando, indiceStoryAtual]);
+
+  const avancarStory = () => {
+    if (indiceStoryAtual < listaStoriesDoAutorAtual.length - 1) {
+      setIndiceStoryAtual(indiceStoryAtual + 1);
+    } else {
+      // Acabaram os stories deste usuário, fecha o visualizador
+      setUsuarioStoryVisualizando(null);
+      setIndiceStoryAtual(0);
+    }
+  };
+
+  const voltarStory = () => {
+    if (indiceStoryAtual > 0) {
+      setIndiceStoryAtual(indiceStoryAtual - 1);
+    }
+  };
 
   const perfilAtualNoBanco = perfisReais.find(p => p.username === usuarioLogado.username) || { amigos: [], pedidos_enviados: [], pedidos_recebidos: [] };
 
@@ -125,7 +153,14 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setNotificacoes(notifsAtualizadas || []);
   };
 
-  const salvarStoryBanco = async (tipo, conteudo, corFundo = '#2563eb') => {
+  const salvarStoryBanco = async (tipo, conteudo, corFundo = '#2563eb', mencao = '') => {
+    // Detecta se há menção no formato @fulano no texto caso não tenha sido preenchida manualmente
+    let mencaoDetectada = mencao;
+    if (!mencaoDetectada && tipo === 'texto') {
+      const match = conteudo.match(/@([a-zA-Z0-9_]+)/);
+      if (match) mencaoDetectada = match[1];
+    }
+
     const novoStory = {
       id: Date.now(),
       username: usuarioLogado.username,
@@ -133,13 +168,31 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       avatar: usuarioLogado.foto,
       tipo,
       conteudo,
-      cor_fundo: corFundo
+      cor_fundo: corFundo,
+      mencao: mencaoDetectada || null
     };
+
     const atualizados = await BancoDeDados.salvarStory(novoStory);
     setStories(atualizados || []);
     setModalCriarStoryAberto(false);
     setTextoStory('');
     setMidiaStoryUrl('');
+    setMencaoStory('');
+
+    // Se houve menção, envia notificação para o usuário mencionado
+    if (mencaoDetectada) {
+      await BancoDeDados.adicionarNotificacao(
+        mencaoDetectada, 
+        `@${usuarioLogado.username} mencionou você em um story!`, 
+        'mencao'
+      );
+    }
+  };
+
+  const repostarStory = (st) => {
+    salvarStoryBanco(st.tipo, st.conteudo, st.cor_fundo || '#1e293b');
+    setUsuarioStoryVisualizando(null);
+    alert('Story repostado com sucesso no seu perfil! 🚀');
   };
 
   const compartilharPostNoStory = (post) => {
@@ -254,17 +307,69 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const meusStories = stories.filter(s => s.username === usuarioLogado.username);
   const temStoryAtivo = meusStories.length > 0;
 
-  const usuariosComStoriesMap = {};
+  // Agrupa autores que possuem stories ativos
+  const autoresComStoriesMap = {};
   stories.forEach(st => {
-    if (!usuariosComStoriesMap[st.username]) {
-      usuariosComStoriesMap[st.username] = st;
+    if (!autoresComStoriesMap[st.username]) {
+      const perfilAutor = perfisReais.find(p => p.username === st.username) || {};
+      autoresComStoriesMap[st.username] = {
+        username: st.username,
+        autor: perfilAutor.nome || st.autor,
+        avatar: perfilAutor.foto || st.avatar,
+        primeiroStory: st
+      };
     }
   });
-  const listaStoriesUnicos = Object.values(usuariosComStoriesMap);
+  const listaAutoresStories = Object.values(autoresComStoriesMap);
+
+  const notificacoesNaoLidasCount = notificacoes.filter(n => !n.lida).length;
 
   return (
     <div className={`w-full px-4 sm:px-6 lg:px-10 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
+      {/* BARRA SUPERIOR COM NOTIFICAÇÕES */}
+      <div className="flex justify-end max-w-4xl mx-auto">
+        <div className="relative">
+          <button 
+            onClick={async () => {
+              setAbaNotificacoesAberta(!abaNotificacoesAberta);
+              if (!abaNotificacoesAberta) {
+                await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
+                setNotificacoes(await BancoDeDados.getNotificacoes(usuarioLogado.username));
+              }
+            }}
+            className={`px-4 py-2 rounded-2xl border text-xs font-bold flex items-center gap-2 shadow-sm transition ${darkMode ? 'bg-slate-900 border-slate-800 text-white hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'}`}
+          >
+            🔔 Notificações
+            {notificacoesNaoLidasCount > 0 && (
+              <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold animate-bounce">
+                {notificacoesNaoLidasCount}
+              </span>
+            )}
+          </button>
+
+          {abaNotificacoesAberta && (
+            <div className={`absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-3xl border shadow-2xl p-4 z-40 space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+              <div className="flex justify-between items-center border-b pb-2 border-slate-700">
+                <h4 className="font-extrabold text-xs uppercase tracking-wider">Suas Notificações</h4>
+                <button onClick={() => setAbaNotificacoesAberta(false)} className="text-xs font-bold opacity-60">✕</button>
+              </div>
+
+              {notificacoes.length === 0 ? (
+                <p className="text-xs opacity-50 text-center py-6">Nenhuma notificação no momento.</p>
+              ) : (
+                notificacoes.map((n, idx) => (
+                  <div key={idx} className={`p-3 rounded-2xl border text-xs space-y-1 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <p className="font-bold">{n.texto}</p>
+                    <span className="text-[10px] opacity-50 block">{n.horario}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* MODAL DE CRIAÇÃO DE STORY */}
       {modalCriarStoryAberto && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
@@ -282,15 +387,31 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             {tipoStoryCriacao === 'texto' ? (
               <div className="space-y-4">
                 <div 
-                  className="w-full h-64 rounded-2xl p-6 flex items-center justify-center text-center shadow-inner transition"
+                  className="w-full h-56 rounded-2xl p-6 flex flex-col justify-between items-center text-center shadow-inner transition"
                   style={{ backgroundColor: corFundoStory }}
                 >
                   <textarea 
-                    rows="4"
-                    placeholder="Digite sua mensagem para o story..."
+                    rows="3"
+                    placeholder="Digite sua mensagem. Use @username para mencionar um amigo..."
                     value={textoStory}
                     onChange={(e) => setTextoStory(e.target.value)}
-                    className="w-full bg-transparent text-white placeholder-white/70 text-lg font-bold text-center focus:outline-none resize-none"
+                    className="w-full bg-transparent text-white placeholder-white/70 text-base font-bold text-center focus:outline-none resize-none"
+                  />
+                  {mencaoStory && (
+                    <span className="bg-black/40 text-white text-[10px] font-bold px-3 py-1 rounded-full">
+                      Mencionando: @{mencaoStory}
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold opacity-70 block">Mencionar amigo (@username):</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: joaosilva" 
+                    value={mencaoStory}
+                    onChange={(e) => setMencaoStory(e.target.value)}
+                    className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
                   />
                 </div>
 
@@ -309,7 +430,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 </div>
 
                 <button 
-                  onClick={() => { if(textoStory.trim()) salvarStoryBanco('texto', textoStory, corFundoStory); }}
+                  onClick={() => { if(textoStory.trim()) salvarStoryBanco('texto', textoStory, corFundoStory, mencaoStory); }}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow-md transition"
                 >
                   Publicar Story de Texto 🚀
@@ -322,9 +443,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     <p className="text-xs font-bold text-blue-500 animate-pulse py-8">Enviando arquivo para a nuvem...</p>
                   ) : midiaStoryUrl ? (
                     tipoMidia === 'video' ? (
-                      <video src={midiaStoryUrl} controls className="w-full h-48 object-cover rounded-xl" />
+                      <video src={midiaStoryUrl} controls className="w-full h-44 object-cover rounded-xl" />
                     ) : (
-                      <img src={midiaStoryUrl} alt="Preview" className="w-full h-48 object-cover rounded-xl" />
+                      <img src={midiaStoryUrl} alt="Preview" className="w-full h-44 object-cover rounded-xl" />
                     )
                   ) : (
                     <div className="space-y-2">
@@ -344,8 +465,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                                 if (urlPublica) {
                                   setTipoMidia(file.type.startsWith('video') ? 'video' : 'imagem');
                                   setMidiaStoryUrl(urlPublica);
-                                } else {
-                                  alert('Erro ao enviar arquivo.');
                                 }
                               }
                             }} 
@@ -368,8 +487,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                                 if (urlPublica) {
                                   setTipoMidia('video');
                                   setMidiaStoryUrl(urlPublica);
-                                } else {
-                                  alert('Erro ao enviar vídeo.');
                                 }
                               }
                             }} 
@@ -381,9 +498,20 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   )}
                 </div>
 
+                <div className="space-y-1">
+                  <label className="text-xs font-bold opacity-70 block">Mencionar amigo (@username):</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: joaosilva" 
+                    value={mencaoStory}
+                    onChange={(e) => setMencaoStory(e.target.value)}
+                    className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
+                  />
+                </div>
+
                 {midiaStoryUrl && (
                   <button 
-                    onClick={() => salvarStoryBanco(tipoMidia, midiaStoryUrl)}
+                    onClick={() => salvarStoryBanco(tipoMidia, midiaStoryUrl, '#2563eb', mencaoStory)}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow-md transition"
                   >
                     Publicar Mídia nos Stories 🚀
@@ -395,39 +523,70 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
-      {/* VISUALIZADOR DE STORY EM TELA CHEIA */}
-      {storyVisualizando && (
+      {/* ================= VISUALIZADOR DE STORIES SEQUENCIAL ================= */}
+      {usuarioStoryVisualizando && storyAtivoObj && (
         <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
-          <div className="relative max-w-md w-full h-[82vh] bg-slate-900 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-slate-800">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-700 z-20">
-              <div className="h-full bg-blue-500 transition-all duration-100 ease-linear" style={{ width: `${progressoStory}%` }}></div>
-            </div>
-
-            <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pt-1">
-              <div className="flex items-center gap-2">
-                <img src={storyVisualizando.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-blue-500 shadow-md" />
-                <span className="text-white text-xs font-bold drop-shadow-md">{storyVisualizando.autor}</span>
-              </div>
-              <button onClick={() => setStoryVisualizando(null)} className="bg-black/50 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm hover:bg-black">✕</button>
-            </div>
-
-            <div className="flex-1 flex items-center justify-center w-full h-full relative">
-              {storyVisualizando.tipo === 'texto' ? (
-                <div className="w-full h-full flex items-center justify-center p-8 text-center" style={{ backgroundColor: storyVisualizando.cor_fundo || '#2563eb' }}>
-                  <p className="text-white text-xl sm:text-2xl font-extrabold leading-relaxed drop-shadow-md">{storyVisualizando.conteudo}</p>
+          <div className="relative max-w-md w-full h-[85vh] bg-slate-900 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-slate-800">
+            
+            {/* BARRAS DE PROGRESSO MÚLTIPLAS NO TOPO */}
+            <div className="absolute top-0 left-0 right-0 p-2 z-30 flex gap-1 bg-gradient-to-b from-black/80 to-transparent">
+              {listaStoriesDoAutorAtual.map((st, idx) => (
+                <div key={st.id} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-white transition-all duration-100 ease-linear"
+                    style={{
+                      width: idx < indiceStoryAtual ? '100%' : idx === indiceStoryAtual ? `${progressoStory}%` : '0%'
+                    }}
+                  ></div>
                 </div>
-              ) : storyVisualizando.tipo === 'video' ? (
-                <video src={storyVisualizando.conteudo} autoPlay controls className="w-full h-full object-cover" />
+              ))}
+            </div>
+
+            {/* CABEÇALHO DO STORY */}
+            <div className="absolute top-5 left-4 right-4 z-20 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <img src={storyAtivoObj.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-amber-500 shadow-md" />
+                <div>
+                  <span className="text-white text-xs font-bold drop-shadow-md block">{storyAtivoObj.autor}</span>
+                  <span className="text-white/70 text-[10px]">Story {indiceStoryAtual + 1} de {listaStoriesDoAutorAtual.length}</span>
+                </div>
+              </div>
+              <button onClick={() => setUsuarioStoryVisualizando(null)} className="bg-black/50 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm hover:bg-black">✕</button>
+            </div>
+
+            {/* ÁREAS DE CLIQUE PARA NAVEGAR ENTRE STORIES (ESQUERDA / DIREITA) */}
+            <div onClick={voltarStory} className="absolute left-0 top-16 bottom-20 w-1/3 z-20 cursor-pointer" title="Story anterior"></div>
+            <div onClick={avancarStory} className="absolute right-0 top-16 bottom-20 w-1/3 z-20 cursor-pointer" title="Próximo story"></div>
+
+            {/* CONTEÚDO DO STORY */}
+            <div className="flex-1 flex items-center justify-center w-full h-full relative bg-black">
+              {storyAtivoObj.tipo === 'texto' ? (
+                <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center" style={{ backgroundColor: storyAtivoObj.cor_fundo || '#2563eb' }}>
+                  <p className="text-white text-xl sm:text-2xl font-extrabold leading-relaxed drop-shadow-md">{storyAtivoObj.conteudo}</p>
+                  {storyAtivoObj.mencao && (
+                    <span className="mt-4 bg-black/40 text-white text-xs font-bold px-4 py-1.5 rounded-full">
+                      Mencionou @{storyAtivoObj.mencao}
+                    </span>
+                  )}
+                </div>
+              ) : storyAtivoObj.tipo === 'video' ? (
+                <video src={storyAtivoObj.conteudo} autoPlay controls className="w-full h-full object-cover" />
               ) : (
-                <img src={storyVisualizando.conteudo} alt="Story" className="w-full h-full object-cover" />
+                <img src={storyAtivoObj.conteudo} alt="Story" className="w-full h-full object-cover" />
               )}
             </div>
 
-            {storyVisualizando.username === usuarioLogado.username && (
-              <div className="absolute bottom-4 left-4 right-4 flex justify-center z-10">
-                <button onClick={async () => { await BancoDeDados.excluirStory(storyVisualizando.id); setStories(await BancoDeDados.getStories()); setStoryVisualizando(null); }} className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg hover:bg-red-700">Excluir Story</button>
-              </div>
-            )}
+            {/* RODAPÉ: OPÇÃO DE REPOSTAR OU EXCLUIR */}
+            <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center z-30">
+              {storyAtivoObj.username === usuarioLogado.username ? (
+                <button onClick={async () => { await BancoDeDados.excluirStory(storyAtivoObj.id); setStories(await BancoDeDados.getStories()); setUsuarioStoryVisualizando(null); }} className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg hover:bg-red-700 w-full">Excluir Story</button>
+              ) : (
+                <button onClick={() => repostarStory(storyAtivoObj)} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg w-full transition">
+                  ✨ Repostar no meu Story
+                </button>
+              )}
+            </div>
+
           </div>
         </div>
       )}
@@ -457,7 +616,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             <div 
               onClick={() => {
                 if (temStoryAtivo) {
-                  setStoryVisualizando(meusStories[0]);
+                  setIndiceStoryAtual(0);
+                  setUsuarioStoryVisualizando(usuarioLogado.username);
                 } else {
                   onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado);
                 }
@@ -504,15 +664,15 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <span className="relative z-10 text-[11px] font-bold text-center px-1">Adicionar story</span>
             </div>
 
-            {listaStoriesUnicos.map((st) => {
-              const perfilAutor = perfisReais.find(p => p.username === st.username) || {};
-              const avatarStory = perfilAutor.foto || st.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
-              const nomeStory = perfilAutor.nome || st.autor;
-
+            {listaAutoresStories.map((autorItem) => {
+              const st = autorItem.primeiroStory;
               return (
                 <div 
-                  key={st.id} 
-                  onClick={() => setStoryVisualizando(st)}
+                  key={autorItem.username} 
+                  onClick={() => {
+                    setIndiceStoryAtual(0);
+                    setUsuarioStoryVisualizando(autorItem.username);
+                  }}
                   className="relative flex-shrink-0 w-28 h-44 rounded-2xl overflow-hidden cursor-pointer shadow-md transition hover:scale-105 border-2 border-amber-500 bg-slate-900 flex flex-col justify-between p-2"
                 >
                   {st.tipo === 'texto' ? (
@@ -528,10 +688,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
                   
                   <div className="relative z-10 w-8 h-8 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md">
-                    <img src={avatarStory} className="w-full h-full rounded-full object-cover border border-white" />
+                    <img src={autorItem.avatar} className="w-full h-full rounded-full object-cover border border-white" />
                   </div>
 
-                  <span className="relative z-10 text-white text-[11px] font-bold truncate">{nomeStory}</span>
+                  <span className="relative z-10 text-white text-[11px] font-bold truncate">{autorItem.autor}</span>
                 </div>
               );
             })}
@@ -624,8 +784,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         className="flex items-center gap-3 cursor-pointer group" 
                         onClick={() => { 
                           if (autorTemStory) {
-                            const stEncontrado = stories.find(s => s.username === post.username);
-                            setStoryVisualizando(stEncontrado);
+                            setIndiceStoryAtual(0);
+                            setUsuarioStoryVisualizando(post.username);
                           } else {
                             const encontrado = perfisReais.find(p => p.username === post.username);
                             if (encontrado) setPerfilSelecionado(encontrado);
@@ -748,8 +908,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                             onClick={(e) => {
                               if (amigoTemStory) {
                                 e.stopPropagation();
-                                const stEncontrado = stories.find(s => s.username === amigo.username);
-                                setStoryVisualizando(stEncontrado);
+                                setIndiceStoryAtual(0);
+                                setUsuarioStoryVisualizando(amigo.username);
                               }
                             }}
                             className={`w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${amigoTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
@@ -799,8 +959,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         className="flex items-center gap-2.5 min-w-0 cursor-pointer" 
                         onClick={() => {
                           if (membroTemStory) {
-                            const stEncontrado = stories.find(s => s.username === membro.username);
-                            setStoryVisualizando(stEncontrado);
+                            setIndiceStoryAtual(0);
+                            setUsuarioStoryVisualizando(membro.username);
                           } else {
                             setPerfilSelecionado(membro);
                           }
