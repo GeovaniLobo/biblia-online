@@ -71,20 +71,25 @@ export const BancoDeDados = {
   },
 
   salvarStory: async (story) => {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(story)
-    });
-    if (!response.ok) throw new Error('Erro ao salvar story.');
-    return await BancoDeDados.getStories();
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(story)
+      });
+      if (!response.ok) return await BancoDeDados.getStories();
+      return await BancoDeDados.getStories();
+    } catch (err) { return []; }
   },
 
   excluirStory: async (id) => {
-    await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${id}`, { method: 'DELETE', headers });
-    return await BancoDeDados.getStories();
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${id}`, { method: 'DELETE', headers });
+      return await BancoDeDados.getStories();
+    } catch (err) { return []; }
   },
 
+  // --- PUBLICAÇÕES ---
   getPublicacoes: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?select=*&order=id.desc`, { method: 'GET', headers });
@@ -157,6 +162,7 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
+  // --- AMIZADES ---
   enviarPedidoAmizade: async (usernameRemetente, usernameDestinatario) => {
     try {
       const perfis = await BancoDeDados.getPerfisCadastrados();
@@ -177,12 +183,7 @@ export const BancoDeDados = {
     } catch (e) {}
   },
 
-  marcarNotificacoesLidas: async (username) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?destinatario=eq.${username}`, { method: 'PATCH', headers, body: JSON.stringify({ lida: true }) });
-    } catch (e) {}
-  },
-
+  // --- MENSAGENS E CHAT ---
   getMensagensChat: async (usuarioA, usuarioB) => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat?select=*&or=(and(remetente.eq.${usuarioA},destinatario.eq.${usuarioB}),and(remetente.eq.${usuarioB},destinatario.eq.${usuarioA}))&order=id.asc`, { method: 'GET', headers });
@@ -200,6 +201,7 @@ export const BancoDeDados = {
     } catch (err) {}
   },
 
+  // --- NOTIFICAÇÕES ---
   getNotificacoes: async (username) => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?select=*&destinatario=eq.${username}&order=id.desc`, { method: 'GET', headers });
@@ -222,6 +224,13 @@ export const BancoDeDados = {
     } catch (e) {}
   },
 
+  marcarNotificacoesLidas: async (username) => {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?destinatario=eq.${username}`, { method: 'PATCH', headers, body: JSON.stringify({ lida: true }) });
+    } catch (e) {}
+  },
+
+  // --- PEDIDOS DE ORAÇÃO ---
   getPedidosOracao: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?select=*&order=id.desc`, { method: 'GET', headers });
