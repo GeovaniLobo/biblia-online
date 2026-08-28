@@ -5,7 +5,6 @@ import ChatPrivado from './ChatPrivado';
 
 export default function Comunidade({ usuarioLogado, darkMode }) {
   const [publicacoes, setPublicacoes] = useState([]);
-  const [stories, setStories] = useState([]);
   const [perfisReais, setPerfisReais] = useState([]);
   const [notificacoes, setNotificacoes] = useState([]);
   const [pedidosOracao, setPedidosOracao] = useState([]);
@@ -13,8 +12,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   const [carregandoComunidade, setCarregandoComunidade] = useState(true);
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
   const [chatComUsuario, setChatComUsuario] = useState(null);
-
-  const [storyTexto, setStoryTexto] = useState('');
 
   const [novoComentario, setNovoComentario] = useState({});
   const [pubTexto, setPubTexto] = useState('');
@@ -41,13 +38,11 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         const perfis = await BancoDeDados.getPerfisCadastrados();
         const pubs = await BancoDeDados.getPublicacoes();
         const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
-        const st = await BancoDeDados.getStories();
         const pedidos = await BancoDeDados.getPedidosOracao();
 
         setPerfisReais(perfis || []);
         setPublicacoes(pubs || []);
         setNotificacoes(notifs || []);
-        setStories(st || []);
         setPedidosOracao(pedidos || []);
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
@@ -64,13 +59,11 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
         const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
         const perfis = await BancoDeDados.getPerfisCadastrados();
         const pedidos = await BancoDeDados.getPedidosOracao();
-        const st = await BancoDeDados.getStories();
 
         setPublicacoes(pubs || []);
         setNotificacoes(notifs || []);
         setPerfisReais(perfis || []);
         setPedidosOracao(pedidos || []);
-        setStories(st || []);
       } catch (e) {}
     }, 5000);
 
@@ -78,21 +71,6 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   }, [usuarioLogado]);
 
   const perfilAtualNoBanco = perfisReais.find(p => p.username === usuarioLogado.username) || { amigos: [], pedidos_enviados: [], pedidos_recebidos: [] };
-
-  const publicarStory = async (e) => {
-    e.preventDefault();
-    if (!storyTexto.trim()) return;
-    const novoStory = {
-      id: Date.now(),
-      autor: usuarioLogado.nome,
-      username: usuarioLogado.username,
-      avatar: usuarioLogado.foto,
-      texto: storyTexto.trim()
-    };
-    const atualizados = await BancoDeDados.salvarStory(novoStory);
-    setStories(atualizados || []);
-    setStoryTexto('');
-  };
 
   const publicarPost = async (e) => {
     e.preventDefault();
@@ -186,38 +164,8 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
   return (
     <div className={`space-y-6 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6 relative ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
-      {/* COLUNA ESQUERDA & CENTRO (FEED E STORIES SIMPLES) */}
+      {/* COLUNA ESQUERDA & CENTRO (FEED) */}
       <div className="lg:col-span-2 space-y-6">
-        
-        {/* STORIES SIMPLES (FUNCIONANDO 100%) */}
-        <div className={`p-4 rounded-2xl border flex items-center gap-4 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-          <div className="flex flex-col items-center flex-shrink-0 cursor-pointer">
-            <div className="w-14 h-14 rounded-full border-2 border-blue-500 p-0.5 flex items-center justify-center bg-blue-500/10">
-              <img src={usuarioLogado.foto} className="w-full h-full rounded-full object-cover" />
-            </div>
-            <span className="text-[10px] font-bold mt-1">Seu Story</span>
-          </div>
-
-          <form onSubmit={publicarStory} className="flex items-center gap-2">
-            <input 
-              type="text" 
-              placeholder="Criar story rápido..." 
-              value={storyTexto} 
-              onChange={(e) => setStoryTexto(e.target.value)} 
-              className={`text-xs px-3 py-2 rounded-xl border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300'}`}
-            />
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-xl font-bold">Publicar</button>
-          </form>
-
-          {stories.map(st => (
-            <div key={st.id} className="flex flex-col items-center flex-shrink-0">
-              <div className="w-14 h-14 rounded-full border-2 border-purple-500 p-0.5 flex items-center justify-center bg-purple-500/10">
-                <img src={st.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover" />
-              </div>
-              <span className="text-[10px] font-bold mt-1 truncate max-w-[60px]" title={st.texto}>{st.autor}: {st.texto}</span>
-            </div>
-          ))}
-        </div>
 
         {/* CRIAR PUBLICAÇÃO */}
         <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-xs'}`}>

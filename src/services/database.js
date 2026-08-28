@@ -234,22 +234,6 @@ export const BancoDeDados = {
     } catch (e) {}
   },
 
-  // --- STORIES SIMPLES E FUNCIONAIS ---
-  getStories: async () => {
-    try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/stories?select=*&order=id.desc`, { method: 'GET', headers });
-      if (!response.ok) return [];
-      return await response.json();
-    } catch (err) { return []; }
-  },
-
-  salvarStory: async (story) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/stories`, { method: 'POST', headers, body: JSON.stringify(story) });
-      return await BancoDeDados.getStories();
-    } catch (err) { return []; }
-  },
-
   getPedidosOracao: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?select=*&order=id.desc`, { method: 'GET', headers });
