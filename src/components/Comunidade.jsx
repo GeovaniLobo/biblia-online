@@ -354,6 +354,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             )}
           </button>
 
+          {/* PAINEL DE NOTIFICAÇÕES COM FOTO E ANEL DE STORY */}
           {abaNotificacoesAberta && (
             <div className={`absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-3xl border shadow-2xl p-4 z-40 space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
               <div className="flex justify-between items-center border-b pb-2 border-slate-700">
@@ -364,19 +365,48 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               {notificacoes.length === 0 ? (
                 <p className="text-xs opacity-50 text-center py-6">Nenhuma notificação no momento.</p>
               ) : (
-                notificacoes.map((n, idx) => (
-                  <div key={idx} className={`p-3 rounded-2xl border text-xs space-y-1 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <p className="font-bold">{n.texto}</p>
-                    <span className="text-[10px] opacity-50 block">{n.horario}</span>
-                  </div>
-                ))
+                notificacoes.map((n, idx) => {
+                  // Extrai o username da notificação se houver (ex: "@fulano mencionou...")
+                  const matchUser = n.texto.match(/@([a-zA-Z0-9_]+)/);
+                  const usernameNotif = matchUser ? matchUser[1] : null;
+                  const perfilNotif = perfisReais.find(p => p.username === usernameNotif) || {};
+                  const fotoNotif = perfilNotif.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+                  const temStoryNotif = stories.some(s => s.username === usernameNotif);
+
+                  return (
+                    <div key={idx} className={`p-3 rounded-2xl border text-xs flex items-center gap-3 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      {usernameNotif ? (
+                        <div 
+                          onClick={() => {
+                            if (temStoryNotif) {
+                              setIndiceStoryAtual(0);
+                              setUsuarioStoryVisualizando(usernameNotif);
+                            } else if (perfilNotif.username) {
+                              setPerfilSelecionado(perfilNotif);
+                            }
+                          }}
+                          className={`w-9 h-9 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${temStoryNotif ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-md' : ''}`}
+                        >
+                          <img src={fotoNotif} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
+                        </div>
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-blue-600/20 text-blue-500 flex items-center justify-center font-bold flex-shrink-0">🔔</div>
+                      )}
+
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold leading-snug">{n.texto}</p>
+                        <span className="text-[10px] opacity-50 block mt-0.5">{n.horario}</span>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           )}
         </div>
       </div>
 
-      {/* MODAL DE CRIAÇÃO DE STORY COM BALÃO FLUTUANTE DE MENÇÃO */}
+      {/* MODAL DE CRIAÇÃO DE STORY */}
       {modalCriarStoryAberto && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -392,7 +422,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
             {tipoStoryCriacao === 'texto' ? (
               <div className="space-y-4">
-                {/* CAIXA DE TEXTO COM BALÃO FLUTUANTE INTEGRADO */}
                 <div 
                   className="w-full h-56 rounded-2xl p-6 flex flex-col justify-center items-center text-center shadow-inner transition relative"
                   style={{ backgroundColor: corFundoStory }}
@@ -420,7 +449,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     className="w-full bg-transparent text-white placeholder-white/70 text-lg font-bold text-center focus:outline-none resize-none"
                   />
 
-                  {/* BALÃO FLUTUANTE DE SUGESTÃO DE MENÇÃO */}
                   {menuSugestoesMencaoAberto && (
                     <div className="absolute bottom-2 left-4 right-4 max-h-36 overflow-y-auto bg-slate-900/95 border border-slate-700 rounded-2xl p-2 shadow-2xl z-20 space-y-1 text-left backdrop-blur-md">
                       <p className="text-[10px] uppercase font-bold text-slate-400 px-2">Sugestões de Menção:</p>
@@ -534,7 +562,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   )}
                 </div>
 
-                {/* CAMPO DE MENÇÃO COM BALÃO FLUTUANTE NA MÍDIA */}
                 <div className="space-y-1 relative">
                   <label className="text-xs font-bold opacity-70 block">Mencionar amigo (@username):</label>
                   <input 
@@ -909,15 +936,37 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       </button>
                     </div>
                     
+                    {/* COMENTÁRIOS COM FOTO DE PERFIL E ANEL DE STORY */}
                     <div className="space-y-3 pt-2">
                       {post.comentarios && post.comentarios.length > 0 && (
                         <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                          {post.comentarios.map((c, cIdx) => (
-                            <div key={cIdx} className={`p-2.5 rounded-xl text-xs ${darkMode ? 'bg-slate-800/50 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
-                              <span className="font-bold text-blue-500 mr-1.5">@{c.username}:</span>
-                              <span className="opacity-90">{c.texto}</span>
-                            </div>
-                          ))}
+                          {post.comentarios.map((c, cIdx) => {
+                            const perfilAutorComentario = perfisReais.find(p => p.username === c.username) || {};
+                            const fotoComentario = perfilAutorComentario.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+                            const autorComentarioTemStory = stories.some(s => s.username === c.username);
+
+                            return (
+                              <div key={cIdx} className={`p-2.5 rounded-xl text-xs flex items-center gap-2.5 ${darkMode ? 'bg-slate-800/50 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+                                <div 
+                                  onClick={() => {
+                                    if (autorComentarioTemStory) {
+                                      setIndiceStoryAtual(0);
+                                      setUsuarioStoryVisualizando(c.username);
+                                    } else if (perfilAutorComentario.username) {
+                                      setPerfilSelecionado(perfilAutorComentario);
+                                    }
+                                  }}
+                                  className={`w-7 h-7 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${autorComentarioTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-sm' : ''}`}
+                                >
+                                  <img src={fotoComentario} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="font-bold text-blue-500 mr-1.5">@{c.username}:</span>
+                                  <span className="opacity-90">{c.texto}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 
