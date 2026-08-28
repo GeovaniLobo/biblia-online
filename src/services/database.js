@@ -61,6 +61,33 @@ export const BancoDeDados = {
     return await response.json();
   },
 
+  // --- UPLOAD DE MÍDIA PARA O SUPABASE STORAGE ---
+  uploadMidiaStory: async (file) => {
+    try {
+      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const response = await fetch(`${SUPABASE_URL}/storage/v1/object/stories-midia/${fileName}`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': file.type || 'application/octet-stream',
+          'X-Upsert': 'true'
+        },
+        body: file
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao enviar arquivo para o Storage.');
+      }
+
+      // Retorna a URL pública acessível do arquivo no Storage
+      return `${SUPABASE_URL}/storage/v1/object/public/stories-midia/${fileName}`;
+    } catch (err) {
+      console.error("Erro no upload:", err);
+      return null;
+    }
+  },
+
   // --- STORIES ---
   getStories: async () => {
     try {

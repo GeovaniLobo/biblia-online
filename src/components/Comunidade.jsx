@@ -13,21 +13,19 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [carregandoComunidade, setCarregandoComunidade] = useState(true);
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
   const [chatComUsuario, setChatComUsuario] = useState(null);
+  const [enviandoMidia, setEnviandoMidia] = useState(false);
   
-  // Estados do Visualizador de Story com Timer
   const [storyVisualizando, setStoryVisualizando] = useState(null);
   const [progressoStory, setProgressoStory] = useState(0);
   const timerRef = useRef(null);
 
-  // Estados do Modal de Criar Story
   const [modalCriarStoryAberto, setModalCriarStoryAberto] = useState(false);
-  const [tipoStoryCriacao, setTipoStoryCriacao] = useState('texto'); // 'texto', 'midia'
+  const [tipoStoryCriacao, setTipoStoryCriacao] = useState('texto');
   const [textoStory, setTextoStory] = useState('');
   const [corFundoStory, setCorFundoStory] = useState('#2563eb');
   const [midiaStoryUrl, setMidiaStoryUrl] = useState('');
-  const [tipoMidia, setTipoMidia] = useState('imagem'); // 'imagem', 'video'
+  const [tipoMidia, setTipoMidia] = useState('imagem');
 
-  // Estados de Busca e Criação de Posts
   const [termoBuscaComunidade, setTermoBuscaComunidade] = useState('');
   const [novoComentario, setNovoComentario] = useState({});
   const [pubTexto, setPubTexto] = useState('');
@@ -90,7 +88,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return () => clearInterval(intervalo);
   }, [usuarioLogado]);
 
-  // Gerenciamento do Timer e Barra de Progresso do Story em Exibição
   useEffect(() => {
     if (!storyVisualizando) {
       setProgressoStory(0);
@@ -99,7 +96,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     }
 
     setProgressoStory(0);
-    // Story de vídeo dura 60s (1min), imagem/texto dura 20s
     const duracaoTotalMs = storyVisualizando.tipo === 'video' ? 60000 : 20000;
     const intervaloMs = 100;
     const incrementoPorPasso = (100 / (duracaoTotalMs / intervaloMs));
@@ -135,7 +131,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       username: usuarioLogado.username,
       autor: usuarioLogado.nome,
       avatar: usuarioLogado.foto,
-      tipo, // 'texto', 'imagem', 'video'
+      tipo,
       conteudo,
       cor_fundo: corFundo
     };
@@ -255,7 +251,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return membro.nome.toLowerCase().includes(termo) || membro.username.toLowerCase().includes(termo);
   });
 
-  // Stories do usuário logado e mapa de stories únicos por autor
   const meusStories = stories.filter(s => s.username === usuarioLogado.username);
   const temStoryAtivo = meusStories.length > 0;
 
@@ -270,7 +265,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   return (
     <div className={`w-full px-4 sm:px-6 lg:px-10 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
-      {/* ================= MODAL DE CRIAÇÃO DE STORY ================= */}
+      {/* MODAL DE CRIAÇÃO DE STORY */}
       {modalCriarStoryAberto && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -323,7 +318,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             ) : (
               <div className="space-y-4">
                 <div className="border-2 border-dashed border-slate-700 rounded-2xl p-6 text-center space-y-3">
-                  {midiaStoryUrl ? (
+                  {enviandoMidia ? (
+                    <p className="text-xs font-bold text-blue-500 animate-pulse py-8">Enviando arquivo para a nuvem...</p>
+                  ) : midiaStoryUrl ? (
                     tipoMidia === 'video' ? (
                       <video src={midiaStoryUrl} controls className="w-full h-48 object-cover rounded-xl" />
                     ) : (
@@ -338,13 +335,18 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                           <input 
                             type="file" 
                             accept="image/*,video/*" 
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const file = e.target.files[0];
                               if (file) {
-                                setTipoMidia(file.type.startsWith('video') ? 'video' : 'imagem');
-                                const reader = new FileReader();
-                                reader.onloadend = () => setMidiaStoryUrl(reader.result);
-                                reader.readAsDataURL(file);
+                                setEnviandoMidia(true);
+                                const urlPublica = await BancoDeDados.uploadMidiaStory(file);
+                                setEnviandoMidia(false);
+                                if (urlPublica) {
+                                  setTipoMidia(file.type.startsWith('video') ? 'video' : 'imagem');
+                                  setMidiaStoryUrl(urlPublica);
+                                } else {
+                                  alert('Erro ao enviar arquivo.');
+                                }
                               }
                             }} 
                             className="hidden" 
@@ -357,13 +359,18 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                             type="file" 
                             accept="video/*" 
                             capture="environment" 
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const file = e.target.files[0];
                               if (file) {
-                                setTipoMidia('video');
-                                const reader = new FileReader();
-                                reader.onloadend = () => setMidiaStoryUrl(reader.result);
-                                reader.readAsDataURL(file);
+                                setEnviandoMidia(true);
+                                const urlPublica = await BancoDeDados.uploadMidiaStory(file);
+                                setEnviandoMidia(false);
+                                if (urlPublica) {
+                                  setTipoMidia('video');
+                                  setMidiaStoryUrl(urlPublica);
+                                } else {
+                                  alert('Erro ao enviar vídeo.');
+                                }
                               }
                             }} 
                             className="hidden" 
@@ -388,17 +395,12 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
-      {/* ================= VISUALIZADOR DE STORY EM TELA CHEIA ================= */}
+      {/* VISUALIZADOR DE STORY EM TELA CHEIA */}
       {storyVisualizando && (
         <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
           <div className="relative max-w-md w-full h-[82vh] bg-slate-900 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-slate-800">
-            
-            {/* BARRA DE PROGRESSO NO TOPO */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-700 z-20">
-              <div 
-                className="h-full bg-blue-500 transition-all duration-100 ease-linear"
-                style={{ width: `${progressoStory}%` }}
-              ></div>
+              <div className="h-full bg-blue-500 transition-all duration-100 ease-linear" style={{ width: `${progressoStory}%` }}></div>
             </div>
 
             <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pt-1">
@@ -409,13 +411,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <button onClick={() => setStoryVisualizando(null)} className="bg-black/50 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm hover:bg-black">✕</button>
             </div>
 
-            {/* CONTEÚDO DO STORY */}
             <div className="flex-1 flex items-center justify-center w-full h-full relative">
               {storyVisualizando.tipo === 'texto' ? (
-                <div 
-                  className="w-full h-full flex items-center justify-center p-8 text-center"
-                  style={{ backgroundColor: storyVisualizando.cor_fundo || '#2563eb' }}
-                >
+                <div className="w-full h-full flex items-center justify-center p-8 text-center" style={{ backgroundColor: storyVisualizando.cor_fundo || '#2563eb' }}>
                   <p className="text-white text-xl sm:text-2xl font-extrabold leading-relaxed drop-shadow-md">{storyVisualizando.conteudo}</p>
                 </div>
               ) : storyVisualizando.tipo === 'video' ? (
@@ -453,7 +451,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* COLUNA 1: PERFIL COM ANEL DE FOGO QUANDO HOUVER STORY */}
+        {/* COLUNA 1: PERFIL */}
         <div className="lg:col-span-3 space-y-6">
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
             <div 
@@ -466,7 +464,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               }} 
               className="cursor-pointer group inline-block relative"
             >
-              {/* ANEL COM CORES DE FOGO (GRADIENTE LARANJA/VERMELHO/AMARELO) */}
               <div className={`w-24 h-24 rounded-full p-1 mx-auto flex items-center justify-center transition ${temStoryAtivo ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-xl' : ''}`}>
                 <img src={usuarioLogado.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 shadow-md group-hover:opacity-90 transition" />
               </div>
@@ -493,12 +490,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           </div>
         </div>
 
-        {/* COLUNA 2: CARROSSEL DE STORIES + FEED */}
+        {/* COLUNA 2: STORIES + FEED */}
         <div className="lg:col-span-6 space-y-6">
 
           {/* CARROSSEL DE STORIES */}
           <div className={`p-4 rounded-3xl border shadow-md flex gap-3 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-            {/* Adicionar Story */}
             <div 
               onClick={() => setModalCriarStoryAberto(true)}
               className={`relative flex-shrink-0 w-28 h-44 rounded-2xl border flex flex-col justify-end items-center pb-3 cursor-pointer overflow-hidden transition hover:scale-105 shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}
@@ -508,7 +504,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <span className="relative z-10 text-[11px] font-bold text-center px-1">Adicionar story</span>
             </div>
 
-            {/* Lista de Stories de todos os usuários com Anel de Fogo */}
             {listaStoriesUnicos.map((st) => {
               const perfilAutor = perfisReais.find(p => p.username === st.username) || {};
               const avatarStory = perfilAutor.foto || st.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
@@ -532,7 +527,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
                   
-                  {/* Avatar com Anel de Fogo no Carrossel */}
                   <div className="relative z-10 w-8 h-8 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md">
                     <img src={avatarStory} className="w-full h-full rounded-full object-cover border border-white" />
                   </div>
@@ -616,8 +610,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 const perfilAutorReal = perfisReais.find(p => p.username === post.username) || {};
                 const avatarAtualizado = perfilAutorReal.foto || post.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
                 const nomeAtualizado = perfilAutorReal.nome || post.autor;
-                
-                // Verifica se o autor do post tem story ativo para exibir o anel de fogo no feed
                 const autorTemStory = stories.some(s => s.username === post.username);
 
                 const reacoes = post.reacoes || { amem: [], gloria: [], amor: [] };
@@ -640,7 +632,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                           }
                         }}
                       >
-                        {/* Avatar com Anel de Fogo no Feed se tiver story */}
                         <div className={`w-12 h-12 rounded-full p-0.5 flex items-center justify-center transition ${autorTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse' : 'border-2 border-blue-500/30'}`}>
                           <img src={avatarAtualizado} alt="Avatar" className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
                         </div>
@@ -651,7 +642,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        {/* BOTÃO COMPARTILHAR NO STORY */}
                         <button 
                           onClick={() => compartilharPostNoStory(post)}
                           className="text-xs bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white px-3 py-1.5 rounded-xl font-bold transition shadow-xs"
@@ -725,7 +715,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           </div>
         </div>
 
-        {/* COLUNA 3: CHAT COM ANEL DE FOGO + SUGESTÕES DE AMIGOS */}
+        {/* COLUNA 3: CHAT + SUGESTÕES */}
         <div className="lg:col-span-3 space-y-6">
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
@@ -745,8 +735,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     const naoLidasDoAmigo = notificacoes.filter(
                       n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
                     ).length;
-
-                    // Verifica se o amigo tem story ativo para colocar o anel de fogo no chat
                     const amigoTemStory = stories.some(s => s.username === amigo.username);
 
                     return (
@@ -756,7 +744,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          {/* Avatar com Anel de Fogo no Chat se tiver story */}
                           <div 
                             onClick={(e) => {
                               if (amigoTemStory) {
@@ -796,7 +783,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             )}
           </div>
 
-          {/* SUGESTÕES DE AMIGOS */}
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">👥 Membros da Comunidade</h4>
             <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
