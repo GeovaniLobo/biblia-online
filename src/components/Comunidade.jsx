@@ -324,7 +324,16 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                         <p className="text-[10px] opacity-50">@{amigo.username}</p>
                       </div>
                     </div>
-                    <span className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded-lg font-bold">Abrir Chat</span>
+                    
+                    {/* Ícone de Chat em vez de "Abrir Chat" */}
+                    <button 
+                      title="Abrir chat"
+                      className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </button>
                   </div>
                 ))
               )}
