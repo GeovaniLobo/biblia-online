@@ -31,12 +31,17 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [midiaStoryUrl, setMidiaStoryUrl] = useState('');
   const [tipoMidia, setTipoMidia] = useState('imagem');
 
-  // Estados de Busca para Menção Flutuante (@)
+  // Estados de Busca para Menção Flutuante (@) nos Stories
   const [termoBuscaMencao, setTermoBuscaMencao] = useState('');
   const [menuSugestoesMencaoAberto, setMenuSugestoesMencaoAberto] = useState(false);
 
-  const [termoBuscaComunidade, setTermoBuscaComunidade] = useState('');
+  // Estados para Comentários (Respostas e Menções nos Comentários)
   const [novoComentario, setNovoComentario] = useState({});
+  const [respondendoComentarioId, setRespondendoComentarioId] = useState({});
+  const [menuMencaoComentarioAberto, setMenuMencaoComentarioAberto] = useState(null);
+  const [termoBuscaMencaoComentario, setTermoBuscaMencaoComentario] = useState('');
+
+  const [termoBuscaComunidade, setTermoBuscaComunidade] = useState('');
   const [pubTexto, setPubTexto] = useState('');
   const [pubImagem, setPubImagem] = useState('');
   const [pubTema, setPubTema] = useState('');
@@ -147,6 +152,21 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     }
   };
 
+  const clicarPerfilOuStory = (usernameAlvo) => {
+    if (!usernameAlvo) return;
+    const autorTemStory = stories.some(s => s.username === usernameAlvo);
+    if (autorTemStory) {
+      setIndiceStoryAtual(0);
+      setUsuarioStoryVisualizando(usernameAlvo);
+    } else {
+      const perfilEncontrado = perfisReais.find(p => p.username === usernameAlvo);
+      if (perfilEncontrado) {
+        if (onVerPerfil) onVerPerfil(perfilEncontrado.username);
+        else setPerfilSelecionado(perfilEncontrado);
+      }
+    }
+  };
+
   const perfilAtualNoBanco = perfisReais.find(p => p.username === usuarioLogado.username) || { amigos: [], pedidos_enviados: [], pedidos_recebidos: [] };
 
   const abrirChatComAmigo = async (usernameAmigo) => {
@@ -244,32 +264,47 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setPublicacoes([...atualizados]);
   };
 
-  const comentar = async (id, usernameAutorPost, e) => {
+  const comentar = async (publicacaoId, usernameAutorPost, e) => {
     e.preventDefault();
-    const texto = novoComentario[id];
+    const texto = novoComentario[publicacaoId];
     if (!texto || !texto.trim()) return;
-    const comentarioObj = { autor: usuarioLogado.nome, username: usuarioLogado.username, texto: texto.trim() };
-    const atualizados = await BancoDeDados.adicionarComentarioPub(id, comentarioObj, usernameAutorPost);
+
+    // Correção efetuada aqui:
+    const respostaPaiId = respondendoComentarioId[publicacaoId] || null;
+
+    const comentarioObj = {
+      id: Date.now(),
+      autor: usuarioLogado.nome,
+      username: usuarioLogado.username,
+      texto: texto.trim(),
+      resposta_a_id: respostaPaiId,
+      reacoes: { amem: [], gloria: [], amor: [] }
+    };
+
+    const atualizados = await BancoDeDados.adicionarComentarioPub(publicacaoId, comentarioObj, usernameAutorPost);
     setPublicacoes([...atualizados]);
-    setNovoComentario({ ...novoComentario, [id]: '' });
+    setNovoComentario({ ...novoComentario, [publicacaoId]: '' });
+    setRespondendoComentarioId({ ...respondendoComentarioId, [publicacaoId]: null });
+    setMenuMencaoComentarioAberto(null);
+
+    const matches = texto.match(/@([a-zA-Z0-9_]+)/g);
+    if (matches) {
+      matches.forEach(async (m) => {
+        const userMencionado = m.replace('@', '');
+        if (userMencionado !== usuarioLogado.username) {
+          await BancoDeDados.adicionarNotificacao(userMencionado, `@${usuarioLogado.username} mencionou você em um comentário.`, 'mencao');
+        }
+      });
+    }
+
     if (usuarioLogado.username !== usernameAutorPost) {
       await BancoDeDados.adicionarNotificacao(usernameAutorPost, `@${usuarioLogado.username} comentou na sua publicação.`, 'comentario');
     }
   };
 
-  const criarPedidoOracao = async (e) => {
-    e.preventDefault();
-    if (!novoPedidoTexto.trim()) return;
-    const pedido = {
-      id: Date.now(),
-      autor: usuarioLogado.nome,
-      username: usuarioLogado.username,
-      texto: novoPedidoTexto.trim(),
-      apoios: 0
-    };
-    const atualizados = await BancoDeDados.salvarPedidoOracao(pedido);
-    setPedidosOracao(atualizados || []);
-    setNovoPedidoTexto('');
+  const reagirComentarioPub = async (publicacaoId, comentarioId, tipoReacao) => {
+    const atualizados = await BancoDeDados.reagirComentarioPub(publicacaoId, comentarioId, tipoReacao, usuarioLogado.username);
+    setPublicacoes([...atualizados]);
   };
 
   if (carregandoComunidade) {
@@ -309,6 +344,12 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const perfisSugeridosMencao = perfisReais.filter(p => {
     if (!termoBuscaMencao) return true;
     const t = termoBuscaMencao.toLowerCase();
+    return p.username.toLowerCase().includes(t) || p.nome.toLowerCase().includes(t);
+  });
+
+  const perfisSugeridosMencaoComentario = perfisReais.filter(p => {
+    if (!termoBuscaMencaoComentario) return true;
+    const t = termoBuscaMencaoComentario.toLowerCase();
     return p.username.toLowerCase().includes(t) || p.nome.toLowerCase().includes(t);
   });
 
@@ -354,7 +395,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             )}
           </button>
 
-          {/* PAINEL DE NOTIFICAÇÕES COM FOTO E ANEL DE STORY */}
           {abaNotificacoesAberta && (
             <div className={`absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-3xl border shadow-2xl p-4 z-40 space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
               <div className="flex justify-between items-center border-b pb-2 border-slate-700">
@@ -366,7 +406,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 <p className="text-xs opacity-50 text-center py-6">Nenhuma notificação no momento.</p>
               ) : (
                 notificacoes.map((n, idx) => {
-                  // Extrai o username da notificação se houver (ex: "@fulano mencionou...")
                   const matchUser = n.texto.match(/@([a-zA-Z0-9_]+)/);
                   const usernameNotif = matchUser ? matchUser[1] : null;
                   const perfilNotif = perfisReais.find(p => p.username === usernameNotif) || {};
@@ -377,14 +416,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     <div key={idx} className={`p-3 rounded-2xl border text-xs flex items-center gap-3 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                       {usernameNotif ? (
                         <div 
-                          onClick={() => {
-                            if (temStoryNotif) {
-                              setIndiceStoryAtual(0);
-                              setUsuarioStoryVisualizando(usernameNotif);
-                            } else if (perfilNotif.username) {
-                              setPerfilSelecionado(perfilNotif);
-                            }
-                          }}
+                          onClick={() => clicarPerfilOuStory(usernameNotif)}
                           className={`w-9 h-9 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${temStoryNotif ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-md' : ''}`}
                         >
                           <img src={fotoNotif} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
@@ -632,10 +664,13 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
 
             <div className="absolute top-5 left-4 right-4 z-20 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <img src={storyAtivoObj.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-amber-500 shadow-md" />
+              <div 
+                onClick={() => { setUsuarioStoryVisualizando(null); clicarPerfilOuStory(storyAtivoObj.username); }}
+                className="flex items-center gap-2 cursor-pointer group"
+              >
+                <img src={storyAtivoObj.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition" />
                 <div>
-                  <span className="text-white text-xs font-bold drop-shadow-md block">{storyAtivoObj.autor}</span>
+                  <span className="text-white text-xs font-bold drop-shadow-md block group-hover:underline">{storyAtivoObj.autor}</span>
                   <span className="text-white/70 text-[10px]">Story {indiceStoryAtual + 1} de {listaStoriesDoAutorAtual.length}</span>
                 </div>
               </div>
@@ -650,7 +685,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center" style={{ backgroundColor: storyAtivoObj.cor_fundo || '#2563eb' }}>
                   <p className="text-white text-xl sm:text-2xl font-extrabold leading-relaxed drop-shadow-md">{storyAtivoObj.conteudo}</p>
                   {storyAtivoObj.mencao && (
-                    <span className="mt-4 bg-black/40 text-white text-xs font-bold px-4 py-1.5 rounded-full">
+                    <span 
+                      onClick={() => { setUsuarioStoryVisualizando(null); clicarPerfilOuStory(storyAtivoObj.mencao); }}
+                      className="mt-4 bg-black/40 hover:bg-black/60 text-white text-xs font-bold px-4 py-1.5 rounded-full cursor-pointer transition shadow-md"
+                    >
                       Mencionou @{storyAtivoObj.mencao}
                     </span>
                   )}
@@ -699,14 +737,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         <div className="lg:col-span-3 space-y-6">
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
             <div 
-              onClick={() => {
-                if (temStoryAtivo) {
-                  setIndiceStoryAtual(0);
-                  setUsuarioStoryVisualizando(usuarioLogado.username);
-                } else {
-                  onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado);
-                }
-              }} 
+              onClick={() => clicarPerfilOuStory(usuarioLogado.username)} 
               className="cursor-pointer group inline-block relative"
             >
               <div className={`w-24 h-24 rounded-full p-1 mx-auto flex items-center justify-center transition ${temStoryAtivo ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-xl' : ''}`}>
@@ -718,8 +749,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
 
             <div>
-              <h3 onClick={() => onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado)} className="font-extrabold text-sm cursor-pointer hover:text-blue-500 transition">{usuarioLogado.nome}</h3>
-              <p onClick={() => onVerPerfil ? onVerPerfil(usuarioLogado.username) : setPerfilSelecionado(usuarioLogado)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
+              <h3 onClick={() => clicarPerfilOuStory(usuarioLogado.username)} className="font-extrabold text-sm cursor-pointer hover:text-blue-500 transition">{usuarioLogado.nome}</h3>
+              <p onClick={() => clicarPerfilOuStory(usuarioLogado.username)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
               <p className="text-xs opacity-75 mt-2">{usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.'}</p>
             </div>
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
@@ -754,10 +785,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               return (
                 <div 
                   key={autorItem.username} 
-                  onClick={() => {
-                    setIndiceStoryAtual(0);
-                    setUsuarioStoryVisualizando(autorItem.username);
-                  }}
+                  onClick={() => clicarPerfilOuStory(autorItem.username)}
                   className="relative flex-shrink-0 w-28 h-44 rounded-2xl overflow-hidden cursor-pointer shadow-md transition hover:scale-105 border-2 border-amber-500 bg-slate-900 flex flex-col justify-between p-2"
                 >
                   {st.tipo === 'texto' ? (
@@ -821,8 +849,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   const souDonoDoPedido = p.username === usuarioLogado.username;
                   return (
                     <div key={p.id} className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-                      <div className="flex-1 min-w-0">
-                        <span className="font-bold text-blue-500 mr-1">@{p.username}:</span>
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                        <div onClick={() => clicarPerfilOuStory(p.username)} className="cursor-pointer font-bold text-blue-500">@{p.username}:</div>
                         <span className="break-words">{p.texto}</span>
                       </div>
 
@@ -867,15 +895,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     <div className="flex items-center justify-between">
                       <div 
                         className="flex items-center gap-3 cursor-pointer group" 
-                        onClick={() => { 
-                          if (autorTemStory) {
-                            setIndiceStoryAtual(0);
-                            setUsuarioStoryVisualizando(post.username);
-                          } else {
-                            const encontrado = perfisReais.find(p => p.username === post.username);
-                            if (encontrado) setPerfilSelecionado(encontrado);
-                          }
-                        }}
+                        onClick={() => clicarPerfilOuStory(post.username)}
                       >
                         <div className={`w-12 h-12 rounded-full p-0.5 flex items-center justify-center transition ${autorTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse' : 'border-2 border-blue-500/30'}`}>
                           <img src={avatarAtualizado} alt="Avatar" className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
@@ -936,33 +956,61 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       </button>
                     </div>
                     
-                    {/* COMENTÁRIOS COM FOTO DE PERFIL E ANEL DE STORY */}
                     <div className="space-y-3 pt-2">
                       {post.comentarios && post.comentarios.length > 0 && (
-                        <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                          {post.comentarios.map((c, cIdx) => {
+                        <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                          {post.comentarios.map((c) => {
                             const perfilAutorComentario = perfisReais.find(p => p.username === c.username) || {};
                             const fotoComentario = perfilAutorComentario.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
                             const autorComentarioTemStory = stories.some(s => s.username === c.username);
 
+                            const reacoesComentario = c.reacoes || { amem: [], gloria: [], amor: [] };
+                            const meuAmemCom = (reacoesComentario.amem || []).includes(usuarioLogado.username);
+                            const meuGloriaCom = (reacoesComentario.gloria || []).includes(usuarioLogado.username);
+                            const meuAmorCom = (reacoesComentario.amor || []).includes(usuarioLogado.username);
+
+                            const comentarioPai = c.resposta_a_id ? post.comentarios.find(cp => cp.id === c.resposta_a_id) : null;
+
                             return (
-                              <div key={cIdx} className={`p-2.5 rounded-xl text-xs flex items-center gap-2.5 ${darkMode ? 'bg-slate-800/50 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
-                                <div 
-                                  onClick={() => {
-                                    if (autorComentarioTemStory) {
-                                      setIndiceStoryAtual(0);
-                                      setUsuarioStoryVisualizando(c.username);
-                                    } else if (perfilAutorComentario.username) {
-                                      setPerfilSelecionado(perfilAutorComentario);
-                                    }
-                                  }}
-                                  className={`w-7 h-7 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${autorComentarioTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-sm' : ''}`}
-                                >
-                                  <img src={fotoComentario} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <span className="font-bold text-blue-500 mr-1.5">@{c.username}:</span>
-                                  <span className="opacity-90">{c.texto}</span>
+                              <div key={c.id || Math.random()} className={`p-3 rounded-2xl text-xs space-y-2 ${c.resposta_a_id ? 'ml-6 border-l-2 border-blue-500/40 pl-3' : ''} ${darkMode ? 'bg-slate-800/40 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+                                <div className="flex items-start gap-2.5">
+                                  <div 
+                                    onClick={() => clicarPerfilOuStory(c.username)}
+                                    className={`w-7 h-7 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${autorComentarioTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-sm' : ''}`}
+                                  >
+                                    <img src={fotoComentario} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
+                                  </div>
+                                  <div className="flex-1 min-w-0 space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <span onClick={() => clicarPerfilOuStory(c.username)} className="font-bold text-blue-500 cursor-pointer hover:underline">@{c.username}</span>
+                                      <button 
+                                        onClick={() => setRespondendoComentarioId({ ...respondendoComentarioId, [post.id]: c.id })}
+                                        className="text-[10px] font-semibold opacity-60 hover:opacity-100"
+                                      >
+                                        Responder
+                                      </button>
+                                    </div>
+
+                                    {comentarioPai && (
+                                      <p className="text-[10px] opacity-60 italic bg-black/5 dark:bg-white/5 p-1 rounded">
+                                        Respondendo a @{comentarioPai.username}: {comentarioPai.texto.substring(0, 30)}...
+                                      </p>
+                                    )}
+
+                                    <p className="opacity-95 break-words">{c.texto}</p>
+
+                                    <div className="flex items-center gap-3 pt-1">
+                                      <button onClick={() => reagirComentarioPub(post.id, c.id, 'amem')} className={`text-[10px] font-bold flex items-center gap-1 ${meuAmemCom ? 'text-red-500' : 'opacity-60 hover:opacity-100'}`}>
+                                        ❤️ Amém ({(reacoesComentario.amem || []).length})
+                                      </button>
+                                      <button onClick={() => reagirComentarioPub(post.id, c.id, 'gloria')} className={`text-[10px] font-bold flex items-center gap-1 ${meuGloriaCom ? 'text-amber-500' : 'opacity-60 hover:opacity-100'}`}>
+                                        ⭐ Glória ({(reacoesComentario.gloria || []).length})
+                                      </button>
+                                      <button onClick={() => reagirComentarioPub(post.id, c.id, 'amor')} className={`text-[10px] font-bold flex items-center gap-1 ${meuAmorCom ? 'text-pink-500' : 'opacity-60 hover:opacity-100'}`}>
+                                        ✨ Amor ({(reacoesComentario.amor || []).length})
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             );
@@ -970,9 +1018,67 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         </div>
                       )}
 
-                      <form onSubmit={(e) => comentar(post.id, post.username, e)} className="flex gap-2">
-                        <input type="text" placeholder="Comentar..." value={novoComentario[post.id] || ''} onChange={(e) => setNovoComentario({ ...novoComentario, [post.id]: e.target.value })} className={`w-full text-xs rounded-xl px-3.5 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
-                        <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition shadow-sm">Enviar</button>
+                      {respondendoComentarioId[post.id] && (
+                        <div className="flex items-center justify-between bg-blue-500/10 px-3 py-1.5 rounded-xl text-xs">
+                          <span>Respondendo a um comentário...</span>
+                          <button onClick={() => setRespondendoComentarioId({ ...respondendoComentarioId, [post.id]: null })} className="font-bold text-red-500">✕ Cancelar</button>
+                        </div>
+                      )}
+
+                      <form onSubmit={(e) => comentar(post.id, post.username, e)} className="flex gap-2 relative">
+                        <input 
+                          type="text" 
+                          placeholder="Escreva um comentário. Use @ para mencionar..." 
+                          value={novoComentario[post.id] || ''} 
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setNovoComentario({ ...novoComentario, [post.id]: val });
+                            const ultimoIndiceArroba = val.lastIndexOf('@');
+                            if (ultimoIndiceArroba !== -1 && (ultimoIndiceArroba === 0 || val[ultimoIndiceArroba - 1] === ' ')) {
+                              const termo = val.substring(ultimoIndiceArroba + 1);
+                              if (!termo.includes(' ')) {
+                                setTermoBuscaMencaoComentario(termo);
+                                setMenuMencaoComentarioAberto(post.id);
+                              } else {
+                                setMenuMencaoComentarioAberto(null);
+                              }
+                            } else {
+                              setMenuMencaoComentarioAberto(null);
+                            }
+                          }}
+                          className={`w-full text-xs rounded-xl px-3.5 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} 
+                        />
+
+                        {menuMencaoComentarioAberto === post.id && (
+                          <div className="absolute bottom-full left-0 right-16 mb-2 max-h-36 overflow-y-auto bg-slate-900/95 border border-slate-700 rounded-2xl p-2 shadow-2xl z-20 space-y-1 text-left backdrop-blur-md">
+                            <p className="text-[10px] uppercase font-bold text-slate-400 px-2">Sugestões de Menção:</p>
+                            {perfisSugeridosMencaoComentario.length === 0 ? (
+                              <p className="text-xs text-slate-400 text-center py-2">Nenhum perfil encontrado.</p>
+                            ) : (
+                              perfisSugeridosMencaoComentario.map(p => (
+                                <div 
+                                  key={p.username}
+                                  onClick={() => {
+                                    const textoAtual = novoComentario[post.id] || '';
+                                    const ultimoIndiceArroba = textoAtual.lastIndexOf('@');
+                                    const textoBase = textoAtual.substring(0, ultimoIndiceArroba);
+                                    setNovoComentario({ ...novoComentario, [post.id]: `${textoBase}@${p.username} ` });
+                                    setMenuMencaoComentarioAberto(null);
+                                  }}
+                                  className="flex items-center gap-2.5 p-2 rounded-xl cursor-pointer hover:bg-slate-800 transition"
+                                >
+                                  <img src={p.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-7 h-7 rounded-full object-cover border border-blue-500 shadow-sm" />
+                                  <div>
+                                    <p className="text-xs font-bold text-white leading-tight">{p.nome}</p>
+                                    <p className="text-[10px] text-blue-400">@{p.username}</p>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
+
+                        <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition shadow-sm flex-shrink-0">Enviar</button>
                       </form>
                     </div>
                   </div>
@@ -1013,11 +1119,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         <div className="flex items-center gap-3 min-w-0">
                           <div 
                             onClick={(e) => {
-                              if (amigoTemStory) {
-                                e.stopPropagation();
-                                setIndiceStoryAtual(0);
-                                setUsuarioStoryVisualizando(amigo.username);
-                              }
+                              e.stopPropagation();
+                              clicarPerfilOuStory(amigo.username);
                             }}
                             className={`w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${amigoTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
                           >
@@ -1064,14 +1167,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     <div key={membro.username} className={`p-3 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                       <div 
                         className="flex items-center gap-2.5 min-w-0 cursor-pointer" 
-                        onClick={() => {
-                          if (membroTemStory) {
-                            setIndiceStoryAtual(0);
-                            setUsuarioStoryVisualizando(membro.username);
-                          } else {
-                            setPerfilSelecionado(membro);
-                          }
-                        }}
+                        onClick={() => clicarPerfilOuStory(membro.username)}
                       >
                         <div className={`w-8 h-8 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${membroTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-sm animate-pulse' : ''}`}>
                           <img src={membro.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white" />

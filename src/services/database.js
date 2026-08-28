@@ -197,6 +197,37 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
+  // --- NOVA FUNÇÃO PARA REAGIR EM COMENTÁRIOS ---
+  reagirComentarioPub: async (publicacaoId, comentarioId, tipoReacao, username) => {
+    try {
+      const pubs = await BancoDeDados.getPublicacoes();
+      const p = pubs.find(x => x.id === publicacaoId);
+      if (p && p.comentarios) {
+        const novosComentarios = p.comentarios.map(c => {
+          if (c.id === comentarioId) {
+            let reacoes = c.reacoes || { amem: [], gloria: [], amor: [] };
+            if (!reacoes.amem) reacoes = { amem: [], gloria: [], amor: [] };
+
+            Object.keys(reacoes).forEach(tipo => {
+              reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== username);
+            });
+
+            reacoes[tipoReacao].push(username);
+            return { ...c, reacoes };
+          }
+          return c;
+        });
+
+        await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${publicacaoId}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ comentarios: novosComentarios })
+        });
+      }
+    } catch (e) {}
+    return await BancoDeDados.getPublicacoes();
+  },
+
   // --- AMIZADES ---
   enviarPedidoAmizade: async (usernameRemetente, usernameDestinatario) => {
     try {
