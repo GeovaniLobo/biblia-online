@@ -4,7 +4,6 @@ import PerfilPublico from './PerfilPublico';
 import ChatPrivado from './ChatPrivado';
 
 export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
-  // Proteção caso usuarioLogado venha nulo/indefinido
   if (!usuarioLogado) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -25,13 +24,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [enviandoMidia, setEnviandoMidia] = useState(false);
   const [abaNotificacoesAberta, setAbaNotificacoesAberta] = useState(false);
   
-  // Estados do Visualizador de Stories sequenciais
   const [usuarioStoryVisualizando, setUsuarioStoryVisualizando] = useState(null);
   const [indiceStoryAtual, setIndiceStoryAtual] = useState(0);
   const [progressoStory, setProgressoStory] = useState(0);
   const timerRef = useRef(null);
 
-  // Estados do Modal de Criar Story
   const [modalCriarStoryAberto, setModalCriarStoryAberto] = useState(false);
   const [tipoStoryCriacao, setTipoStoryCriacao] = useState('texto');
   const [textoStory, setTextoStory] = useState('');
@@ -40,11 +37,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [midiaStoryUrl, setMidiaStoryUrl] = useState('');
   const [tipoMidia, setTipoMidia] = useState('imagem');
 
-  // Estados de Busca para Menção Flutuante (@) nos Stories
   const [termoBuscaMencao, setTermoBuscaMencao] = useState('');
   const [menuSugestoesMencaoAberto, setMenuSugestoesMencaoAberto] = useState(false);
 
-  // Estados para Comentários (Respostas e Menções nos Comentários)
   const [novoComentario, setNovoComentario] = useState({});
   const [respondendoComentarioId, setRespondendoComentarioId] = useState({});
   const [menuMencaoComentarioAberto, setMenuMencaoComentarioAberto] = useState(null);
@@ -263,6 +258,20 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setPubTema('');
   };
 
+  const criarPedidoOracaoHandler = async (e) => {
+    e.preventDefault();
+    if (!novoPedidoTexto.trim()) return;
+    const novoPedido = {
+      id: Date.now(),
+      username: usuarioLogado.username,
+      texto: novoPedidoTexto.trim(),
+      apoios: 0
+    };
+    const atualizados = await BancoDeDados.salvarPedidoOracao(novoPedido);
+    setPedidosOracao(atualizados || []);
+    setNovoPedidoTexto('');
+  };
+
   const excluirPost = async (id) => {
     if (window.confirm('Deseja realmente excluir esta publicação?')) {
       const atualizados = await BancoDeDados.excluirPublicacao(id);
@@ -297,7 +306,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       reacoes: { amem: [], gloria: [], amor: [] }
     };
 
-    const atualizados = await BancoDeDados.adicionarComentarioPub(publicacaoId, comentarioObj, usernameAutorPost);
+    const atualizados = await BancoDeDados.adicionarComentarioPub(publicacaoId, comentarioObj);
     setPublicacoes([...atualizados]);
     setNovoComentario({ ...novoComentario, [publicacaoId]: '' });
     setRespondendoComentarioId({ ...respondendoComentarioId, [publicacaoId]: null });
@@ -846,7 +855,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           {/* MURAL DE PEDIDOS DE ORAÇÃO */}
           <div className={`p-6 rounded-3xl border shadow-md space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração 🙏</h3>
-            <form onSubmit={criarPedidoOracao} className="flex gap-2">
+            <form onSubmit={criarPedidoOracaoHandler} className="flex gap-2">
               <input 
                 type="text" 
                 placeholder="Compartilhe um pedido de oração..." 
