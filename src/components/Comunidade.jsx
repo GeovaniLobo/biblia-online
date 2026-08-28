@@ -277,15 +277,57 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                   </div>
                 )}
 
+                {/* BOTÕES DE REAÇÃO COM ÍCONES E FUNDO BRANCO */}
                 <div className="flex items-center gap-2 pt-2 border-t border-slate-700/50">
-                  <button onClick={() => reagir(post.id, 'amem')} className={`text-xs px-3 py-1.5 rounded-lg font-bold border transition flex items-center gap-1.5 ${meuAmem ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800/40 text-slate-300 border-slate-700'}`}>
-                    ❤️ Amém ({(reacoes.amem || []).length})
+                  {/* Amém */}
+                  <button 
+                    onClick={() => reagir(post.id, 'amem')} 
+                    className={`text-xs px-3 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${
+                      meuAmem 
+                        ? 'bg-blue-600 text-white border-blue-500 shadow-sm' 
+                        : darkMode 
+                          ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' 
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 shadow-xs'
+                    }`}
+                  >
+                    <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                    Amém ({(reacoes.amem || []).length})
                   </button>
-                  <button onClick={() => reagir(post.id, 'gloria')} className={`text-xs px-3 py-1.5 rounded-lg font-bold border transition flex items-center gap-1.5 ${meuGloria ? 'bg-amber-600 text-white border-amber-500' : 'bg-slate-800/40 text-slate-300 border-slate-700'}`}>
-                    🙌 Glória ({(reacoes.gloria || []).length})
+
+                  {/* Glória */}
+                  <button 
+                    onClick={() => reagir(post.id, 'gloria')} 
+                    className={`text-xs px-3 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${
+                      meuGloria 
+                        ? 'bg-amber-600 text-white border-amber-500 shadow-sm' 
+                        : darkMode 
+                          ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' 
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 shadow-xs'
+                    }`}
+                  >
+                    <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                    Glória ({(reacoes.gloria || []).length})
                   </button>
-                  <button onClick={() => reagir(post.id, 'amor')} className={`text-xs px-3 py-1.5 rounded-lg font-bold border transition flex items-center gap-1.5 ${meuAmor ? 'bg-pink-600 text-white border-pink-500' : 'bg-slate-800/40 text-slate-300 border-slate-700'}`}>
-                    ✨ Amor ({(reacoes.amor || []).length})
+
+                  {/* Amor */}
+                  <button 
+                    onClick={() => reagir(post.id, 'amor')} 
+                    className={`text-xs px-3 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${
+                      meuAmor 
+                        ? 'bg-pink-600 text-white border-pink-500 shadow-sm' 
+                        : darkMode 
+                          ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' 
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 shadow-xs'
+                    }`}
+                  >
+                    <svg className="w-4 h-4 text-pink-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                    Amor ({(reacoes.amor || []).length})
                   </button>
                 </div>
                 
@@ -324,14 +366,12 @@ export default function Comunidade({ usuarioLogado, darkMode }) {
                         <p className="text-[10px] opacity-50">@{amigo.username}</p>
                       </div>
                     </div>
-                    
-                    {/* Ícone de Chat em vez de "Abrir Chat" */}
                     <button 
                       title="Abrir chat"
                       className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </button>
                   </div>
