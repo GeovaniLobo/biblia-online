@@ -1598,7 +1598,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           </button>
         </div>
       )}
-
+  
     </div>
   );
 }
