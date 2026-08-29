@@ -29,7 +29,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [menuOpcoesPostAberto, setMenuOpcoesPostAberto] = useState(null);
   const [menuCompartilharAberto, setMenuCompartilharAberto] = useState(null);
 
-  // Estados dos Stories
   const [usuarioStoryVisualizando, setUsuarioStoryVisualizando] = useState(null);
   const [indiceStoryAtual, setIndiceStoryAtual] = useState(0);
   const [progressoStory, setProgressoStory] = useState(0);
@@ -133,10 +132,15 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const fotoPerfilOficial = meuPerfilBanco.foto || usuarioLogado.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
   const nomePerfilOficial = meuPerfilBanco.nome || usuarioLogado.nome || 'Usuário';
 
-  // Agrupamento e Ordenação dos Stories por Autor (Cronológica correta + Prioridade para não vistos)
+  // Declarações corretas de stories do usuário logado para evitar o erro de referência
+  const meusStories = stories.filter(s => s.username === usuarioLogado.username);
+  const temStoryAtivo = meusStories.length > 0;
+  const meusStoriesVistos = temStoryAtivo && meusStories.every(st => {
+    const vistas = visualizacoesStories[st.id] || [];
+    return vistas.some(v => v.username === usuarioLogado.username);
+  });
+
   const autoresComStoriesMap = {};
-  
-  // Ordena os stories do mais antigo para o mais recente para cada autor
   const storiesOrdenados = [...stories].sort((a, b) => a.id - b.id);
 
   storiesOrdenados.forEach(st => {
@@ -152,7 +156,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     autoresComStoriesMap[st.username].lista.push(st);
   });
 
-  // Lista de autores com status de visualizados
   const listaAutoresStories = Object.values(autoresComStoriesMap).map(autorObj => {
     const todosVistos = autorObj.lista.every(st => {
       const visualizacoesDoStory = visualizacoesStories[st.id] || [];
@@ -161,20 +164,17 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return { ...autorObj, todosVistos, primeiroStory: autorObj.lista[0] };
   });
 
-  // Ordena: Não vistos primeiro, Vistos por último
   listaAutoresStories.sort((a, b) => {
-    if (a.username === usuarioLogado.username) return -1; // O usuário logado pode ficar na frente ou seguir a regra
+    if (a.username === usuarioLogado.username) return -1;
     if (a.todosVistos === b.todosVistos) return 0;
     return a.todosVistos ? 1 : -1;
   });
 
-  // Lista de stories do autor selecionado para visualização
   const listaStoriesDoAutorAtual = usuarioStoryVisualizando 
     ? (autoresComStoriesMap[usuarioStoryVisualizando]?.lista || []) 
     : [];
   const storyAtivoObj = listaStoriesDoAutorAtual[indiceStoryAtual];
 
-  // Registrar visualização do story atual
   useEffect(() => {
     if (usuarioStoryVisualizando && storyAtivoObj) {
       const storyId = storyAtivoObj.id;
@@ -198,12 +198,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     }
   }, [usuarioStoryVisualizando, indiceStoryAtual, storyAtivoObj]);
 
-  // Navegação sequencial e transição automática para o próximo usuário
   const avancarStory = () => {
     if (indiceStoryAtual < listaStoriesDoAutorAtual.length - 1) {
       setIndiceStoryAtual(prev => prev + 1);
     } else {
-      // Pula para o próximo autor que tenha stories
       const currentIndex = listaAutoresStories.findIndex(a => a.username === usuarioStoryVisualizando);
       if (currentIndex !== -1 && currentIndex < listaAutoresStories.length - 1) {
         const proximoAutor = listaAutoresStories[currentIndex + 1];
@@ -513,12 +511,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     if (!termoBuscaMencaoComentario) return true;
     const t = termoBuscaMencaoComentario.toLowerCase();
     return p.username.toLowerCase().includes(t) || p.nome.toLowerCase().includes(t);
-  });
-
-  const meusStories = stories.filter(s => s.username === usuarioLogado.username);
-  const meusStoriesVistos = meusStories.length > 0 && meusStories.every(st => {
-    const vistas = visualizacoesStories[st.id] || [];
-    return vistas.some(v => v.username === usuarioLogado.username);
   });
 
   const notificacoesNaoLidasCount = notificacoes.filter(n => !n.lida).length;
@@ -1094,7 +1086,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
-      {/* ================= VISUALIZADOR DE STORIES COM ÍCONE DE OLHO E VISUALIZADORES ================= */}
       {usuarioStoryVisualizando && storyAtivoObj && (
         <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
           <div className="relative max-w-md w-full h-[85vh] bg-slate-900 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-slate-800">
@@ -1149,7 +1140,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               )}
             </div>
 
-            {/* CONTADOR DE VISUALIZAÇÕES COM ÍCONE DE OLHO (Item 6) */}
             <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center z-30">
               {storyAtivoObj.username === usuarioLogado.username ? (
                 <div className="flex items-center justify-between w-full gap-2">
@@ -1173,7 +1163,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
-      {/* MODAL DE LISTA DE QUEM VIU O STORY (Item 6) */}
       {modalVisualizadoresAberto && storyAtivoObj && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className="max-w-sm w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-white space-y-4">
@@ -1256,7 +1245,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
         <div className="lg:col-span-6 space-y-6">
 
-          {/* CARROSSEL DE STORIES COM ORDENAÇÃO INTELIGENTE E ANEIS APAGADOS (Itens 4 e 5) */}
           <div className={`p-4 rounded-3xl border shadow-md flex gap-3 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
             <div 
               onClick={() => setModalCriarStoryAberto(true)}
