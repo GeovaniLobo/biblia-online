@@ -111,24 +111,27 @@ export const BancoDeDados = {
 
   registrarVisualizacaoStory: async (storyId, dadosVisualizador) => {
     try {
-      const stories = await BancoDeDados.getStories();
-      const st = stories.find(s => s.id === storyId);
-      if (st) {
-        let vistas = st.visualizacoes || [];
-        const jaViu = vistas.some(v => v.username === dadosVisualizador.username);
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${storyId}&select=visualizacoes`, { method: 'GET', headers });
+      if (!res.ok) return await BancoDeDados.getStories();
+      
+      const data = await res.json();
+      let vistas = (data && data[0] && data[0].visualizacoes) || [];
+      
+      const jaViu = vistas.some(v => v.username === dadosVisualizador.username);
+      
+      if (!jaViu) {
+        vistas.push(dadosVisualizador);
         
-        if (!jaViu) {
-          vistas.push(dadosVisualizador);
-          await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${storyId}`, {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify({ visualizacoes: vistas })
-          });
-        }
+        await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${Number(storyId)}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ visualizacoes: vistas })
+        });
       }
       return await BancoDeDados.getStories();
     } catch (err) {
-      return [];
+      console.error("Erro ao registrar visualização:", err);
+      return await BancoDeDados.getStories();
     }
   },
 

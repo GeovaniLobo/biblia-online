@@ -1528,20 +1528,20 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
       {/* --- BALÃO FLUTUANTE DE CHAT MAIOR (FIXO NO CANTO INFERIOR DIREITO) --- */}
       {chatComUsuario ? (
-        <div className="fixed bottom-6 right-6 z-50 w-96 sm:w-[420px] h-[520px] max-h-[85vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden backdrop-blur-md bg-slate-900 border-slate-700 animate-in fade-in zoom-in-95 duration-200">
-          <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-xs font-extrabold text-white uppercase tracking-wider">Chat Privado com @{chatComUsuario}</span>
+        <div className="fixed bottom-4 right-4 z-50 w-[360px] sm:w-[380px] h-[480px] max-h-[80vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden backdrop-blur-md bg-slate-900 border-slate-700 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+              <span className="text-[11px] font-extrabold text-white uppercase tracking-wider truncate">Chat com @{chatComUsuario}</span>
             </div>
             <button 
               onClick={() => setChatComUsuario(null)} 
-              className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition"
+              className="text-[11px] font-bold text-slate-400 hover:text-white px-2 py-1 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition flex-shrink-0"
             >
               ✕ Minimizar
             </button>
           </div>
-          <div className="flex-1 overflow-hidden bg-slate-950/50 flex flex-col">
+          <div className="flex-1 overflow-hidden bg-slate-950/50 flex flex-col min-h-0">
             <ChatPrivado destinatario={chatComUsuario} usuarioLogado={usuarioLogado} darkMode={darkMode} onVerPerfil={(p) => setPerfilSelecionado(p)} />
           </div>
         </div>
@@ -1559,7 +1559,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             title="Abrir Chat"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="root" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             {notificacoes.some(n => !n.lida && n.tipo === 'mensagem') && (
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-extrabold rounded-full flex items-center justify-center shadow-md animate-bounce">
