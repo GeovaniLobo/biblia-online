@@ -905,10 +905,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               {pedidosRecebidos.length === 0 ? (
                 <p className="text-xs opacity-50 text-center py-6">Nenhuma solicitação pendente.</p>
               ) : (
-                pedidosRecebidos.map(remetenteUsername => {
-                  const perfilRemetente = perfisReais.find(p => p.username === remetenteUsername) || { nome: remetenteUsername, username: remetenteUsername };
+                pedidosRecebidos.map(remetenteusername => {
+                  const perfilRemetente = perfisReais.find(p => p.username === remetenteusername) || { nome: remetenteusername, username: remetenteusername };
                   return (
-                    <div key={remetenteUsername} className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <div key={remetenteusername} className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="flex items-center gap-2.5">
                         <img src={perfilRemetente.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover" />
                         <div>
@@ -920,9 +920,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       <div className="flex gap-2">
                         <button 
                           onClick={async () => {
-                            const perfisAtualizados = await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteUsername);
+                            const perfisAtualizados = await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteusername);
                             setPerfisReais(perfisAtualizados);
-                            alert(`Amizade com @${remetenteUsername} aceita! 🎉`);
+                            alert(`Amizade com @${remetenteusername} aceita! 🎉`);
                           }}
                           className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold"
                         >
@@ -930,7 +930,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         </button>
                         <button 
                           onClick={async () => {
-                            const perfisAtualizados = await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteUsername);
+                            const perfisAtualizados = await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteusername);
                             setPerfisReais(perfisAtualizados);
                           }}
                           className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-xl font-bold"
@@ -1178,7 +1178,20 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 <img src={storyAtivoObj.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition" />
                 <div>
                   <span className="text-white text-xs font-bold drop-shadow-md block group-hover:underline">{storyAtivoObj.autor}</span>
-                  <span className="text-white/70 text-[10px]">Story {indiceStoryAtual + 1} de {listaStoriesDoAutorAtual.length}</span>
+                  <span className="text-white/70 text-[10px]">
+                    {(() => {
+                      const agora = Date.now();
+                      const diffMs = agora - storyAtivoObj.id;
+                      const diffMins = Math.floor(diffMs / (1000 * 60));
+                      const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
+                      const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+                      if (diffMins < 1) return 'Agora mesmo';
+                      if (diffMins < 60) return `há ${diffMins}m atrás`;
+                      if (diffHoras < 24) return `há ${diffHoras}h atrás`;
+                      return `há ${diffDias}d atrás`;
+                    })()}
+                  </span>
                 </div>
               </div>
               <button onClick={() => setUsuarioStoryVisualizando(null)} className="bg-black/50 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm hover:bg-black">✕</button>
@@ -1507,14 +1520,27 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
                       <button 
                         disabled={enviei}
+                        title={enviei ? 'Solicitação Pendente' : 'Seguir / Adicionar'}
                         onClick={async () => {
                           await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, membro.username);
                           alert(`Pedido de amizade enviado para @${membro.username}!`);
                           window.location.reload();
                         }}
-                        className={`px-3 py-1.5 rounded-xl font-bold text-[10px] transition flex-shrink-0 ${enviei ? 'bg-amber-500/10 text-amber-400 border border-amber-500/35 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'}`}
+                        className={`p-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center flex-shrink-0 ${
+                          enviei 
+                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/35 cursor-not-allowed' 
+                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
+                        }`}
                       >
-                        {enviei ? 'Pendente' : '+ Seguir'}
+                        {enviei ? (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                          </svg>
+                        )}
                       </button>
                     </div>
                   );
@@ -1567,7 +1593,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               </span>
             )}
             <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1 rounded-xl bg-slate-900 text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition shadow-xl pointer-events-none border border-slate-700">
-              Abrir Chat 💬
+              Abrir Chat 
             </span>
           </button>
         </div>
