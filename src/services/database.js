@@ -98,14 +98,38 @@ export const BancoDeDados = {
 
   salvarStory: async (story) => {
     try {
+      const novoStoryComVisualizacoes = { ...story, visualizacoes: [] };
       const response = await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(story)
+        body: JSON.stringify(novoStoryComVisualizacoes)
       });
       if (!response.ok) return await BancoDeDados.getStories();
       return await BancoDeDados.getStories();
     } catch (err) { return []; }
+  },
+
+  registrarVisualizacaoStory: async (storyId, dadosVisualizador) => {
+    try {
+      const stories = await BancoDeDados.getStories();
+      const st = stories.find(s => s.id === storyId);
+      if (st) {
+        let vistas = st.visualizacoes || [];
+        const jaViu = vistas.some(v => v.username === dadosVisualizador.username);
+        
+        if (!jaViu) {
+          vistas.push(dadosVisualizador);
+          await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${storyId}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ visualizacoes: vistas })
+          });
+        }
+      }
+      return await BancoDeDados.getStories();
+    } catch (err) {
+      return [];
+    }
   },
 
   excluirStory: async (id) => {

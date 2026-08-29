@@ -17,7 +17,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [notificacoes, setNotificacoes] = useState([]);
   const [pedidosOracao, setPedidosOracao] = useState([]);
   const [stories, setStories] = useState([]);
-  const [visualizacoesStories, setVisualizacoesStories] = useState({});
   
   const [carregandoComunidade, setCarregandoComunidade] = useState(true);
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
@@ -80,7 +79,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
         const pedidos = await BancoDeDados.getPedidosOracao();
         const strs = await BancoDeDados.getStories();
-        const views = JSON.parse(localStorage.getItem('visualizacoes_stories_app') || '{}');
 
         if (montado) {
           setPerfisReais(perfis || []);
@@ -88,7 +86,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           setNotificacoes(notifs || []);
           setPedidosOracao(pedidos || []);
           setStories(strs || []);
-          setVisualizacoesStories(views);
 
           const searchParams = new URLSearchParams(window.location.search);
           const postIdParam = searchParams.get('post') || searchParams.get('id');
@@ -136,14 +133,13 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const meusAmigos = meuPerfilBanco.amigos || [];
   const pedidosRecebidos = meuPerfilBanco.pedidos_recebidos || [];
 
-  // Filtrar stories apenas para amigos e para o próprio usuário logado
   const amigosMaisLogado = [usuarioLogado.username, ...meusAmigos];
   const storiesFiltradosAmigos = stories.filter(s => amigosMaisLogado.includes(s.username));
 
   const meusStories = stories.filter(s => s.username === usuarioLogado.username);
   const temStoryAtivo = meusStories.length > 0;
   const meusStoriesVistos = temStoryAtivo && meusStories.every(st => {
-    const vistas = visualizacoesStories[st.id] || [];
+    const vistas = st.visualizacoes || [];
     return vistas.some(v => v.username === usuarioLogado.username);
   });
 
@@ -165,7 +161,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
   const listaAutoresStories = Object.values(autoresComStoriesMap).map(autorObj => {
     const todosVistos = autorObj.lista.every(st => {
-      const visualizacoesDoStory = visualizacoesStories[st.id] || [];
+      const visualizacoesDoStory = st.visualizacoes || [];
       return visualizacoesDoStory.some(v => v.username === usuarioLogado.username);
     });
     return { ...autorObj, todosVistos, primeiroStory: autorObj.lista[0] };
@@ -182,27 +178,28 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     : [];
   const storyAtivoObj = listaStoriesDoAutorAtual[indiceStoryAtual];
 
+  // --- COMPUTAR VISUALIZAÇÃO NO SUPABASE ---
   useEffect(() => {
-    if (usuarioStoryVisualizando && storyAtivoObj) {
-      const storyId = storyAtivoObj.id;
-      const vistasAtuais = visualizacoesStories[storyId] || [];
-      const jaViu = vistasAtuais.some(v => v.username === usuarioLogado.username);
+    async function computarVisualizacao() {
+      if (usuarioStoryVisualizando && storyAtivoObj) {
+        const storyId = storyAtivoObj.id;
+        const vistasAtuais = storyAtivoObj.visualizacoes || [];
+        const jaViu = vistasAtuais.some(v => v.username === usuarioLogado.username);
 
-      if (!jaViu && storyAtivoObj.username !== usuarioLogado.username) {
-        const novaVisualizacao = {
-          username: usuarioLogado.username,
-          nome: nomePerfilOficial,
-          foto: fotoPerfilOficial,
-          horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        const atualizadas = {
-          ...visualizacoesStories,
-          [storyId]: [...vistasAtuais, novaVisualizacao]
-        };
-        setVisualizacoesStories(atualizadas);
-        localStorage.setItem('visualizacoes_stories_app', JSON.stringify(atualizadas));
+        if (!jaViu && storyAtivoObj.username !== usuarioLogado.username) {
+          const novaVisualizacao = {
+            username: usuarioLogado.username,
+            nome: nomePerfilOficial,
+            foto: fotoPerfilOficial,
+            horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          };
+          
+          const storiesAtualizados = await BancoDeDados.registrarVisualizacaoStory(storyId, novaVisualizacao);
+          setStories(storiesAtualizados || []);
+        }
       }
     }
+    computarVisualizacao();
   }, [usuarioStoryVisualizando, indiceStoryAtual, storyAtivoObj]);
 
   const avancarStory = () => {
@@ -1217,7 +1214,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     onClick={() => setModalVisualizadoresAberto(true)}
                     className="bg-black/60 hover:bg-black/80 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 border border-white/20 backdrop-blur-sm"
                   >
-                    👁️ {(visualizacoesStories[storyAtivoObj.id] || []).length} Visualizações
+                    👁️ {(storyAtivoObj.visualizacoes || []).length} Visualizações
                   </button>
 
                   <button onClick={async () => { await BancoDeDados.excluirStory(storyAtivoObj.id); setStories(await BancoDeDados.getStories()); setUsuarioStoryVisualizando(null); }} className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg hover:bg-red-700">Excluir</button>
@@ -1242,15 +1239,15 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
 
             <div className="max-h-64 overflow-y-auto space-y-2.5 pr-1">
-              {(!visualizacoesStories[storyAtivoObj.id] || visualizacoesStories[storyAtivoObj.id].length === 0) ? (
+              {(!storyAtivoObj.visualizacoes || storyAtivoObj.visualizacoes.length === 0) ? (
                 <p className="text-xs text-slate-400 text-center py-6">Nenhuma visualização registrada ainda.</p>
               ) : (
-                visualizacoesStories[storyAtivoObj.id].map((vis, i) => (
+                storyAtivoObj.visualizacoes.map((vis, i) => (
                   <div key={i} className="flex items-center justify-between bg-slate-800/60 p-2.5 rounded-2xl border border-slate-700/50">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <img src={vis.foto} className="w-8 h-8 rounded-full object-cover border border-blue-500" />
                       <div className="min-w-0">
-                        <p className="text-xs font-bold truncate">{vis.nome}</p>
+                        <p className="text-xs font-bold truncate text-white">{vis.nome}</p>
                         <p className="text-[10px] text-blue-400 truncate">@{vis.username}</p>
                       </div>
                     </div>
@@ -1430,64 +1427,57 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
 
-            {chatComUsuario ? (
-              <div className="space-y-3">
-                <button onClick={() => setChatComUsuario(null)} className="text-xs text-blue-500 hover:underline font-semibold">← Fechar Chat</button>
-                <ChatPrivado destinatario={chatComUsuario} usuarioLogado={usuarioLogado} darkMode={darkMode} onVerPerfil={(p) => setPerfilSelecionado(p)} />
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-xs opacity-60">Selecione um amigo para conversar:</p>
-                {amigosLista.length === 0 ? (
-                  <p className="text-xs opacity-40 text-center py-6">Nenhum amigo conectado no chat ainda.</p>
-                ) : (
-                  amigosLista.map(amigo => {
-                    const naoLidasDoAmigo = notificacoes.filter(
-                      n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
-                    ).length;
-                    const amigoTemStory = storiesFiltradosAmigos.some(s => s.username === amigo.username);
+            <div className="space-y-3">
+              <p className="text-xs opacity-60">Selecione um amigo para conversar:</p>
+              {amigosLista.length === 0 ? (
+                <p className="text-xs opacity-40 text-center py-6">Nenhum amigo conectado no chat ainda.</p>
+              ) : (
+                amigosLista.map(amigo => {
+                  const naoLidasDoAmigo = notificacoes.filter(
+                    n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
+                  ).length;
+                  const amigoTemStory = storiesFiltradosAmigos.some(s => s.username === amigo.username);
 
-                    return (
-                      <div 
-                        key={amigo.username} 
-                        onClick={() => abrirChatComAmigo(amigo.username)} 
-                        className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              clicarPerfilOuStory(amigo.username);
-                            }}
-                            className={`w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${amigoTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
-                          >
-                            <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-                          </div>
-
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold truncate">{amigo.nome}</p>
-                            <p className="text-[10px] opacity-50 truncate">@{amigo.username}</p>
-                          </div>
+                  return (
+                    <div 
+                      key={amigo.username} 
+                      onClick={() => abrirChatComAmigo(amigo.username)} 
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clicarPerfilOuStory(amigo.username);
+                          }}
+                          className={`w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${amigoTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
+                        >
+                          <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
                         </div>
 
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {naoLidasDoAmigo > 0 && (
-                            <span className="bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs animate-bounce">
-                              {naoLidasDoAmigo}
-                            </span>
-                          )}
-                          <button title="Abrir chat" className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
-                          </button>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold truncate">{amigo.nome}</p>
+                          <p className="text-[10px] opacity-50 truncate">@{amigo.username}</p>
                         </div>
                       </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
+
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {naoLidasDoAmigo > 0 && (
+                          <span className="bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs animate-bounce">
+                            {naoLidasDoAmigo}
+                          </span>
+                        )}
+                        <button title="Abrir chat" className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
 
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -1532,10 +1522,56 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               )}
             </div>
           </div>
-
         </div>
 
       </div>
+
+      {/* --- BALÃO FLUTUANTE DE CHAT MAIOR (FIXO NO CANTO INFERIOR DIREITO) --- */}
+      {chatComUsuario ? (
+        <div className="fixed bottom-6 right-6 z-50 w-96 sm:w-[420px] h-[520px] max-h-[85vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden backdrop-blur-md bg-slate-900 border-slate-700 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-xs font-extrabold text-white uppercase tracking-wider">Chat Privado com @{chatComUsuario}</span>
+            </div>
+            <button 
+              onClick={() => setChatComUsuario(null)} 
+              className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition"
+            >
+              ✕ Minimizar
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden bg-slate-950/50 flex flex-col">
+            <ChatPrivado destinatario={chatComUsuario} usuarioLogado={usuarioLogado} darkMode={darkMode} onVerPerfil={(p) => setPerfilSelecionado(p)} />
+          </div>
+        </div>
+      ) : (
+        <div className="fixed bottom-6 right-6 z-50">
+          <button 
+            onClick={() => {
+              if (amigosLista.length > 0) {
+                setChatComUsuario(amigosLista[0].username);
+              } else {
+                alert('Você precisa ter amigos adicionados na comunidade para iniciar um chat rápido!');
+              }
+            }}
+            className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center transition hover:scale-110 relative group border-2 border-white/20"
+            title="Abrir Chat"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="root" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            {notificacoes.some(n => !n.lida && n.tipo === 'mensagem') && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-extrabold rounded-full flex items-center justify-center shadow-md animate-bounce">
+                !
+              </span>
+            )}
+            <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1 rounded-xl bg-slate-900 text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition shadow-xl pointer-events-none border border-slate-700">
+              Abrir Chat 💬
+            </span>
+          </button>
+        </div>
+      )}
 
     </div>
   );
