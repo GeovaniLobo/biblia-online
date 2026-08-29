@@ -571,7 +571,6 @@ export default function App() {
                             {textoVersiculo}
                           </p>
 
-                          {/* Botões individuais escondidos por padrão, aparecem apenas ao selecionar ou nos ícones auxiliares */}
                           <div className="flex items-center justify-end gap-2 pt-2 sm:pt-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => setNotaVersiculoAtiva(chaveMarcacao)} className="text-xs bg-slate-700/20 hover:bg-slate-700/40 px-2 py-1 rounded" title="Adicionar Nota">📝</button>
 
@@ -650,7 +649,6 @@ export default function App() {
 
         </section>
 
-        {/* BARRA FLUTUANTE DE AÇÕES QUANDO SELECIONA VERSÍCULOS (Único local com cores) */}
         {abaPrincipal === 'biblia' && versiculosSelecionados.length > 0 && (
           <div className="absolute bottom-4 left-4 right-4 sm:left-1/2 sm:transform sm:-translate-x-1/2 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between sm:justify-center gap-3 border border-slate-700 z-50">
             <span className="text-xs font-semibold bg-blue-600 px-2 py-1 rounded-lg">
@@ -659,10 +657,10 @@ export default function App() {
 
             <div className="flex items-center gap-2">
               <span className="text-[10px] opacity-75">Destacar:</span>
-              <button onClick={() => destacarVersiculosSelecionados('bg-amber-400/15 text-amber-200 border-amber-500/30')} className="w-5 h-5 rounded-full bg-amber-400 shadow" title="Amarelo"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-emerald-500/15 text-emerald-200 border-emerald-500/30')} className="w-5 h-5 rounded-full bg-emerald-500 shadow" title="Verde"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-blue-500/15 text-blue-200 border-blue-500/30')} className="w-5 h-5 rounded-full bg-blue-500 shadow" title="Azul"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-pink-500/15 text-pink-200 border-pink-500/30')} className="w-5 h-5 rounded-full bg-pink-500 shadow" title="Rosa"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-amber-300 text-slate-900 font-medium border-amber-400')} className="w-5 h-5 rounded-full bg-amber-400 shadow" title="Amarelo"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-emerald-400 text-slate-900 font-medium border-emerald-500')} className="w-5 h-5 rounded-full bg-emerald-500 shadow" title="Verde"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-blue-400 text-slate-900 font-medium border-blue-500')} className="w-5 h-5 rounded-full bg-blue-500 shadow" title="Azul"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-pink-400 text-slate-900 font-medium border-pink-500')} className="w-5 h-5 rounded-full bg-pink-500 shadow" title="Rosa"></button>
             </div>
 
             <div className="flex items-center gap-2">
