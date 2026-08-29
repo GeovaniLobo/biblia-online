@@ -24,6 +24,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [chatComUsuario, setChatComUsuario] = useState(null);
   const [enviandoMidia, setEnviandoMidia] = useState(false);
   const [abaNotificacoesAberta, setAbaNotificacoesAberta] = useState(false);
+  const [abaSolicitacoesAberta, setAbaSolicitacoesAberta] = useState(false);
 
   const [postDetalheId, setPostDetalheId] = useState(null);
   const [menuOpcoesPostAberto, setMenuOpcoesPostAberto] = useState(null);
@@ -132,7 +133,13 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const fotoPerfilOficial = meuPerfilBanco.foto || usuarioLogado.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
   const nomePerfilOficial = meuPerfilBanco.nome || usuarioLogado.nome || 'Usuário';
 
-  // Declarações corretas de stories do usuário logado para evitar o erro de referência
+  const meusAmigos = meuPerfilBanco.amigos || [];
+  const pedidosRecebidos = meuPerfilBanco.pedidos_recebidos || [];
+
+  // Filtrar stories apenas para amigos e para o próprio usuário logado
+  const amigosMaisLogado = [usuarioLogado.username, ...meusAmigos];
+  const storiesFiltradosAmigos = stories.filter(s => amigosMaisLogado.includes(s.username));
+
   const meusStories = stories.filter(s => s.username === usuarioLogado.username);
   const temStoryAtivo = meusStories.length > 0;
   const meusStoriesVistos = temStoryAtivo && meusStories.every(st => {
@@ -141,7 +148,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   });
 
   const autoresComStoriesMap = {};
-  const storiesOrdenados = [...stories].sort((a, b) => a.id - b.id);
+  const storiesOrdenados = [...storiesFiltradosAmigos].sort((a, b) => a.id - b.id);
 
   storiesOrdenados.forEach(st => {
     if (!autoresComStoriesMap[st.username]) {
@@ -259,7 +266,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
   const clicarPerfilOuStory = (usernameAlvo) => {
     if (!usernameAlvo) return;
-    const autorTemStory = stories.some(s => s.username === usernameAlvo);
+    const autorTemStory = storiesFiltradosAmigos.some(s => s.username === usernameAlvo);
     if (autorTemStory) {
       setIndiceStoryAtual(0);
       setUsuarioStoryVisualizando(usernameAlvo);
@@ -486,8 +493,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     );
   }
 
-  const amigosLista = perfisReais.filter(p => (meuPerfilBanco.amigos || []).includes(p.username));
-  const outrosUsuarios = perfisReais.filter(p => p.username !== usuarioLogado.username && !(meuPerfilBanco.amigos || []).includes(p.username));
+  const amigosLista = perfisReais.filter(p => meusAmigos.includes(p.username));
+  const outrosUsuarios = perfisReais.filter(p => p.username !== usuarioLogado.username && !meusAmigos.includes(p.username));
 
   const publicacoesFiltradas = publicacoes.filter(post => {
     if (!termoBuscaComunidade.trim()) return true;
@@ -521,7 +528,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     const perfilAutorReal = perfisReais.find(p => p.username === post.username) || {};
     const avatarAtualizado = perfilAutorReal.foto || post.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
     const nomeAtualizado = perfilAutorReal.nome || post.autor;
-    const autorTemStory = stories.some(s => s.username === post.username);
+    const autorTemStory = storiesFiltradosAmigos.some(s => s.username === post.username);
 
     const reacoes = post.reacoes || { amem: [], gloria: [], amor: [] };
     const meuAmem = (reacoes.amem || []).includes(usuarioLogado.username);
@@ -683,7 +690,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               {post.comentarios.map((c) => {
                 const perfilAutorComentario = perfisReais.find(p => p.username === c.username) || {};
                 const fotoComentario = perfilAutorComentario.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
-                const autorComentarioTemStory = stories.some(s => s.username === c.username);
+                const autorComentarioTemStory = storiesFiltradosAmigos.some(s => s.username === c.username);
 
                 const reacoesComentario = c.reacoes || { amem: [], gloria: [], amor: [] };
                 const meuAmemCom = (reacoesComentario.amem || []).includes(usuarioLogado.username);
@@ -817,7 +824,16 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   return (
     <div className={`w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-10 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
-      <div className="flex justify-end max-w-4xl mx-auto">
+      <div className="flex justify-end gap-3 max-w-4xl mx-auto">
+        {pedidosRecebidos.length > 0 && (
+          <button 
+            onClick={() => setAbaSolicitacoesAberta(true)}
+            className="px-4 py-2 rounded-2xl bg-amber-500 text-white text-xs font-bold flex items-center gap-2 shadow-sm animate-bounce"
+          >
+            👥 Solicitações ({pedidosRecebidos.length})
+          </button>
+        )}
+
         <div className="relative">
           <button 
             onClick={async () => {
@@ -852,7 +868,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   const usernameNotif = matchUser ? matchUser[1] : null;
                   const perfilNotif = perfisReais.find(p => p.username === usernameNotif) || {};
                   const fotoNotif = perfilNotif.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
-                  const temStoryNotif = stories.some(s => s.username === usernameNotif);
+                  const temStoryNotif = storiesFiltradosAmigos.some(s => s.username === usernameNotif);
 
                   return (
                     <div key={idx} className={`p-3 rounded-2xl border text-xs flex items-center gap-3 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
@@ -879,6 +895,60 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           )}
         </div>
       </div>
+
+      {abaSolicitacoesAberta && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <div className="flex justify-between items-center border-b pb-3 border-slate-700">
+              <h3 className="font-extrabold text-sm">👥 Solicitações de Amizade Pendentes</h3>
+              <button onClick={() => setAbaSolicitacoesAberta(false)} className="text-sm font-bold">✕</button>
+            </div>
+
+            <div className="space-y-3 max-h-72 overflow-y-auto">
+              {pedidosRecebidos.length === 0 ? (
+                <p className="text-xs opacity-50 text-center py-6">Nenhuma solicitação pendente.</p>
+              ) : (
+                pedidosRecebidos.map(remetenteUsername => {
+                  const perfilRemetente = perfisReais.find(p => p.username === remetenteUsername) || { nome: remetenteUsername, username: remetenteUsername };
+                  return (
+                    <div key={remetenteUsername} className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="flex items-center gap-2.5">
+                        <img src={perfilRemetente.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover" />
+                        <div>
+                          <p className="font-bold">{perfilRemetente.nome}</p>
+                          <p className="text-[10px] opacity-60">@{perfilRemetente.username}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={async () => {
+                            const perfisAtualizados = await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteUsername);
+                            setPerfisReais(perfisAtualizados);
+                            alert(`Amizade com @${remetenteUsername} aceita! 🎉`);
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold"
+                        >
+                          Aceitar
+                        </button>
+                        <button 
+                          onClick={async () => {
+                            const perfisAtualizados = await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteUsername);
+                            setPerfisReais(perfisAtualizados);
+                          }}
+                          className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-xl font-bold"
+                        >
+                          Recusar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {modalCriarStoryAberto && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
@@ -1232,7 +1302,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
               <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
-                <span className="block font-extrabold text-blue-500 text-sm">{meuPerfilBanco.amigos?.length || 0}</span>
+                <span className="block font-extrabold text-blue-500 text-sm">{meusAmigos.length}</span>
                 <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Amigos</span>
               </div>
               <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -1375,7 +1445,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     const naoLidasDoAmigo = notificacoes.filter(
                       n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
                     ).length;
-                    const amigoTemStory = stories.some(s => s.username === amigo.username);
+                    const amigoTemStory = storiesFiltradosAmigos.some(s => s.username === amigo.username);
 
                     return (
                       <div 
@@ -1428,7 +1498,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               ) : (
                 membrosFiltrados.map(membro => {
                   const enviei = meuPerfilBanco.pedidos_enviados?.includes(membro.username);
-                  const membroTemStory = stories.some(s => s.username === membro.username);
+                  const membroTemStory = storiesFiltradosAmigos.some(s => s.username === membro.username);
 
                   return (
                     <div key={membro.username} className={`p-3 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>

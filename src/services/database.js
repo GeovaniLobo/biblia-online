@@ -247,6 +247,70 @@ export const BancoDeDados = {
     } catch (e) {}
   },
 
+  aceitarPedidoAmizade: async (usernameLogado, usernameRemetente) => {
+    try {
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      const logado = perfis.find(p => p.username === usernameLogado);
+      const remetente = perfis.find(p => p.username === usernameRemetente);
+
+      if (logado && remetente) {
+        const novosRecebidos = (logado.pedidos_recebidos || []).filter(u => u !== usernameRemetente);
+        const novosEnviados = (remetente.pedidos_enviados || []).filter(u => u !== usernameLogado);
+
+        const novosAmigosLogado = [...(logado.amigos || [])];
+        if (!novosAmigosLogado.includes(usernameRemetente)) novosAmigosLogado.push(usernameRemetente);
+
+        const novosAmigosRemetente = [...(remetente.amigos || [])];
+        if (!novosAmigosRemetente.includes(usernameLogado)) novosAmigosRemetente.push(usernameLogado);
+
+        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameLogado}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ pedidos_recebidos: novosRecebidos, amigos: novosAmigosLogado })
+        });
+
+        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ pedidos_enviados: novosEnviados, amigos: novosAmigosRemetente })
+        });
+
+        await BancoDeDados.adicionarNotificacao(usernameRemetente, `@${usernameLogado} aceitou seu pedido de amizade! 🎉`, 'amizade');
+      }
+      return await BancoDeDados.getPerfisCadastrados();
+    } catch (e) {
+      return [];
+    }
+  },
+
+  recusarPedidoAmizade: async (usernameLogado, usernameRemetente) => {
+    try {
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      const logado = perfis.find(p => p.username === usernameLogado);
+      const remetente = perfis.find(p => p.username === usernameRemetente);
+
+      if (logado && remetente) {
+        const novosRecebidos = (logado.pedidos_recebidos || []).filter(u => u !== usernameRemetente);
+        const novosEnviados = (remetente.pedidos_enviados || []).filter(u => u !== usernameLogado);
+
+        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameLogado}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ pedidos_recebidos: novosRecebidos })
+        });
+
+        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ pedidos_enviados: novosEnviados })
+        });
+      }
+      return await BancoDeDados.getPerfisCadastrados();
+    } catch (e) {
+      return [];
+    }
+  },
+
   // --- MENSAGENS E CHAT ---
   getMensagensChat: async (usuarioA, usuarioB) => {
     try {
