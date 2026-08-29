@@ -556,11 +556,9 @@ export default function App() {
                       <div 
                         key={index} 
                         onClick={() => toggleSelecaoVersiculo(numeroV, textoVersiculo)}
-                        className={`group flex flex-col gap-2 py-2.5 px-3 rounded-xl transition border cursor-pointer select-none ${
+                        className={`group flex flex-col gap-2 py-2 px-3 rounded-xl transition border cursor-pointer select-none ${
                           isSelecionado 
                             ? 'bg-blue-600/20 border-blue-500/60 shadow-sm' 
-                            : corDestaqueAtual 
-                            ? `${corDestaqueAtual} border-opacity-40` 
                             : 'border-transparent hover:bg-blue-500/5'
                         }`}
                         title="Clique para selecionar o versículo"
@@ -568,7 +566,9 @@ export default function App() {
                         <div className="flex items-start justify-between gap-2">
                           <p className="flex-1 leading-relaxed">
                             <span className="text-xs font-extrabold text-blue-500 mr-2.5 align-super bg-blue-500/10 px-1.5 py-0.5 rounded-md">{numeroV}</span>
-                            {textoVersiculo}
+                            <span className={`text-black dark:text-slate-100 ${corDestaqueAtual || ''}`}>
+                              {textoVersiculo}
+                            </span>
                           </p>
 
                           <div className="flex items-center justify-end gap-2 pt-2 sm:pt-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
@@ -585,7 +585,7 @@ export default function App() {
                         </div>
 
                         {notaPessoal && (
-                          <div className="bg-amber-500/10 border border-amber-500/30 p-2 rounded-lg text-xs text-amber-300 italic" onClick={(e) => e.stopPropagation()}>
+                          <div className="bg-amber-500/10 border border-amber-500/30 p-2 rounded-lg text-xs text-amber-600 dark:text-amber-300 italic" onClick={(e) => e.stopPropagation()}>
                             <b>Nota Pessoal:</b> {notaPessoal}
                           </div>
                         )}
@@ -657,10 +657,10 @@ export default function App() {
 
             <div className="flex items-center gap-2">
               <span className="text-[10px] opacity-75">Destacar:</span>
-              <button onClick={() => destacarVersiculosSelecionados('bg-amber-300 text-slate-900 font-medium border-amber-400')} className="w-5 h-5 rounded-full bg-amber-400 shadow" title="Amarelo"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-emerald-400 text-slate-900 font-medium border-emerald-500')} className="w-5 h-5 rounded-full bg-emerald-500 shadow" title="Verde"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-blue-400 text-slate-900 font-medium border-blue-500')} className="w-5 h-5 rounded-full bg-blue-500 shadow" title="Azul"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-pink-400 text-slate-900 font-medium border-pink-500')} className="w-5 h-5 rounded-full bg-pink-500 shadow" title="Rosa"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-amber-300 px-1 rounded')} className="w-5 h-5 rounded-full bg-amber-400 shadow" title="Amarelo"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-emerald-300 px-1 rounded')} className="w-5 h-5 rounded-full bg-emerald-500 shadow" title="Verde"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-blue-300 px-1 rounded')} className="w-5 h-5 rounded-full bg-blue-500 shadow" title="Azul"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-pink-300 px-1 rounded')} className="w-5 h-5 rounded-full bg-pink-500 shadow" title="Rosa"></button>
             </div>
 
             <div className="flex items-center gap-2">
