@@ -566,7 +566,7 @@ export default function App() {
                         <div className="flex items-start justify-between gap-2">
                           <p className="flex-1 leading-relaxed">
                             <span className="text-xs font-extrabold text-blue-500 mr-2.5 align-super bg-blue-500/10 px-1.5 py-0.5 rounded-md">{numeroV}</span>
-                            <span className={`text-black dark:text-slate-100 ${corDestaqueAtual || ''}`}>
+                            <span className={corDestaqueAtual ? `${corDestaqueAtual} text-slate-900 font-semibold` : (darkMode ? 'text-slate-100' : 'text-slate-900')}>
                               {textoVersiculo}
                             </span>
                           </p>
@@ -657,10 +657,10 @@ export default function App() {
 
             <div className="flex items-center gap-2">
               <span className="text-[10px] opacity-75">Destacar:</span>
-              <button onClick={() => destacarVersiculosSelecionados('bg-amber-300 px-1 rounded')} className="w-5 h-5 rounded-full bg-amber-400 shadow" title="Amarelo"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-emerald-300 px-1 rounded')} className="w-5 h-5 rounded-full bg-emerald-500 shadow" title="Verde"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-blue-300 px-1 rounded')} className="w-5 h-5 rounded-full bg-blue-500 shadow" title="Azul"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-pink-300 px-1 rounded')} className="w-5 h-5 rounded-full bg-pink-500 shadow" title="Rosa"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-amber-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-amber-400 shadow" title="Amarelo"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-emerald-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-emerald-500 shadow" title="Verde"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-blue-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-blue-500 shadow" title="Azul"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-pink-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-pink-500 shadow" title="Rosa"></button>
             </div>
 
             <div className="flex items-center gap-2">
