@@ -18,7 +18,6 @@ export default function App() {
   const [termoBusca, setTermoBusca] = useState('');
   const [resultadosBusca, setResultadosBusca] = useState([]);
 
-  // Estados dos novos recursos (Itens 5 e 6: Modo Foco e Notas)
   const [modoFoco, setModoFoco] = useState(false);
   const [tamanhoFonte, setTamanhoFonte] = useState('text-base sm:text-lg');
   const [notaVersiculoAtiva, setNotaVersiculoAtiva] = useState(null);
@@ -28,10 +27,9 @@ export default function App() {
     return s ? JSON.parse(s) : {};
   });
 
-  // Usuário Logado via Banco de Dados
   const [usuarioLogado, setUsuarioLogado] = useState(BancoDeDados.getUsuarioLogado());
   const [modalLoginAberto, setModalLoginAberto] = useState(false);
-  const [abaPrincipal, setAbaPrincipal] = useState('biblia'); // 'biblia', 'devocional', 'comunidade', 'perfilUrl', 'editarPerfil'
+  const [abaPrincipal, setAbaPrincipal] = useState('biblia'); 
   const [perfilUrlAlvo, setPerfilUrlAlvo] = useState(null);
   const [totalNaoLidas, setTotalNaoLidas] = useState(0);
 
@@ -53,31 +51,25 @@ export default function App() {
     { id: 'ntlh', nome: 'Nova Tradução na Linguagem de Hoje (NTLH)' }
   ];
 
-  // Polling automático para atualizar o contador de mensagens/notificações no menu lateral
   useEffect(() => {
     if (!usuarioLogado) return;
-
     async function checarNotificacoes() {
       const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
       const naoLidas = notifs.filter(n => !n.lida).length;
       setTotalNaoLidas(naoLidas);
     }
-
     checarNotificacoes();
     const intervalo = setInterval(checarNotificacoes, 4000);
     return () => clearInterval(intervalo);
   }, [usuarioLogado]);
 
-  // Roteamento robusto para URLs limpas (ex: /geovanilobo)
   useEffect(() => {
     const tratarRotaUrl = async () => {
       const path = window.location.pathname.replace('/', '').trim();
-      
       if (path && !['biblia', 'devocional', 'comunidade', 'editarPerfil'].includes(path)) {
         setCarregando(true);
         const perfis = await BancoDeDados.getPerfisCadastrados();
         const encontrado = perfis.find(p => p.username.toLowerCase() === path.toLowerCase());
-        
         if (encontrado) {
           setPerfilUrlAlvo(encontrado);
           setAbaPrincipal('perfilUrl');
@@ -100,7 +92,6 @@ export default function App() {
         setPerfilUrlAlvo(null);
       }
     };
-
     tratarRotaUrl();
     window.addEventListener('popstate', tratarRotaUrl);
     return () => window.removeEventListener('popstate', tratarRotaUrl);
@@ -152,7 +143,6 @@ export default function App() {
       setFavoritos(favoritos.filter(f => !(f.livro === livroNome && f.capitulo === capitulo && f.numero === numeroVersiculo)));
     } else {
       setFavoritos([...favoritos, versiculoObj]);
-      
       BancoDeDados.salvarPublicacao({
         id: Date.now(),
         autor: usuarioLogado.nome,
@@ -165,34 +155,6 @@ export default function App() {
         comentarios: []
       });
     }
-  };
-
-  const destacarVersiculo = (livroNome, capitulo, numero, corClasse, textoVersiculo) => {
-    if (!usuarioLogado) {
-      setModalLoginAberto(true);
-      return;
-    }
-    const chave = `${livroNome}_${capitulo}_${numero}`;
-    const novasMarcacoes = { ...marcacoes };
-    
-    if (novasMarcacoes[chave] === corClasse) {
-      delete novasMarcacoes[chave];
-    } else {
-      novasMarcacoes[chave] = corClasse;
-      
-      BancoDeDados.salvarPublicacao({
-        id: Date.now(),
-        autor: usuarioLogado.nome,
-        username: usuarioLogado.username,
-        avatar: usuarioLogado.foto,
-        tema: `📖 ${livroNome} ${capitulo}:${numero}`,
-        texto: `"${textoVersiculo}"`,
-        imagem: '',
-        curtidas: 0,
-        comentarios: []
-      });
-    }
-    setMarcacoes(novasMarcacoes);
   };
 
   const destacarVersiculosSelecionados = (corClasse) => {
@@ -287,8 +249,7 @@ export default function App() {
 
   return (
     <div className={`flex h-screen font-sans overflow-hidden ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
-      
-      {/* BARRA LATERAL (RESPONSIVA E OCULTÁVEL NO MODO FOCO) */}
+
       {!modoFoco && (
         <aside className={`fixed md:relative inset-y-0 left-0 z-50 flex flex-col border-r transition-all duration-300 ${menuAberto ? 'w-72 sm:w-80 translate-x-0' : '-translate-x-full md:w-0 md:translate-x-0 md:overflow-hidden'} bg-slate-900 border-slate-800 text-slate-300 shadow-2xl md:shadow-none`}>
           <div className="p-4 border-b border-slate-800 flex justify-between items-center">
@@ -399,7 +360,7 @@ export default function App() {
               >
                 Devocionais
               </button>
-              
+
               <button
                 onClick={() => {
                   if (!usuarioLogado) setModalLoginAberto(true);
@@ -417,7 +378,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* LISTA DE LIVROS */}
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {abaPrincipal === 'biblia' && (
               <>
@@ -451,9 +411,8 @@ export default function App() {
         />
       )}
 
-      {/* ÁREA CENTRAL */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative w-full">
-        
+
         <header className={`border-b px-4 sm:px-6 py-3 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-xs ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
             {!modoFoco && (
@@ -493,7 +452,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* CONTROLES EXTRAS: MODO FOCO E TAMANHO DE FONTE (Item 6) */}
           {abaPrincipal === 'biblia' && (
             <div className="flex items-center gap-2">
               <button
@@ -546,9 +504,8 @@ export default function App() {
           )}
         </header>
 
-        {/* CONTEÚDO (Largura dinâmica: max-w-4xl para Bíblia/Devocionais e w-full de ponta a ponta para Comunidade) */}
         <section className={`flex-1 overflow-y-auto p-4 sm:p-6 w-full pb-32 ${abaPrincipal === 'comunidade' ? 'max-w-full px-4 sm:px-8' : 'max-w-4xl mx-auto lg:px-16'}`}>
-          
+
           {abaPrincipal === 'biblia' && (
             carregando ? (
               <p className="text-slate-400 text-center mt-10 text-sm">Carregando conteúdo...</p>
@@ -579,7 +536,6 @@ export default function App() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* MENSAGEM DO DIA (Item 8) */}
                 <div className={`p-4 rounded-2xl border shadow-sm ${darkMode ? 'bg-blue-950/30 border-blue-800/40 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-900'}`}>
                   <h4 className="text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">🌟 Mensagem do Dia</h4>
                   <p className="text-sm italic">"Lâmpada para os meus pés é a tua palavra, e luz para o meu caminho." — Salmos 119:105</p>
@@ -615,14 +571,8 @@ export default function App() {
                             {textoVersiculo}
                           </p>
 
+                          {/* Botões individuais escondidos por padrão, aparecem apenas ao selecionar ou nos ícones auxiliares */}
                           <div className="flex items-center justify-end gap-2 pt-2 sm:pt-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex gap-1.5 bg-slate-800/80 p-1 rounded-lg">
-                              <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-amber-400/15 text-amber-200 border-amber-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-amber-400" title="Amarelo"></button>
-                              <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-emerald-500/15 text-emerald-200 border-emerald-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-emerald-500" title="Verde"></button>
-                              <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-blue-500/15 text-blue-200 border-blue-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-blue-500" title="Azul"></button>
-                              <button onClick={() => destacarVersiculo(livroAtualObj.name, capituloAtual, numeroV, 'bg-pink-500/15 text-pink-200 border-pink-500/30', textoVersiculo)} className="w-4 h-4 rounded-full bg-pink-500" title="Rosa"></button>
-                            </div>
-
                             <button onClick={() => setNotaVersiculoAtiva(chaveMarcacao)} className="text-xs bg-slate-700/20 hover:bg-slate-700/40 px-2 py-1 rounded" title="Adicionar Nota">📝</button>
 
                             <button
@@ -635,14 +585,12 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* EXIBIR NOTA PESSOAL (Item 5) */}
                         {notaPessoal && (
                           <div className="bg-amber-500/10 border border-amber-500/30 p-2 rounded-lg text-xs text-amber-300 italic" onClick={(e) => e.stopPropagation()}>
                             <b>Nota Pessoal:</b> {notaPessoal}
                           </div>
                         )}
 
-                        {/* MODAL DE NOTA */}
                         {notaVersiculoAtiva === chaveMarcacao && (
                           <div className="p-3 bg-slate-800 rounded-xl space-y-2 mt-2" onClick={(e) => e.stopPropagation()}>
                             <input 
@@ -702,7 +650,7 @@ export default function App() {
 
         </section>
 
-        {/* BARRA FLUTUANTE DE AÇÕES MÚLTIPLAS */}
+        {/* BARRA FLUTUANTE DE AÇÕES QUANDO SELECIONA VERSÍCULOS (Único local com cores) */}
         {abaPrincipal === 'biblia' && versiculosSelecionados.length > 0 && (
           <div className="absolute bottom-4 left-4 right-4 sm:left-1/2 sm:transform sm:-translate-x-1/2 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between sm:justify-center gap-3 border border-slate-700 z-50">
             <span className="text-xs font-semibold bg-blue-600 px-2 py-1 rounded-lg">
@@ -710,25 +658,25 @@ export default function App() {
             </span>
 
             <div className="flex items-center gap-2">
-              <span className="text-[10px] opacity-75">Cor:</span>
-              <button onClick={() => destacarVersiculosSelecionados('bg-amber-400/15 text-amber-200 border-amber-500/30')} className="w-4 h-4 rounded-full bg-amber-400"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-emerald-500/15 text-emerald-200 border-emerald-500/30')} className="w-4 h-4 rounded-full bg-emerald-500"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-blue-500/15 text-blue-200 border-blue-500/30')} className="w-4 h-4 rounded-full bg-blue-500"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-pink-500/15 text-pink-200 border-pink-500/30')} className="w-4 h-4 rounded-full bg-pink-500"></button>
+              <span className="text-[10px] opacity-75">Destacar:</span>
+              <button onClick={() => destacarVersiculosSelecionados('bg-amber-400/15 text-amber-200 border-amber-500/30')} className="w-5 h-5 rounded-full bg-amber-400 shadow" title="Amarelo"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-emerald-500/15 text-emerald-200 border-emerald-500/30')} className="w-5 h-5 rounded-full bg-emerald-500 shadow" title="Verde"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-blue-500/15 text-blue-200 border-blue-500/30')} className="w-5 h-5 rounded-full bg-blue-500 shadow" title="Azul"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-pink-500/15 text-pink-200 border-pink-500/30')} className="w-5 h-5 rounded-full bg-pink-500 shadow" title="Rosa"></button>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 onClick={copiarVersiculosSelecionados}
-                className="bg-slate-800 text-xs px-3 py-1.5 rounded-lg font-medium"
+                className="bg-slate-800 text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-slate-700 transition"
               >
                 📋 {copiadoFeedback ? 'Copiado!' : 'Copiar'}
               </button>
               <button
                 onClick={() => setVersiculosSelecionados([])}
-                className="text-xs text-slate-400"
+                className="text-xs text-slate-400 px-2 py-1"
               >
-                X
+                ✕
               </button>
             </div>
           </div>
@@ -736,7 +684,6 @@ export default function App() {
 
       </main>
 
-      {/* MODAL DE AUTENTICAÇÃO */}
       <AuthModal
         isOpen={modalLoginAberto}
         onClose={() => setModalLoginAberto(false)}
