@@ -65,7 +65,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [temaEditado, setTemaEditado] = useState('');
   const [novoPedidoTexto, setNovoPedidoTexto] = useState('');
 
-  // Função auxiliar robusta para processar upload de arquivos do dispositivo (Base64)
   const processarArquivoParaUrl = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -169,7 +168,14 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   
   const agoraTimestamp = Date.now();
   const limite24h = 24 * 60 * 60 * 1000;
-  const storiesValidos = stories.filter(s => (agoraTimestamp - s.id) <= limite24h);
+  
+  // Exibição corrigida para garantir que o seu próprio story apareça sempre e os dos amigos obedeçam às 24h
+  const storiesValidos = stories.filter(s => {
+    if (!s.id) return false;
+    if (s.username === usuarioLogado.username) return true;
+    return (agoraTimestamp - Number(s.id)) <= limite24h;
+  });
+
   const storiesFiltradosAmigos = storiesValidos.filter(s => amigosMaisLogado.includes(s.username));
 
   const meusStories = storiesValidos.filter(s => s.username === usuarioLogado.username);
