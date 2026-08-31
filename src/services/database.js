@@ -142,6 +142,34 @@ export const BancoDeDados = {
     } catch (err) { return []; }
   },
 
+  curtirStory: async (storyId, usernameUsuario) => {
+    try {
+      const stories = await BancoDeDados.getStories();
+      const s = stories.find(x => x.id === storyId);
+      if (s) {
+        let curtidas = s.curtidas || [];
+        if (!Array.isArray(curtidas)) curtidas = [];
+
+        // Alterna a curtida (se já curtiu, remove; se não curtiu, adiciona)
+        if (curtidas.includes(usernameUsuario)) {
+          curtidas = curtidas.filter(u => u !== usernameUsuario);
+        } else {
+          curtidas.push(usernameUsuario);
+        }
+
+        await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${storyId}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ curtidas })
+        });
+      }
+      return await BancoDeDados.getStories();
+    } catch (err) {
+      console.error("Erro ao curtir story:", err);
+      return await BancoDeDados.getStories();
+    }
+  },
+
   // --- PUBLICAÇÕES ---
   getPublicacoes: async () => {
     try {
