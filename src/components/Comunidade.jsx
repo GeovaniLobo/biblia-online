@@ -65,6 +65,16 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [temaEditado, setTemaEditado] = useState('');
   const [novoPedidoTexto, setNovoPedidoTexto] = useState('');
 
+  // Função auxiliar robusta para processar upload de arquivos do dispositivo (Base64)
+  const processarArquivoParaUrl = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => resolve(URL.createObjectURL(file));
+      reader.readAsDataURL(file);
+    });
+  };
+
   useEffect(() => {
     let montado = true;
     async function carregarDadosIniciais() {
@@ -130,11 +140,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     };
   }, [usuarioLogado]);
 
-  // Carregar mensagens do chat quando chatComUsuario mudar
   useEffect(() => {
     async function carregarMensagens() {
       if (chatComUsuario) {
-        const msgs = await BancoDeDados.getMensagensChat ? await BancoDeDados.getMensagensChat(usuarioLogado.username, chatComUsuario) : [];
+        const msgs = typeof BancoDeDados.getMensagensChat === 'function' ? await BancoDeDados.getMensagensChat(usuarioLogado.username, chatComUsuario) : [];
         setMensagensChat(msgs || []);
       }
     }
@@ -158,7 +167,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
   const amigosMaisLogado = [usuarioLogado.username, ...meusAmigos];
   
-  // 4. Filtrar stories para manter apenas as últimas 24 horas
   const agoraTimestamp = Date.now();
   const limite24h = 24 * 60 * 60 * 1000;
   const storiesValidos = stories.filter(s => (agoraTimestamp - s.id) <= limite24h);
@@ -310,7 +318,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setNotificacoes(notifsAtualizadas || []);
   };
 
-  // 1. Enviar mensagem no chat flutuante
   const enviarMensagemChat = async (e) => {
     e.preventDefault();
     if (!textoMensagemChat.trim() || !chatComUsuario) return;
@@ -323,7 +330,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    if (BancoDeDados.enviarMensagemChat) {
+    if (typeof BancoDeDados.enviarMensagemChat === 'function') {
       await BancoDeDados.enviarMensagemChat(novaMsg);
       const msgsAtualizadas = await BancoDeDados.getMensagensChat(usuarioLogado.username, chatComUsuario);
       setMensagensChat(msgsAtualizadas || []);
@@ -334,12 +341,20 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setMostrarEmojisChat(false);
   };
 
-  // 1. Enviar mídia pelo chat
   const enviarMidiaChat = async (e, tipo) => {
     const file = e.target.files[0];
     if (!file || !chatComUsuario) return;
     setEnviandoMidia(true);
-    const urlMidia = BancoDeDados.uploadMidiaStory ? await BancoDeDados.uploadMidiaStory(file) : URL.createObjectURL(file);
+    
+    let urlMidia = '';
+    try {
+      if (typeof BancoDeDados.uploadMidiaStory === 'function') {
+        urlMidia = await BancoDeDados.uploadMidiaStory(file);
+      }
+    } catch (err) {}
+    if (!urlMidia) {
+      urlMidia = await processarArquivoParaUrl(file);
+    }
     setEnviandoMidia(false);
 
     const novaMsg = {
@@ -352,7 +367,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    if (BancoDeDados.enviarMensagemChat) {
+    if (typeof BancoDeDados.enviarMensagemChat === 'function') {
       await BancoDeDados.enviarMensagemChat(novaMsg);
       const msgsAtualizadas = await BancoDeDados.getMensagensChat(usuarioLogado.username, chatComUsuario);
       setMensagensChat(msgsAtualizadas || []);
@@ -397,10 +412,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     }
   };
 
-  // 3. Curtir Story
   const curtirStoryAtual = async () => {
     if (!storyAtivoObj) return;
-    const atualizados = await BancoDeDados.curtirStory ? await BancoDeDados.curtirStory(storyAtivoObj.id, usuarioLogado.username) : [];
+    const atualizados = typeof BancoDeDados.curtirStory === 'function' ? await BancoDeDados.curtirStory(storyAtivoObj.id, usuarioLogado.username) : [];
     setStories(atualizados || []);
   };
 
@@ -458,7 +472,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setPubTema('');
   };
 
-  // 2. Pedidos de Oração Funcionais
   const criarPedidoOracaoHandler = async (e) => {
     e.preventDefault();
     if (!novoPedidoTexto.trim()) return;
@@ -695,7 +708,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
               <span>Amém ({(reacoes.amem || []).length})</span>
             </button>
-            {/* 5. Mudança de reação para ALELUIA */}
             <button onClick={() => reagir(post.id, 'aleluia')} className={`text-[11px] sm:text-xs px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-bold border transition flex items-center gap-1 ${meuAleluia ? 'bg-amber-600 text-white border-amber-500 shadow-sm' : darkMode ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'}`}>
               <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
               <span>Aleluia ({(reacoes.aleluia || []).length})</span>
@@ -706,7 +718,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </button>
           </div>
 
-          {/* 6. Compartilhar ajustado para mobile (fixed ou posicionamento inteligente) */}
           <div className="relative">
             <button 
               onClick={() => setMenuCompartilharAberto(menuCompartilharAberto === post.id ? null : post.id)}
@@ -1134,7 +1145,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <div className="space-y-4">
                 <div className="border-2 border-dashed border-slate-700 rounded-2xl p-6 text-center space-y-3">
                   {enviandoMidia ? (
-                    <p className="text-xs font-bold text-blue-500 animate-pulse py-8">Enviando arquivo para a nuvem...</p>
+                    <p className="text-xs font-bold text-blue-500 animate-pulse py-8">Processando arquivo...</p>
                   ) : midiaStoryUrl ? (
                     tipoMidia === 'video' ? (
                       <video src={midiaStoryUrl} controls className="w-full h-44 object-cover rounded-xl" />
@@ -1154,7 +1165,15 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                               const file = e.target.files[0];
                               if (file) {
                                 setEnviandoMidia(true);
-                                const urlPublica = BancoDeDados.uploadMidiaStory ? await BancoDeDados.uploadMidiaStory(file) : URL.createObjectURL(file);
+                                let urlPublica = '';
+                                try {
+                                  if (typeof BancoDeDados.uploadMidiaStory === 'function') {
+                                    urlPublica = await BancoDeDados.uploadMidiaStory(file);
+                                  }
+                                } catch (err) {}
+                                if (!urlPublica) {
+                                  urlPublica = await processarArquivoParaUrl(file);
+                                }
                                 setEnviandoMidia(false);
                                 if (urlPublica) {
                                   setTipoMidia(file.type.startsWith('video') ? 'video' : 'imagem');
@@ -1176,7 +1195,15 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                               const file = e.target.files[0];
                               if (file) {
                                 setEnviandoMidia(true);
-                                const urlPublica = BancoDeDados.uploadMidiaStory ? await BancoDeDados.uploadMidiaStory(file) : URL.createObjectURL(file);
+                                let urlPublica = '';
+                                try {
+                                  if (typeof BancoDeDados.uploadMidiaStory === 'function') {
+                                    urlPublica = await BancoDeDados.uploadMidiaStory(file);
+                                  }
+                                } catch (err) {}
+                                if (!urlPublica) {
+                                  urlPublica = await processarArquivoParaUrl(file);
+                                }
                                 setEnviandoMidia(false);
                                 if (urlPublica) {
                                   setTipoMidia('video');
@@ -1310,7 +1337,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               )}
             </div>
 
-            {/* 3. Botão de Curtir Story e Visualizações */}
             <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center z-30 gap-2">
               {storyAtivoObj.username === usuarioLogado.username ? (
                 <div className="flex items-center justify-between w-full gap-2">
@@ -1471,7 +1497,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <div className="flex justify-between items-center">
                 <label className={`text-xs px-4 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition font-semibold ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
                   📷 Imagem
-                  <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files[0]; if(f) { const r = new FileReader(); r.onloadend = () => setPubImagem(r.result); r.readAsDataURL(f); } }} className="hidden" />
+                  <input type="file" accept="image/*" onChange={async (e) => { const f = e.target.files[0]; if(f) { const url = await processarArquivoParaUrl(f); setPubImagem(url); } }} className="hidden" />
                 </label>
                 <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-md">Publicar</button>
               </div>
@@ -1480,7 +1506,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
           <div className={`p-6 rounded-3xl border shadow-md space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração 🙏</h3>
-            {/* 2. Pedidos de Oração funcional */}
             <form onSubmit={criarPedidoOracaoHandler} className="flex gap-2">
               <input 
                 type="text" 
@@ -1510,7 +1535,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button 
                           onClick={async () => { 
-                            const atualizados = await BancoDeDados.apoiarPedidoOracao ? await BancoDeDados.apoiarPedidoOracao(p.id, usuarioLogado.username) : []; 
+                            const atualizados = typeof BancoDeDados.apoiarPedidoOracao === 'function' ? await BancoDeDados.apoiarPedidoOracao(p.id, usuarioLogado.username) : []; 
                             setPedidosOracao(atualizados || []); 
                           }} 
                           className={`px-3.5 py-1.5 rounded-xl font-bold transition ${jaApoiou ? 'bg-red-600 text-white' : 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white'}`}
@@ -1656,7 +1681,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
       </div>
 
-      {/* --- 1. BALÃO FLUTUANTE DE CHAT COM INPUT, EMOJIS E UPLOAD DE MÍDIA --- */}
       {chatComUsuario ? (
         <div className="fixed bottom-4 right-4 z-50 w-[360px] sm:w-[380px] h-[500px] max-h-[85vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden backdrop-blur-md bg-slate-900 border-slate-700 animate-in fade-in zoom-in-95 duration-200">
           <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
@@ -1672,7 +1696,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </button>
           </div>
 
-          {/* Área de mensagens */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-950/60 flex flex-col">
             {mensagensChat.length === 0 ? (
               <div className="text-center my-auto opacity-50 text-xs text-slate-400">
@@ -1701,7 +1724,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             <div ref={chatFimRef} />
           </div>
 
-          {/* Seletor de Emojis rápido */}
           {mostrarEmojisChat && (
             <div className="bg-slate-800 p-2 border-t border-slate-700 flex gap-2 flex-wrap justify-around">
               {['😊', '❤️', '🙏', '🔥', '✨', '👏', '😂', '👍', '🎉', '💡'].map(emoji => (
@@ -1717,7 +1739,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
           )}
 
-          {/* Input de Envio do Chat */}
           <form onSubmit={enviarMensagemChat} className="p-3 bg-slate-900 border-t border-slate-700 flex items-center gap-2">
             <button 
               type="button" 
@@ -1740,7 +1761,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
             <input 
               type="text" 
-              placeholder={enviandoMidia ? "Enviando arquivo..." : "Digite sua mensagem..."}
+              placeholder={enviandoMidia ? "Processando..." : "Digite sua mensagem..."}
               disabled={enviandoMidia}
               value={textoMensagemChat}
               onChange={(e) => setTextoMensagemChat(e.target.value)}
