@@ -117,24 +117,21 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           setStories(strs || []);
 
           // Verifica se o usuário atual é verificado e ainda não recebeu a notificação de verificação
-          const meuPerfil = perfis.find(
-            (p) => p.username === usuarioLogado.username,
-          );
-          if (meuPerfil && meuPerfil.verificado) {
-            const jaTemNotifVerificado = notifs.some(
-              (n) => n.texto && n.texto.includes("seu perfil foi verificado"),
+          // Verifica se o usuário atual é verificado e ainda não recebeu a notificação de verificação
+          const meuPerfil = perfis.find(p => p.username === usuarioLogado.username);
+          if (meuPerfil && meuPerfil.verificado && !meuPerfil.notificado_verificacao) {
+            await BancoDeDados.adicionarNotificacao(
+              usuarioLogado.username,
+              'Parabéns! Seu perfil foi verificado com sucesso! 🎉',
+              'verificado'
             );
-            if (!jaTemNotifVerificado) {
-              await BancoDeDados.adicionarNotificacao(
-                usuarioLogado.username,
-                "Parabéns! Seu perfil foi verificado com sucesso! 🎉",
-                "verificado",
-              );
-              const notifsAtualizadas = await BancoDeDados.getNotificacoes(
-                usuarioLogado.username,
-              );
-              setNotificacoes(notifsAtualizadas || []);
-            }
+            // Salva no banco que este usuário já foi notificado da verificação para não repetir
+            await BancoDeDados.atualizarPerfil({
+              ...meuPerfil,
+              notificado_verificacao: true
+            });
+            const notifsAtualizadas = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+            setNotificacoes(notifsAtualizadas || []);
           }
 
           const searchParams = new URLSearchParams(window.location.search);
