@@ -116,32 +116,22 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           setPedidosOracao(pedidos || []);
           setStories(strs || []);
 
-          // Verifica se o usuário atual é verificado e ainda não recebeu a notificação de verificação
-          // Verifica se o usuário atual é verificado e ainda não recebeu a notificação de verificação
-          const meuPerfil = perfis.find(
-            (p) => p.username === usuarioLogado.username,
-          );
-          if (
-            meuPerfil &&
-            meuPerfil.verificado &&
-            !meuPerfil.notificado_verificacao
-          ) {
-            await BancoDeDados.adicionarNotificacao(
-              usuarioLogado.username,
-              "Parabéns! Seu perfil foi verificado com sucesso! 🎉",
-              "verificado",
-            );
-            // Salva no banco que este usuário já foi notificado da verificação para não repetir
-            await BancoDeDados.atualizarPerfil({
-              ...meuPerfil,
-              notificado_verificacao: true,
-            });
-            const notifsAtualizadas = await BancoDeDados.getNotificacoes(
-              usuarioLogado.username,
-            );
-            setNotificacoes(notifsAtualizadas || []);
+          // Verifica se o usuário atual é verificado
+          const meuPerfil = perfis.find(p => p.username === usuarioLogado.username);
+          if (meuPerfil && meuPerfil.verificado) {
+            // Verifica se JÁ existe na lista de notificações alguma mensagem de verificação
+            const jaTemNotifVerificado = notifs.some(n => n.texto && n.texto.includes('perfil foi verificado'));
+            
+            if (!jaTemNotifVerificado) {
+              await BancoDeDados.adicionarNotificacao(
+                usuarioLogado.username,
+                'Parabéns! Seu perfil foi verificado com sucesso! 🎉',
+                'verificado'
+              );
+              const notifsAtualizadas = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+              setNotificacoes(notifsAtualizadas || []);
+            }
           }
-
           const searchParams = new URLSearchParams(window.location.search);
           const postIdParam =
             searchParams.get("post") || searchParams.get("id");
