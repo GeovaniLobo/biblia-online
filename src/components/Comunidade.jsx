@@ -65,6 +65,16 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [temaEditado, setTemaEditado] = useState('');
   const [novoPedidoTexto, setNovoPedidoTexto] = useState('');
 
+  // Estado para o Toast flutuante moderno
+  const [toastMensagem, setToastMensagem] = useState(null);
+
+  const mostrarToast = (mensagem) => {
+    setToastMensagem(mensagem);
+    setTimeout(() => {
+      setToastMensagem(null);
+    }, 3000);
+  };
+
   const processarArquivoParaUrl = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -381,7 +391,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     }
   };
 
-  // Salvar story com fallback de segurança para evitar erro 400 no Supabase
   const salvarStoryBanco = async (tipo, conteudo, corFundo = '#1e293b', mencao = '') => {
     let mencaoDetectada = mencao;
     if (!mencaoDetectada && tipo === 'texto') {
@@ -410,7 +419,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         setStories(prev => [novoStory, ...prev]);
       }
     } catch (err) {
-      console.warn("Salvando story via fallback local devido a erro na API:", err);
       setStories(prev => [novoStory, ...prev]);
     }
 
@@ -419,6 +427,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setMidiaStoryUrl('');
     setMencaoStory('');
     setMenuSugestoesMencaoAberto(false);
+    mostrarToast('Story publicado com sucesso! 🚀');
 
     if (mencaoDetectada) {
       try {
@@ -440,21 +449,21 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const repostarStory = (st) => {
     salvarStoryBanco(st.tipo, st.conteudo, st.cor_fundo || '#1e293b', st.mencao || '');
     setUsuarioStoryVisualizando(null);
-    alert('Story repostado com sucesso no seu perfil! 🚀');
+    mostrarToast('Story repostado com sucesso no seu perfil! 🚀');
   };
 
   const compartilharPostNoStory = (post) => {
     const textoFormatado = `📌 ${post.tema}\n\n"${post.texto}"\n\n- por @${post.username}`;
     salvarStoryBanco('texto', textoFormatado, '#1e293b');
     setMenuCompartilharAberto(null);
-    alert('Publicação compartilhada com sucesso nos seus Stories! 🚀');
+    mostrarToast('Publicação compartilhada com sucesso nos seus Stories! 🚀');
   };
 
   const copiarLinkPost = (postId) => {
     const linkUrl = `${window.location.origin}${window.location.pathname}#/comunidade?post=${postId}`;
     navigator.clipboard.writeText(linkUrl);
     setMenuCompartilharAberto(null);
-    alert('Link da publicação copiado para a área de transferência! 🔗');
+    mostrarToast('Link da publicação copiado para a área de transferência! 🔗');
   };
 
   const compartilharRedesSociais = (rede, post) => {
@@ -489,6 +498,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setPubTexto('');
     setPubImagem('');
     setPubTema('');
+    mostrarToast('Publicação enviada com sucesso! ✨');
   };
 
   const criarPedidoOracaoHandler = async (e) => {
@@ -504,6 +514,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     const atualizados = await BancoDeDados.salvarPedidoOracao(novoPedido);
     setPedidosOracao(atualizados || []);
     setNovoPedidoTexto('');
+    mostrarToast('Pedido de oração adicionado ao mural! 🙏');
   };
 
   const excluirPost = async (id) => {
@@ -512,6 +523,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       setPublicacoes([...atualizados]);
       setMenuOpcoesPostAberto(null);
       if (postDetalheId === id) setPostDetalheId(null);
+      mostrarToast('Publicação excluída com sucesso.');
     }
   };
 
@@ -520,6 +532,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setPublicacoes([...atualizados]);
     setPostEditandoId(null);
     setMenuOpcoesPostAberto(null);
+    mostrarToast('Publicação atualizada!');
   };
 
   const reagir = async (id, tipoReacao) => {
@@ -941,6 +954,16 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   return (
     <div className={`w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-10 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
+      {/* Toast Flutuante */}
+      {toastMensagem && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className="bg-slate-900 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-2.5 backdrop-blur-md">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>{toastMensagem}</span>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-end gap-3 max-w-4xl mx-auto">
         {pedidosRecebidos.length > 0 && (
           <button 
@@ -1042,7 +1065,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                           onClick={async () => {
                             const perfisAtualizados = await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteusername);
                             setPerfisReais(perfisAtualizados);
-                            alert(`Amizade com @${remetenteusername} aceita! 🎉`);
+                            mostrarToast(`Amizade com @${remetenteusername} aceita! 🎉`);
                           }}
                           className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold"
                         >
@@ -1052,6 +1075,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                           onClick={async () => {
                             const perfisAtualizados = await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteusername);
                             setPerfisReais(perfisAtualizados);
+                            mostrarToast('Solicitação recusada.');
                           }}
                           className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-xl font-bold"
                         >
@@ -1365,7 +1389,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   >
                     👁️ {(storyAtivoObj.visualizacoes || []).length} Visualizações
                   </button>
-                  <button onClick={async () => { await BancoDeDados.excluirStory(storyAtivoObj.id); setStories(await BancoDeDados.getStories()); setUsuarioStoryVisualizando(null); }} className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg hover:bg-red-700">Excluir</button>
+                  <button onClick={async () => { await BancoDeDados.excluirStory(storyAtivoObj.id); setStories(await BancoDeDados.getStories()); setUsuarioStoryVisualizando(null); mostrarToast('Story excluído.'); }} className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg hover:bg-red-700">Excluir</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 w-full">
@@ -1562,7 +1586,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                           ❤️ Apoiar ({p.apoios || 0})
                         </button>
                         {souDonoDoPedido && (
-                          <button onClick={async () => { if (window.confirm('Excluir pedido?')) { const atualizados = await BancoDeDados.excluirPedidoOracao(p.id); setPedidosOracao(atualizados || []); }}} className="text-slate-400 hover:text-red-500 p-1.5 font-bold transition">✕</button>
+                          <button onClick={async () => { if (window.confirm('Excluir pedido?')) { const atualizados = await BancoDeDados.excluirPedidoOracao(p.id); setPedidosOracao(atualizados || []); mostrarToast('Pedido excluído.'); }}} className="text-slate-400 hover:text-red-500 p-1.5 font-bold transition">✕</button>
                         )}
                       </div>
                     </div>
@@ -1671,8 +1695,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         title={enviei ? 'Solicitação Pendente' : 'Seguir / Adicionar'}
                         onClick={async () => {
                           await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, membro.username);
-                          alert(`Pedido de amizade enviado para @${membro.username}!`);
-                          window.location.reload();
+                          mostrarToast(`Pedido de amizade enviado para @${membro.username}!`);
                         }}
                         className={`p-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center flex-shrink-0 ${
                           enviei 
@@ -1799,7 +1822,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               if (amigosLista.length > 0) {
                 setChatComUsuario(amigosLista[0].username);
               } else {
-                alert('Você precisa ter amigos adicionados na comunidade para iniciar um chat rápido!');
+                mostrarToast('Você precisa ter amigos adicionados na comunidade para iniciar um chat rápido!');
               }
             }}
             className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center transition hover:scale-110 relative group border-2 border-white/20"
