@@ -65,7 +65,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [temaEditado, setTemaEditado] = useState('');
   const [novoPedidoTexto, setNovoPedidoTexto] = useState('');
 
-  // Estado para o Toast flutuante moderno
   const [toastMensagem, setToastMensagem] = useState(null);
 
   const mostrarToast = (mensagem) => {
@@ -311,6 +310,21 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     };
   }, [usuarioStoryVisualizando, indiceStoryAtual]);
 
+  // Função robusta para navegar para o perfil de qualquer usuário
+  const abrirPerfilPorUsername = (usernameAlvo) => {
+    if (!usernameAlvo) return;
+    const perfilEncontrado = perfisReais.find(p => p.username === usernameAlvo);
+    if (perfilEncontrado) {
+      if (onVerPerfil) onVerPerfil(perfilEncontrado.username);
+      else setPerfilSelecionado(perfilEncontrado);
+    } else {
+      // Se não estiver na lista cadastrada, cria um objeto básico para abrir a rota
+      const perfilTemporario = { username: usernameAlvo, nome: usernameAlvo, foto: fotoPerfilOficial };
+      if (onVerPerfil) onVerPerfil(usernameAlvo);
+      else setPerfilSelecionado(perfilTemporario);
+    }
+  };
+
   const clicarPerfilOuStory = (usernameAlvo) => {
     if (!usernameAlvo) return;
     const autorTemStory = storiesFiltradosAmigos.some(s => s.username === usernameAlvo);
@@ -318,11 +332,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       setIndiceStoryAtual(0);
       setUsuarioStoryVisualizando(usernameAlvo);
     } else {
-      const perfilEncontrado = perfisReais.find(p => p.username === usernameAlvo);
-      if (perfilEncontrado) {
-        if (onVerPerfil) onVerPerfil(perfilEncontrado.username);
-        else setPerfilSelecionado(perfilEncontrado);
-      }
+      abrirPerfilPorUsername(usernameAlvo);
     }
   };
 
@@ -677,7 +687,16 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <img src={avatarAtualizado} alt="Avatar" className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold group-hover:text-blue-500 transition truncate">{nomeAtualizado}</p>
+              {/* Ao clicar no nome da pessoa, abre o perfil dela (.com/username) */}
+              <p 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  abrirPerfilPorUsername(post.username);
+                }} 
+                className="text-sm font-bold group-hover:text-blue-500 hover:underline transition truncate"
+              >
+                {nomeAtualizado}
+              </p>
               <p className="text-[10px] opacity-50 truncate">@{post.username || 'usuario'}</p>
             </div>
           </div>
@@ -848,7 +867,12 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center justify-between">
-                          <span onClick={() => clicarPerfilOuStory(c.username)} className="font-bold text-blue-500 cursor-pointer hover:underline truncate">@{c.username}</span>
+                          <span 
+                            onClick={() => abrirPerfilPorUsername(c.username)} 
+                            className="font-bold text-blue-500 cursor-pointer hover:underline truncate"
+                          >
+                            @{c.username}
+                          </span>
                           <button 
                             onClick={() => setRespondendoComentarioId({ ...respondendoComentarioId, [post.id]: c.id })}
                             className="text-[10px] font-semibold opacity-60 hover:opacity-100 text-blue-400 flex-shrink-0"
@@ -964,75 +988,97 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
-      <div className="flex justify-end gap-3 max-w-4xl mx-auto">
-        {pedidosRecebidos.length > 0 && (
-          <button 
-            onClick={() => setAbaSolicitacoesAberta(true)}
-            className="px-4 py-2 rounded-2xl bg-amber-500 text-white text-xs font-bold flex items-center gap-2 shadow-sm animate-bounce"
-          >
-            👥 Solicitações ({pedidosRecebidos.length})
-          </button>
-        )}
+      {/* HEADER SUPERIOR: Menu/Livros, Comunidade, Ícone de Notificações e Ícone de Perfil */}
+      <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 relative">
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
+            Comunidade <span className="text-blue-500">🌐</span>
+          </h2>
+        </div>
 
-        <div className="relative">
-          <button 
-            onClick={async () => {
-              setAbaNotificacoesAberta(!abaNotificacoesAberta);
-              if (!abaNotificacoesAberta) {
-                await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
-                setNotificacoes(await BancoDeDados.getNotificacoes(usuarioLogado.username));
-              }
-            }}
-            className={`px-4 py-2 rounded-2xl border text-xs font-bold flex items-center gap-2 shadow-sm transition ${darkMode ? 'bg-slate-900 border-slate-800 text-white hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'}`}
-          >
-            🔔 Notificações
-            {notificacoesNaoLidasCount > 0 && (
-              <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold animate-bounce">
-                {notificacoesNaoLidasCount}
-              </span>
-            )}
-          </button>
-
-          {abaNotificacoesAberta && (
-            <div className={`absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-3xl border shadow-2xl p-4 z-40 space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-              <div className="flex justify-between items-center border-b pb-2 border-slate-700">
-                <h4 className="font-extrabold text-xs uppercase tracking-wider">Suas Notificações</h4>
-                <button onClick={() => setAbaNotificacoesAberta(false)} className="text-xs font-bold opacity-60">✕</button>
-              </div>
-
-              {notificacoes.length === 0 ? (
-                <p className="text-xs opacity-50 text-center py-6">Nenhuma notificação no momento.</p>
-              ) : (
-                notificacoes.map((n, idx) => {
-                  const matchUser = n.texto.match(/@([a-zA-Z0-9_]+)/);
-                  const usernameNotif = matchUser ? matchUser[1] : null;
-                  const perfilNotif = perfisReais.find(p => p.username === usernameNotif) || {};
-                  const fotoNotif = perfilNotif.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
-                  const temStoryNotif = storiesFiltradosAmigos.some(s => s.username === usernameNotif);
-
-                  return (
-                    <div key={idx} className={`p-3 rounded-2xl border text-xs flex items-center gap-3 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                      {usernameNotif ? (
-                        <div 
-                          onClick={() => clicarPerfilOuStory(usernameNotif)}
-                          className={`w-9 h-9 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${temStoryNotif ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-md' : ''}`}
-                        >
-                          <img src={fotoNotif} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-                        </div>
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-blue-600/20 text-blue-500 flex items-center justify-center font-bold flex-shrink-0">🔔</div>
-                      )}
-
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold leading-snug">{n.texto}</p>
-                        <span className="text-[10px] opacity-50 block mt-0.5">{n.horario}</span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+        <div className="flex items-center gap-3">
+          {pedidosRecebidos.length > 0 && (
+            <button 
+              onClick={() => setAbaSolicitacoesAberta(true)}
+              className="px-3 py-1.5 rounded-xl bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm animate-bounce"
+            >
+              👥 ({pedidosRecebidos.length})
+            </button>
           )}
+
+          {/* Ícone de Notificações no Header (Sem palavras, sem emojis, apenas ícone com contador) */}
+          <div className="relative">
+            <button 
+              onClick={async () => {
+                setAbaNotificacoesAberta(!abaNotificacoesAberta);
+                if (!abaNotificacoesAberta) {
+                  await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
+                  setNotificacoes(await BancoDeDados.getNotificacoes(usuarioLogado.username));
+                }
+              }}
+              className={`p-2.5 rounded-2xl border transition relative flex items-center justify-center ${darkMode ? 'bg-slate-900 border-slate-700 hover:bg-slate-800 text-white' : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800'}`}
+              title="Notificações"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {notificacoesNaoLidasCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full font-black flex items-center justify-center shadow-md animate-bounce">
+                  {notificacoesNaoLidasCount}
+                </span>
+              )}
+            </button>
+
+            {abaNotificacoesAberta && (
+              <div className={`absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-3xl border shadow-2xl p-4 z-40 space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                <div className="flex justify-between items-center border-b pb-2 border-slate-700">
+                  <h4 className="font-extrabold text-xs uppercase tracking-wider">Notificações</h4>
+                  <button onClick={() => setAbaNotificacoesAberta(false)} className="text-xs font-bold opacity-60">✕</button>
+                </div>
+
+                {notificacoes.length === 0 ? (
+                  <p className="text-xs opacity-50 text-center py-6">Nenhuma notificação no momento.</p>
+                ) : (
+                  notificacoes.map((n, idx) => {
+                    const matchUser = n.texto.match(/@([a-zA-Z0-9_]+)/);
+                    const usernameNotif = matchUser ? matchUser[1] : null;
+                    const perfilNotif = perfisReais.find(p => p.username === usernameNotif) || {};
+                    const fotoNotif = perfilNotif.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+                    const temStoryNotif = storiesFiltradosAmigos.some(s => s.username === usernameNotif);
+
+                    return (
+                      <div key={idx} className={`p-3 rounded-2xl border text-xs flex items-center gap-3 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                        {usernameNotif ? (
+                          <div 
+                            onClick={() => clicarPerfilOuStory(usernameNotif)}
+                            className={`w-9 h-9 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${temStoryNotif ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-md' : ''}`}
+                          >
+                            <img src={fotoNotif} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
+                          </div>
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-blue-600/20 text-blue-500 flex items-center justify-center font-bold flex-shrink-0">🔔</div>
+                        )}
+
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold leading-snug">{n.texto}</p>
+                          <span className="text-[10px] opacity-50 block mt-0.5">{n.horario}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Ícone / Foto de Perfil Direta no Header para acessar o próprio perfil */}
+          <div 
+            onClick={() => abrirPerfilPorUsername(usuarioLogado.username)}
+            className="w-10 h-10 rounded-full p-0.5 border-2 border-blue-500 cursor-pointer hover:scale-105 transition shadow-sm overflow-hidden flex-shrink-0"
+            title="Meu Perfil"
+          >
+            <img src={fotoPerfilOficial} alt="Meu Perfil" className="w-full h-full rounded-full object-cover" />
+          </div>
         </div>
       </div>
 
@@ -1332,7 +1378,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
             <div className="absolute top-5 left-4 right-4 z-20 flex items-center justify-between">
               <div 
-                onClick={() => { setUsuarioStoryVisualizando(null); clicarPerfilOuStory(storyAtivoObj.username); }}
+                onClick={() => { setUsuarioStoryVisualizando(null); abrirPerfilPorUsername(storyAtivoObj.username); }}
                 className="flex items-center gap-2 cursor-pointer group"
               >
                 <img src={storyAtivoObj.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition" />
@@ -1366,7 +1412,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   <p className="text-white text-lg sm:text-xl font-extrabold leading-relaxed drop-shadow-md">{storyAtivoObj.conteudo}</p>
                   {storyAtivoObj.mencao && (
                     <span 
-                      onClick={() => { setUsuarioStoryVisualizando(null); clicarPerfilOuStory(storyAtivoObj.mencao); }}
+                      onClick={() => { setUsuarioStoryVisualizando(null); abrirPerfilPorUsername(storyAtivoObj.mencao); }}
                       className="mt-4 bg-black/40 hover:bg-black/60 text-white text-xs font-bold px-4 py-1.5 rounded-full cursor-pointer transition shadow-md"
                     >
                       Mencionou @{storyAtivoObj.mencao}
@@ -1421,10 +1467,17 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               ) : (
                 storyAtivoObj.visualizacoes.map((vis, i) => (
                   <div key={i} className="flex items-center justify-between bg-slate-800/60 p-2.5 rounded-2xl border border-slate-700/50">
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div 
+                      className="flex items-center gap-2.5 min-w-0 cursor-pointer"
+                      onClick={() => {
+                        setModalVisualizadoresAberto(false);
+                        setUsuarioStoryVisualizando(null);
+                        abrirPerfilPorUsername(vis.username);
+                      }}
+                    >
                       <img src={vis.foto} className="w-8 h-8 rounded-full object-cover border border-blue-500" />
                       <div className="min-w-0">
-                        <p className="text-xs font-bold truncate text-white">{vis.nome}</p>
+                        <p className="text-xs font-bold truncate text-white hover:underline">{vis.nome}</p>
                         <p className="text-[10px] text-blue-400 truncate">@{vis.username}</p>
                       </div>
                     </div>
@@ -1458,7 +1511,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         <div className="lg:col-span-3 space-y-6">
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
             <div 
-              onClick={() => clicarPerfilOuStory(usuarioLogado.username)} 
+              onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} 
               className="cursor-pointer group inline-block relative"
             >
               <div className={`w-24 h-24 rounded-full p-1 mx-auto flex items-center justify-center transition ${temStoryAtivo ? (meusStoriesVistos ? 'border-2 border-slate-500/40 opacity-75' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-xl') : ''}`}>
@@ -1470,8 +1523,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
 
             <div>
-              <h3 onClick={() => clicarPerfilOuStory(usuarioLogado.username)} className="font-extrabold text-sm cursor-pointer hover:text-blue-500 transition">{nomePerfilOficial}</h3>
-              <p onClick={() => clicarPerfilOuStory(usuarioLogado.username)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
+              <h3 onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} className="font-extrabold text-sm cursor-pointer hover:text-blue-500 hover:underline transition">{nomePerfilOficial}</h3>
+              <p onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
               <p className="text-xs opacity-75 mt-2">{meuPerfilBanco.biografia || usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.'}</p>
             </div>
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
@@ -1525,7 +1578,15 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     <img src={autorItem.avatar} className="w-full h-full rounded-full object-cover border border-white" />
                   </div>
 
-                  <span className="relative z-10 text-white text-[11px] font-bold truncate">{autorItem.autor}</span>
+                  <span 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      abrirPerfilPorUsername(autorItem.username);
+                    }} 
+                    className="relative z-10 text-white text-[11px] font-bold truncate hover:underline"
+                  >
+                    {autorItem.autor}
+                  </span>
                 </div>
               );
             })}
@@ -1571,7 +1632,12 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   return (
                     <div key={p.id} className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
                       <div className="flex-1 min-w-0 flex items-center gap-2">
-                        <div onClick={() => clicarPerfilOuStory(p.username)} className="cursor-pointer font-bold text-blue-500">@{p.username}:</div>
+                        <span 
+                          onClick={() => abrirPerfilPorUsername(p.username)} 
+                          className="cursor-pointer font-bold text-blue-500 hover:underline"
+                        >
+                          @{p.username}:
+                        </span>
                         <span className="break-words">{p.texto}</span>
                       </div>
 
@@ -1641,7 +1707,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         </div>
 
                         <div className="min-w-0">
-                          <p className="text-xs font-bold truncate">{amigo.nome}</p>
+                          <p onClick={(e) => { e.stopPropagation(); abrirPerfilPorUsername(amigo.username); }} className="text-xs font-bold truncate hover:underline">{amigo.nome}</p>
                           <p className="text-[10px] opacity-50 truncate">@{amigo.username}</p>
                         </div>
                       </div>
@@ -1685,7 +1751,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                           <img src={membro.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white" />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-bold truncate">{membro.nome}</p>
+                          <p onClick={(e) => { e.stopPropagation(); abrirPerfilPorUsername(membro.username); }} className="font-bold truncate hover:underline">{membro.nome}</p>
                           <p className="text-[10px] opacity-50 truncate">@{membro.username}</p>
                         </div>
                       </div>
