@@ -15,9 +15,17 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const [diaAtivoIndex, setDiaAtivoIndex] = useState(0);
 
   const [textoEstudoDia, setTextoEstudoDia] = useState('');
+  const [perguntaPratica, setPerguntaPratica] = useState('');
   const [midiaDiaUrl, setMidiaDiaUrl] = useState('');
   const [tipoMidiaDia, setTipoMidiaDia] = useState('imagem');
   const [enviandoMidia, setEnviandoMidia] = useState(false);
+
+  // Estados para comentários diários
+  const [novoComentarioDia, setNovoComentarioDia] = useState('');
+  const [comentariosDias, setComentariosDias] = useState({});
+
+  // Estado para modal de conquista 100% concluído
+  const [mostrarModalConquista, setMostrarModalConquista] = useState(false);
 
   const [abaAtivaFiltro, setAbaAtivaFiltro] = useState('todos');
   const editorRef = useRef(null);
@@ -37,13 +45,14 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
           {
             id: 1,
             criador: 'geovanilobo',
-            titulo: 'Fundamentos de Uma Caminhada Firme',
-            descricao: 'Um devocional prático para renovar suas forças espirituais e caminhar com propósito.',
-            capa: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1200&q=80',
+            titulo: 'Como se aproximar de Deus nos dias de hoje',
+            descricao: 'Um devocional profundo de 7 dias para silenciar o barulho do mundo e cultivar uma intimidade real com o Criador.',
+            capa: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80',
             dias: Array.from({ length: 7 }, (_, i) => ({
               dia: i + 1,
-              tituloDia: `Dia ${i + 1}: Renovando as Forças`,
-              conteudoEstudo: `<p>Reflexão guiada para o dia ${i + 1}: Busquem ao Senhor e meditem em Sua palavra.</p>`,
+              tituloDia: `Dia ${i + 1}: Jornada Espiritual`,
+              conteudoEstudo: `<p>Reflexão guiada para o dia ${i + 1}: Busquem ao Senhor e meditem em Sua palavra para guiar os seus passos em meio às correrias modernas.</p>`,
+              perguntaPratica: `Qual distração você pode remover hoje para passar 10 minutos em silêncio com Deus?`,
               midia: '',
               tipoMidia: 'imagem',
               concluido: false
@@ -54,6 +63,12 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         salvarPlanosGlobais(planoExemplo);
       }
       setPlanos(planosSalvos);
+
+      // Carregar comentários dos dias salvos
+      const comentariosSalvos = localStorage.getItem('planos_comentarios_dias');
+      if (comentariosSalvos) {
+        setComentariosDias(JSON.parse(comentariosSalvos));
+      }
     }
     carregarPlanosGlobais();
   }, [usuarioLogado.username]);
@@ -81,13 +96,14 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
     let capaFinal = novaCapaUrl.trim();
     if (!capaFinal) {
-      capaFinal = 'https://images.unsplash.com/photo-1473186578172-c141e6798cf4?auto=format&fit=crop&w=1200&q=80';
+      capaFinal = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80';
     }
 
     const diasArray = Array.from({ length: Number(totalDias) }, (_, i) => ({
       dia: i + 1,
-      tituloDia: `Dia ${i + 1}: Jornada de Crescimento`,
+      tituloDia: `Dia ${i + 1}: Caminho de Fé`,
       conteudoEstudo: `<p>Escreva aqui o conteúdo de estudo oficial para o dia ${i + 1}...</p>`,
+      perguntaPratica: `Como você aplicará os ensinamentos deste dia na sua rotina?`,
       midia: '',
       tipoMidia: 'imagem',
       concluido: false
@@ -133,6 +149,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     diasAtualizados[diaAtivoIndex] = {
       ...diasAtualizados[diaAtivoIndex],
       conteudoEstudo: conteudoFinal,
+      perguntaPratica: perguntaPratica,
       midia: midiaDiaUrl,
       tipoMidia: tipoMidiaDia
     };
@@ -158,8 +175,35 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       return d;
     });
 
+    const progressoAntigo = calcularProgresso(planoSelecionado.dias);
     const planoAtualizado = { ...planoSelecionado, dias: diasAtualizados };
+    const progressoNovo = calcularProgresso(planoAtualizado.dias);
+
     setPlanosSelecionadoComAtualizacao(planoAtualizado);
+
+    // Se completou 100% agora, exibe o selo de conquista!
+    if (progressoAntigo < 100 && progressoNovo === 100) {
+      setMostrarModalConquista(true);
+    }
+  };
+
+  const adicionarComentarioDia = (e, planoId, diaNum) => {
+    e.preventDefault();
+    if (!novoComentarioDia.trim()) return;
+
+    const chave = `${planoId}_dia_${diaNum}`;
+    const listaAtual = comentariosDias[chave] || [];
+    const novoComentarioObj = {
+      id: Date.now(),
+      username: usuarioLogado.username,
+      texto: novoComentarioDia.trim(),
+      horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    const atualizados = { ...comentariosDias, [chave]: [...listaAtual, novoComentarioObj] };
+    setComentariosDias(atualizados);
+    localStorage.setItem('planos_comentarios_dias', JSON.stringify(atualizados));
+    setNovoComentarioDia('');
   };
 
   const calcularProgresso = (dias) => {
@@ -178,6 +222,27 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   return (
     <div className={`w-full max-w-4xl mx-auto px-4 py-8 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
+      {/* Modal de Conquista / Selo de Conclusão 100% */}
+      {mostrarModalConquista && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-300">
+          <div className="max-w-md w-full bg-slate-900 border border-emerald-500/50 rounded-3xl p-8 shadow-2xl text-white text-center space-y-4">
+            <div className="w-20 h-20 bg-emerald-500/20 border-2 border-emerald-500 rounded-full flex items-center justify-center mx-auto text-4xl animate-bounce">
+              🏆
+            </div>
+            <h3 className="text-xl font-black text-emerald-400">Jornada Concluída!</h3>
+            <p className="text-xs opacity-80 leading-relaxed">
+              Parabéns, @{usuarioLogado.username}! Você concluiu 100% do plano de estudo com dedicação e constância na Palavra. Sua fé foi fortalecida! ✨
+            </p>
+            <button 
+              onClick={() => setMostrarModalConquista(false)}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-3 rounded-xl shadow-lg transition"
+            >
+              Continuar Caminhada 🚀
+            </button>
+          </div>
+        </div>
+      )}
+
       {!planoSelecionado && (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-700/20">
           <div>
@@ -226,7 +291,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                 <label className="text-xs font-bold opacity-70 block mb-1">Título do Plano:</label>
                 <input 
                   type="text" 
-                  placeholder="Ex: Sabedoria em Provérbios" 
+                  placeholder="Ex: Como se aproximar de Deus" 
                   value={novoTitulo}
                   onChange={(e) => setNovoTitulo(e.target.value)}
                   required
@@ -325,7 +390,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* TELA DE LEITURA DIÁRIA (SEM FUNDO CINZA) */}
+      {/* TELA DE LEITURA DIÁRIA */}
       {planoSelecionado && modoLeitura && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -346,6 +411,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                   const conteudo = d.conteudoEstudo || '';
                   setTextoEstudoDia(conteudo);
                   if (editorRef.current) editorRef.current.innerHTML = conteudo;
+                  setPerguntaPratica(d.perguntaPratica || '');
                   setMidiaDiaUrl(d.midia || '');
                   setTipoMidiaDia(d.tipoMidia || 'imagem');
                 }}
@@ -365,6 +431,9 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
           {(() => {
             const diaAtual = planoSelecionado.dias[diaAtivoIndex];
+            const chaveComentario = `${planoSelecionado.id}_dia_${diaAtual.dia}`;
+            const listaComentarios = comentariosDias[chaveComentario] || [];
+
             return (
               <div className="p-2 space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4 border-slate-800/30">
@@ -385,33 +454,39 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                   </button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {souOCriador ? (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <label className="text-xs font-bold text-blue-400 block">Editor de Conteúdo Profissional:</label>
                       
-                      {/* Barra de Ferramentas do Editor */}
                       <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-slate-900/40 border border-slate-800/60">
                         <button type="button" onClick={() => aplicarFormatacao('bold')} className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 rounded text-white" title="Negrito"><b>B</b></button>
                         <button type="button" onClick={() => aplicarFormatacao('italic')} className="px-2.5 py-1 text-xs italic bg-slate-800 hover:bg-slate-700 rounded text-white" title="Itálico"><i>I</i></button>
                         <button type="button" onClick={() => aplicarFormatacao('underline')} className="px-2.5 py-1 text-xs underline bg-slate-800 hover:bg-slate-700 rounded text-white" title="Sublinhado"><u>U</u></button>
                         <span className="w-px h-5 bg-slate-700 self-center mx-1"></span>
-                        <button type="button" onClick={() => aplicarFormatacao('fontSize', '4')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white" title="Título Médio">Título</button>
-                        <button type="button" onClick={() => aplicarFormatacao('fontSize', '3')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white" title="Texto Normal">Normal</button>
-                        <span className="w-px h-5 bg-slate-700 self-center mx-1"></span>
-                        <button type="button" onClick={() => aplicarFormatacao('justifyLeft')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white" title="Alinhar à Esquerda">Left</button>
-                        <button type="button" onClick={() => aplicarFormatacao('justifyCenter')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white" title="Centralizar">Center</button>
+                        <button type="button" onClick={() => aplicarFormatacao('fontSize', '4')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white" title="Título">Título</button>
+                        <button type="button" onClick={() => aplicarFormatacao('fontSize', '3')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white" title="Normal">Normal</button>
                       </div>
 
-                      {/* Caixa de Texto Rica (ContentEditable) sem fundo cinza escuro pesado */}
                       <div 
                         ref={editorRef}
                         contentEditable={true}
                         suppressContentEditableWarning={true}
                         onInput={(e) => setTextoEstudoDia(e.currentTarget.innerHTML)}
-                        className="w-full min-h-[220px] text-sm sm:text-base rounded-2xl p-4 border border-slate-800/50 bg-transparent focus:outline-none focus:border-blue-500 leading-relaxed text-inherit"
+                        className="w-full min-h-[200px] text-sm sm:text-base rounded-2xl p-4 border border-slate-800/50 bg-transparent focus:outline-none focus:border-blue-500 leading-relaxed"
                         dangerouslySetInnerHTML={{ __html: diaAtual.conteudoEstudo || '' }}
                       ></div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-amber-400 block">Desafio ou Pergunta Prática ("Pratique Hoje"):</label>
+                        <input 
+                          type="text"
+                          value={perguntaPratica}
+                          onChange={(e) => setPerguntaPratica(e.target.value)}
+                          placeholder="Ex: Como você pode demonstrar amor hoje?"
+                          className="w-full text-xs rounded-xl px-3 py-2 border border-slate-800 bg-transparent text-white"
+                        />
+                      </div>
 
                       <button 
                         onClick={salvarEdicaoDiaAtual}
@@ -421,10 +496,20 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                       </button>
                     </div>
                   ) : (
-                    <div 
-                      className="prose prose-invert max-w-none text-sm sm:text-base leading-relaxed opacity-95"
-                      dangerouslySetInnerHTML={{ __html: diaAtual.conteudoEstudo || "Nenhum conteúdo publicado para este dia ainda." }}
-                    ></div>
+                    <div className="space-y-6">
+                      <div 
+                        className="prose prose-invert max-w-none text-sm sm:text-base leading-relaxed opacity-95"
+                        dangerouslySetInnerHTML={{ __html: diaAtual.conteudoEstudo || "Nenhum conteúdo publicado para este dia ainda." }}
+                      ></div>
+
+                      {/* Caixa de Pergunta Prática / Desafio */}
+                      {diaAtual.perguntaPratica && (
+                        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-1">
+                          <h5 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">🎯 Pratique Hoje</h5>
+                          <p className="text-xs sm:text-sm">{diaAtual.perguntaPratica}</p>
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* Exibição da Mídia */}
@@ -438,7 +523,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     </div>
                   )}
 
-                  {/* Upload Direto de Imagem sem precisar de link */}
                   {souOCriador && (
                     <div className="pt-4 border-t border-slate-800/30 space-y-2">
                       <label className="text-xs font-bold text-blue-400 block">Anexar Imagem ou Vídeo (Upload Direto):</label>
@@ -460,6 +544,43 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                       {enviandoMidia && <p className="text-xs text-blue-400 animate-pulse">Carregando arquivo...</p>}
                     </div>
                   )}
+
+                  {/* Seção de Comentários Comunitários do Dia */}
+                  <div className="pt-6 border-t border-slate-800/40 space-y-4">
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                      💬 Reflexões e Comentários da Comunidade ({listaComentarios.length})
+                    </h4>
+
+                    <form onSubmit={(e) => adicionarComentarioDia(e, planoSelecionado.id, diaAtual.dia)} className="flex gap-2">
+                      <input 
+                        type="text"
+                        placeholder="Deixe sua reflexão ou encorajamento neste dia..."
+                        value={novoComentarioDia}
+                        onChange={(e) => setNovoComentarioDia(e.target.value)}
+                        className="w-full text-xs rounded-xl px-3.5 py-2.5 border border-slate-800 bg-transparent text-white focus:outline-none focus:border-blue-500"
+                      />
+                      <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm flex-shrink-0">
+                        Comentar
+                      </button>
+                    </form>
+
+                    <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                      {listaComentarios.length === 0 ? (
+                        <p className="text-xs opacity-50 text-center py-4">Nenhum comentário neste dia ainda. Seja o primeiro a compartilhar!</p>
+                      ) : (
+                        listaComentarios.map((c) => (
+                          <div key={c.id} className="p-3 rounded-2xl bg-slate-900/40 border border-slate-800/40 text-xs space-y-1">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-blue-400">@{c.username}</span>
+                              <span className="text-[10px] opacity-50">{c.horario}</span>
+                            </div>
+                            <p className="opacity-90 leading-relaxed">{c.texto}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
                 </div>
               </div>
             );
