@@ -1442,9 +1442,25 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   <button onClick={() => repostarStory(storyAtivoObj)} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg flex-1 transition">
                     ✨ Repostar
                   </button>
-                  <button onClick={curtirStoryAtual} className={`px-4 py-2 rounded-xl text-xs font-bold shadow-lg flex items-center gap-1 transition ${(storyAtivoObj.curtidas || []).includes(usuarioLogado.username) ? 'bg-red-600 text-white' : 'bg-black/60 text-white hover:bg-black'}`}>
-                    ❤️ ({(storyAtivoObj.curtidas || []).length})
-                  </button>
+                 <button 
+    onClick={curtirStoryAtual} 
+    className={`p-3 rounded-2xl shadow-lg transition flex items-center justify-center backdrop-blur-sm border ${
+      (storyAtivoObj.curtidas || []).includes(usuarioLogado.username) 
+        ? 'bg-red-600/90 border-red-500 text-white' 
+        : 'bg-black/60 border-white/20 text-white hover:bg-black/80'
+    }`}
+    title="Curtir story"
+  >
+    <svg 
+      className="w-5 h-5" 
+      fill={(storyAtivoObj.curtidas || []).includes(usuarioLogado.username) ? "currentColor" : "none"} 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+    </svg>
+  </button>
                 </div>
               )}
             </div>
