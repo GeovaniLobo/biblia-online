@@ -20,11 +20,9 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const [tipoMidiaDia, setTipoMidiaDia] = useState('imagem');
   const [enviandoMidia, setEnviandoMidia] = useState(false);
 
-  // Estados para comentários diários
   const [novoComentarioDia, setNovoComentarioDia] = useState('');
   const [comentariosDias, setComentariosDias] = useState({});
 
-  // Estado para modal de conquista 100% concluído
   const [mostrarModalConquista, setMostrarModalConquista] = useState(false);
 
   const [abaAtivaFiltro, setAbaAtivaFiltro] = useState('todos');
@@ -64,7 +62,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       }
       setPlanos(planosSalvos);
 
-      // Carregar comentários dos dias salvos
       const comentariosSalvos = localStorage.getItem('planos_comentarios_dias');
       if (comentariosSalvos) {
         setComentariosDias(JSON.parse(comentariosSalvos));
@@ -181,7 +178,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
     setPlanosSelecionadoComAtualizacao(planoAtualizado);
 
-    // Se completou 100% agora, exibe o selo de conquista!
     if (progressoAntigo < 100 && progressoNovo === 100) {
       setMostrarModalConquista(true);
     }
@@ -222,7 +218,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   return (
     <div className={`w-full max-w-4xl mx-auto px-4 py-8 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
-      {/* Modal de Conquista / Selo de Conclusão 100% */}
       {mostrarModalConquista && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-300">
           <div className="max-w-md w-full bg-slate-900 border border-emerald-500/50 rounded-3xl p-8 shadow-2xl text-white text-center space-y-4">
@@ -345,7 +340,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* TELA DE APRESENTAÇÃO */}
       {planoSelecionado && !modoLeitura && (
         <div className="space-y-6">
           <button onClick={() => setPlanoSelecionado(null)} className="text-xs font-bold text-blue-500 hover:underline inline-block">
@@ -390,7 +384,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* TELA DE LEITURA DIÁRIA */}
       {planoSelecionado && modoLeitura && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -484,7 +477,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                           value={perguntaPratica}
                           onChange={(e) => setPerguntaPratica(e.target.value)}
                           placeholder="Ex: Como você pode demonstrar amor hoje?"
-                          className="w-full text-xs rounded-xl px-3 py-2 border border-slate-800 bg-transparent text-white"
+                          className="w-full text-xs rounded-xl px-3 py-2 border border-slate-800 bg-transparent text-inherit"
                         />
                       </div>
 
@@ -502,7 +495,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                         dangerouslySetInnerHTML={{ __html: diaAtual.conteudoEstudo || "Nenhum conteúdo publicado para este dia ainda." }}
                       ></div>
 
-                      {/* Caixa de Pergunta Prática / Desafio */}
                       {diaAtual.perguntaPratica && (
                         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-1">
                           <h5 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">🎯 Pratique Hoje</h5>
@@ -512,7 +504,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     </div>
                   )}
 
-                  {/* Exibição da Mídia */}
                   {midiaDiaUrl && (
                     <div className="pt-4">
                       {tipoMidiaDia === 'video' ? (
@@ -545,7 +536,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     </div>
                   )}
 
-                  {/* Seção de Comentários Comunitários do Dia */}
+                  {/* SEÇÃO DE COMENTÁRIOS DA COMUNIDADE (SEM FUNDO CINZA, COM BORDA FINA E TEXTO LEGÍVEL) */}
                   <div className="pt-6 border-t border-slate-800/40 space-y-4">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
                       💬 Reflexões e Comentários da Comunidade ({listaComentarios.length})
@@ -557,7 +548,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                         placeholder="Deixe sua reflexão ou encorajamento neste dia..."
                         value={novoComentarioDia}
                         onChange={(e) => setNovoComentarioDia(e.target.value)}
-                        className="w-full text-xs rounded-xl px-3.5 py-2.5 border border-slate-800 bg-transparent text-white focus:outline-none focus:border-blue-500"
+                        className="w-full text-xs rounded-xl px-3.5 py-2.5 border border-slate-800/60 bg-transparent text-inherit focus:outline-none focus:border-blue-500"
                       />
                       <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm flex-shrink-0">
                         Comentar
@@ -569,12 +560,15 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                         <p className="text-xs opacity-50 text-center py-4">Nenhum comentário neste dia ainda. Seja o primeiro a compartilhar!</p>
                       ) : (
                         listaComentarios.map((c) => (
-                          <div key={c.id} className="p-3 rounded-2xl bg-slate-900/40 border border-slate-800/40 text-xs space-y-1">
+                          <div 
+                            key={c.id} 
+                            className="p-3 rounded-2xl bg-transparent border border-slate-800/30 text-xs space-y-1 shadow-xs"
+                          >
                             <div className="flex justify-between items-center">
-                              <span className="font-bold text-blue-400">@{c.username}</span>
+                              <span className="font-bold text-blue-500">@{c.username}</span>
                               <span className="text-[10px] opacity-50">{c.horario}</span>
                             </div>
-                            <p className="opacity-90 leading-relaxed">{c.texto}</p>
+                            <p className="opacity-90 leading-relaxed text-inherit">{c.texto}</p>
                           </div>
                         ))
                       )}
