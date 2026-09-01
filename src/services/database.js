@@ -98,7 +98,7 @@ export const BancoDeDados = {
 
   salvarStory: async (story) => {
     try {
-      const novoStoryComVisualizacoes = { ...story, visualizacoes: [] };
+      const novoStoryComVisualizacoes = { ...story, visualizacoes: [], curtidas: [] };
       const response = await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
         method: 'POST',
         headers,
@@ -135,13 +135,6 @@ export const BancoDeDados = {
     }
   },
 
-  excluirStory: async (id) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${id}`, { method: 'DELETE', headers });
-      return await BancoDeDados.getStories();
-    } catch (err) { return []; }
-  },
-
   curtirStory: async (storyId, usernameUsuario) => {
     try {
       const stories = await BancoDeDados.getStories();
@@ -150,11 +143,20 @@ export const BancoDeDados = {
         let curtidas = s.curtidas || [];
         if (!Array.isArray(curtidas)) curtidas = [];
 
-        // Alterna a curtida (se já curtiu, remove; se não curtiu, adiciona)
-        if (curtidas.includes(usernameUsuario)) {
+        const jaCurtiu = curtidas.includes(usernameUsuario);
+
+        if (jaCurtiu) {
           curtidas = curtidas.filter(u => u !== usernameUsuario);
         } else {
           curtidas.push(usernameUsuario);
+          
+          if (s.username !== usernameUsuario) {
+            await BancoDeDados.adicionarNotificacao(
+              s.username,
+              `@${usernameUsuario} curtiu seu story! ❤️`,
+              'curtida'
+            );
+          }
         }
 
         await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${storyId}`, {
@@ -168,6 +170,13 @@ export const BancoDeDados = {
       console.error("Erro ao curtir story:", err);
       return await BancoDeDados.getStories();
     }
+  },
+
+  excluirStory: async (id) => {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${id}`, { method: 'DELETE', headers });
+      return await BancoDeDados.getStories();
+    } catch (err) { return []; }
   },
 
   // --- PUBLICAÇÕES ---
