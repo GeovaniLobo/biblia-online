@@ -59,7 +59,11 @@ export default function PerfilPublico({ perfilAlvo, usuarioLogado, onVoltar, dar
           <div>
             <h2 className="text-xl font-extrabold tracking-tight">{perfilAlvoAtualizado.nome || 'Usuário'}</h2>
             <p className="text-xs text-blue-400 font-bold mt-0.5">@{perfilAlvoAtualizado.username || 'usuario'}</p>
-            <p className="text-xs opacity-80 mt-2 max-w-md leading-relaxed">{perfilAlvoAtualizado.biografia || 'Praticando a fé e o amor ao próximo.'}</p>
+            
+            {/* Adicionado o whitespace-pre-line aqui embaixo 👇 */}
+            <p className="text-xs opacity-80 mt-2 max-w-md leading-relaxed whitespace-pre-line">
+              {perfilAlvoAtualizado.biografia || 'Praticando a fé e o amor ao próximo.'}
+            </p>
           </div>
 
           {/* Botões de Ação Dinâmicos (Adicionar Amigo, Aceitar, Chat) */}
