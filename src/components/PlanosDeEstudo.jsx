@@ -5,7 +5,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const [planos, setPlanos] = useState([]);
   const [modalCriarAberto, setModalCriarAberto] = useState(false);
   
-  // Estados para criar um novo plano
   const [novoTitulo, setNovoTitulo] = useState('');
   const [novaDescricao, setNovaDescricao] = useState('');
   const [totalDias, setTotalDias] = useState(7);
@@ -13,17 +12,15 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const [planoSelecionado, setPlanoSelecionado] = useState(null);
   const [diaAtivoIndex, setDiaAtivoIndex] = useState(0);
 
-  // Estados para edição do dia específico selecionado
   const [textoEstudoDia, setTextoEstudoDia] = useState('');
   const [midiaDiaUrl, setMidiaDiaUrl] = useState('');
   const [tipoMidiaDia, setTipoMidiaDia] = useState('imagem');
   const [enviandoMidia, setEnviandoMidia] = useState(false);
 
-  const [abaAtivaFiltro, setAbaAtivaFiltro] = useState('todos'); // 'todos' ou 'meus'
+  const [abaAtivaFiltro, setAbaAtivaFiltro] = useState('todos');
 
   useEffect(() => {
     async function carregarPlanosGlobais() {
-      // Tenta buscar os planos públicos salvos no banco global/localStorage compartilhado da rede
       let planosSalvos = [];
       if (typeof BancoDeDados.getPlanosEstudo === 'function') {
         planosSalvos = await BancoDeDados.getPlanosEstudo();
@@ -42,7 +39,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
             dias: Array.from({ length: 7 }, (_, i) => ({
               dia: i + 1,
               tituloDia: `Dia ${i + 1}: Caminhando em Oração`,
-              conteudoEstudo: 'Reflexão guiada para este dia...',
+              conteudoEstudo: `Reflexão guiada para o dia ${i + 1}: Busquem ao Senhor enquanto se pode achar, inicie sua jornada com oração e meditação na palavra.`,
               midia: '',
               tipoMidia: 'imagem',
               concluido: false
@@ -73,7 +70,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     const diasArray = Array.from({ length: Number(totalDias) }, (_, i) => ({
       dia: i + 1,
       tituloDia: `Dia ${i + 1}: Jornada de Crescimento`,
-      conteudoEstudo: '',
+      conteudoEstudo: `Escreva aqui o conteúdo de estudo oficial para o dia ${i + 1}...`,
       midia: '',
       tipoMidia: 'imagem',
       concluido: false
@@ -107,9 +104,8 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const salvarEdicaoDiaAtual = () => {
     if (!planoSelecionado) return;
 
-    // Trava de segurança: Apenas o criador pode editar o conteúdo do plano
     if (planoSelecionado.criador !== usuarioLogado.username) {
-      alert('Apenas o criador deste plano pode alterar o conteúdo oficial dele. Você pode acompanhar seu progresso marcando os dias como concluídos!');
+      alert('Apenas o criador deste plano pode alterar o conteúdo oficial dele.');
       return;
     }
 
@@ -154,7 +150,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
   const planosFiltrados = planos.filter(p => {
     if (abaAtivaFiltro === 'meus') return p.criador === usuarioLogado.username;
-    return true; // 'todos' (sugestões públicas da comunidade)
+    return true;
   });
 
   const souOCriador = planoSelecionado && planoSelecionado.criador === usuarioLogado.username;
@@ -162,7 +158,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   return (
     <div className={`w-full max-w-5xl mx-auto px-4 py-8 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
-      {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-800">
         <div>
           <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
@@ -179,7 +174,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         </button>
       </div>
 
-      {/* Abas de Filtro (Todos / Meus) */}
       {!planoSelecionado && (
         <div className="flex gap-2 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 w-fit">
           <button 
@@ -197,7 +191,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* Modal Criar Plano */}
       {modalCriarAberto && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -254,7 +247,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* Visualização de um Plano Selecionado */}
       {planoSelecionado ? (
         <div className="space-y-6">
           <div className={`p-6 rounded-3xl border shadow-xl space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
@@ -279,7 +271,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
               <div className="h-full bg-gradient-to-r from-blue-600 to-emerald-500 transition-all duration-500" style={{ width: `${calcularProgresso(planoSelecionado.dias)}%` }}></div>
             </div>
 
-            {/* Abas dos Dias */}
             <div className="flex gap-2 overflow-x-auto pb-2 pt-2">
               {planoSelecionado.dias.map((d, index) => (
                 <button
@@ -305,7 +296,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
             </div>
           </div>
 
-          {/* Editor / Visualizador do Dia */}
           {(() => {
             const diaAtual = planoSelecionado.dias[diaAtivoIndex];
             return (
@@ -338,16 +328,15 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     <textarea 
                       rows="6"
                       value={textoEstudoDia}
-                      disabled={!souOCriador && Boolean(diaAtual.conteudoEstudo)}
+                      disabled={!souOCriador}
                       onChange={(e) => setTextoEstudoDia(e.target.value)}
                       placeholder="Nenhum conteúdo adicionado para este dia ainda..."
                       className={`w-full text-xs sm:text-sm rounded-2xl p-4 border leading-relaxed ${
-                        !souOCriador ? 'opacity-90 cursor-default' : ''
+                        !souOCriador ? 'opacity-90 cursor-default bg-slate-950/20' : ''
                       } ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
                     ></textarea>
                   </div>
 
-                  {/* Exibição ou Edição de Mídia */}
                   {midiaDiaUrl && (
                     <div className="space-y-2">
                       <label className="text-xs font-bold opacity-70 block">Mídia Anexada pelo Criador:</label>
@@ -397,7 +386,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
           })()}
         </div>
       ) : (
-        /* Lista de Sugestões / Planos */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {planosFiltrados.length === 0 ? (
             <div className={`col-span-2 p-12 text-center rounded-3xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
