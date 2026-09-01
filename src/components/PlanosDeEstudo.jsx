@@ -22,14 +22,14 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
   const [novoComentarioDia, setNovoComentarioDia] = useState('');
   const [comentariosDias, setComentariosDias] = useState({});
+  const [perfisUsuarios, setPerfisUsuarios] = useState({});
 
   const [mostrarModalConquista, setMostrarModalConquista] = useState(false);
-
   const [abaAtivaFiltro, setAbaAtivaFiltro] = useState('todos');
   const editorRef = useRef(null);
 
   useEffect(() => {
-    async function carregarPlanosGlobais() {
+    async function carregarDadosGlobais() {
       let planosSalvos = [];
       if (typeof BancoDeDados.getPlanosEstudo === 'function') {
         planosSalvos = await BancoDeDados.getPlanosEstudo();
@@ -62,12 +62,31 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       }
       setPlanos(planosSalvos);
 
-      const comentariosSalvos = localStorage.getItem('planos_comentarios_dias');
-      if (comentariosSalvos) {
-        setComentariosDias(JSON.parse(comentariosSalvos));
+      // Carregar comentários públicos globais
+      let comentariosSalvos = {};
+      if (typeof BancoDeDados.getComentariosPlanos === 'function') {
+        comentariosSalvos = await BancoDeDados.getComentariosPlanos();
+      } else {
+        const localComentarios = localStorage.getItem('rede_comentarios_planos_global');
+        comentariosSalvos = localComentarios ? JSON.parse(localComentarios) : {};
       }
+      setComentariosDias(comentariosSalvos || {});
+
+      // Carregar avatares dos perfis da comunidade
+      let perfis = [];
+      if (typeof BancoDeDados.getPerfisCadastrados === 'function') {
+        perfis = await BancoDeDados.getPerfisCadastrados();
+      } else {
+        const localPerfis = localStorage.getItem('perfis_cadastrados_comunidade');
+        perfis = localPerfis ? JSON.parse(localPerfis) : [];
+      }
+      const mapaPerfis = {};
+      perfis.forEach(p => {
+        mapaPerfis[p.username] = p.foto;
+      });
+      setPerfisUsuarios(mapaPerfis);
     }
-    carregarPlanosGlobais();
+    carregarDadosGlobais();
   }, [usuarioLogado.username]);
 
   const salvarPlanosGlobais = (novosPlanos) => {
@@ -76,6 +95,15 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       BancoDeDados.salvarPlanosEstudo(novosPlanos);
     } else {
       localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanos));
+    }
+  };
+
+  const salvarComentariosGlobais = (novosComentarios) => {
+    setComentariosDias(novosComentarios);
+    if (typeof BancoDeDados.salvarComentariosPlanos === 'function') {
+      BancoDeDados.salvarComentariosPlanos(novosComentarios);
+    } else {
+      localStorage.setItem('rede_comentarios_planos_global', JSON.stringify(novosComentarios));
     }
   };
 
@@ -192,13 +220,13 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     const novoComentarioObj = {
       id: Date.now(),
       username: usuarioLogado.username,
+      avatar: usuarioLogado.foto || perfisUsuarios[usuarioLogado.username] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80',
       texto: novoComentarioDia.trim(),
       horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     const atualizados = { ...comentariosDias, [chave]: [...listaAtual, novoComentarioObj] };
-    setComentariosDias(atualizados);
-    localStorage.setItem('planos_comentarios_dias', JSON.stringify(atualizados));
+    salvarComentariosGlobais(atualizados);
     setNovoComentarioDia('');
   };
 
@@ -352,9 +380,14 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
             <div className="w-full h-64 sm:h-80 rounded-3xl overflow-hidden shadow-xl border border-slate-800/40 relative">
               <img src={planoSelecionado.capa} alt={planoSelecionado.titulo} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-6">
-                <span className="text-xs bg-blue-600 text-white font-bold px-3 py-1.5 rounded-full shadow-lg">
-                  Criado por @{planoSelecionado.criador}
-                </span>
+                <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/10">
+                  <img 
+                    src={perfisUsuarios[planoSelecionado.criador] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'} 
+                    alt="Criador" 
+                    className="w-5 h-5 rounded-full object-cover" 
+                  />
+                  <span className="text-xs text-white font-bold">Criado por @{planoSelecionado.criador}</span>
+                </div>
               </div>
             </div>
 
@@ -536,7 +569,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     </div>
                   )}
 
-                  {/* SEÇÃO DE COMENTÁRIOS DA COMUNIDADE (SEM FUNDO CINZA, COM BORDA FINA E TEXTO LEGÍVEL) */}
+                  {/* SEÇÃO DE COMENTÁRIOS PÚBLICOS DA COMUNIDADE COM FOTO DE PERFIL */}
                   <div className="pt-6 border-t border-slate-800/40 space-y-4">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
                       💬 Reflexões e Comentários da Comunidade ({listaComentarios.length})
@@ -562,13 +595,20 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                         listaComentarios.map((c) => (
                           <div 
                             key={c.id} 
-                            className="p-3 rounded-2xl bg-transparent border border-slate-800/30 text-xs space-y-1 shadow-xs"
+                            className="p-3 rounded-2xl bg-transparent border border-slate-800/30 text-xs space-y-2 shadow-xs"
                           >
                             <div className="flex justify-between items-center">
-                              <span className="font-bold text-blue-500">@{c.username}</span>
+                              <div className="flex items-center gap-2">
+                                <img 
+                                  src={c.avatar || perfisUsuarios[c.username] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'} 
+                                  alt="Avatar" 
+                                  className="w-6 h-6 rounded-full object-cover" 
+                                />
+                                <span className="font-bold text-blue-500">@{c.username}</span>
+                              </div>
                               <span className="text-[10px] opacity-50">{c.horario}</span>
                             </div>
-                            <p className="opacity-90 leading-relaxed text-inherit">{c.texto}</p>
+                            <p className="opacity-90 leading-relaxed pl-8 text-inherit">{c.texto}</p>
                           </div>
                         ))
                       )}
@@ -592,7 +632,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
           ) : (
             planosFiltrados.map(plano => {
               const progresso = calcularProgresso(plano.dias);
-              const eMeu = plano.criador === usuarioLogado.username;
+              const avatarCriador = perfisUsuarios[plano.criador] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80';
               return (
                 <div 
                   key={plano.id}
@@ -617,7 +657,10 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                   <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
                     <div>
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] text-blue-400 font-bold">@{plano.criador}</span>
+                        <div className="flex items-center gap-1.5">
+                          <img src={avatarCriador} alt="Avatar" className="w-4 h-4 rounded-full object-cover" />
+                          <span className="text-[10px] text-blue-400 font-bold">@{plano.criador}</span>
+                        </div>
                         <span className="text-xs font-black text-emerald-400">{progresso}%</span>
                       </div>
                       <h3 className="text-base font-extrabold">{plano.titulo}</h3>
