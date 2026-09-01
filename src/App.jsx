@@ -65,7 +65,9 @@ export default function App() {
 
   useEffect(() => {
     const tratarRotaUrl = async () => {
-      const path = window.location.pathname.replace('/', '').trim();
+      // Decodifica a URL para ler acentos ou caracteres caso venham codificados (ex: %C3%A3)
+      const rawPath = window.location.pathname.replace('/', '').trim();
+      const path = decodeURIComponent(rawPath);
       
       if (!path || path === 'biblia') {
         setAbaPrincipal('biblia');
