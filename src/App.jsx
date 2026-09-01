@@ -66,18 +66,10 @@ export default function App() {
   useEffect(() => {
     const tratarRotaUrl = async () => {
       const path = window.location.pathname.replace('/', '').trim();
-      if (path && !['biblia', 'devocional', 'comunidade', 'editarPerfil'].includes(path)) {
-        setCarregando(true);
-        const perfis = await BancoDeDados.getPerfisCadastrados();
-        const encontrado = perfis.find(p => p.username.toLowerCase() === path.toLowerCase());
-        if (encontrado) {
-          setPerfilUrlAlvo(encontrado);
-          setAbaPrincipal('perfilUrl');
-        } else {
-          setAbaPrincipal('biblia');
-          setPerfilUrlAlvo(null);
-        }
-        setCarregando(false);
+      
+      if (!path || path === 'biblia') {
+        setAbaPrincipal('biblia');
+        setPerfilUrlAlvo(null);
       } else if (path === 'comunidade') {
         setAbaPrincipal('comunidade');
         setPerfilUrlAlvo(null);
@@ -88,8 +80,29 @@ export default function App() {
         setAbaPrincipal('editarPerfil');
         setPerfilUrlAlvo(null);
       } else {
-        setAbaPrincipal('biblia');
-        setPerfilUrlAlvo(null);
+        setCarregando(true);
+        let perfis = await BancoDeDados.getPerfisCadastrados();
+        
+        if (!perfis || perfis.length === 0) {
+          await new Promise(r => setTimeout(r, 500));
+          perfis = await BancoDeDados.getPerfisCadastrados();
+        }
+
+        const encontrado = perfis.find(p => p.username.toLowerCase() === path.toLowerCase());
+        
+        if (encontrado) {
+          setPerfilUrlAlvo(encontrado);
+          setAbaPrincipal('perfilUrl');
+        } else {
+          setPerfilUrlAlvo({ 
+            username: path, 
+            nome: path, 
+            foto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80', 
+            biografia: 'Praticando a fé e o amor ao próximo.' 
+          });
+          setAbaPrincipal('perfilUrl');
+        }
+        setCarregando(false);
       }
     };
     tratarRotaUrl();
