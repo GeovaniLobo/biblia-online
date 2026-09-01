@@ -61,9 +61,9 @@ export default function PerfilPublico({ perfilAlvo, usuarioLogado, onVoltar, dar
             <div className="flex items-center justify-center gap-1.5">
               <h2 className="text-xl font-extrabold tracking-tight">{perfilAlvoAtualizado.nome || 'Usuário'}</h2>
               {perfilVerificado && (
-                <span className="text-blue-500 inline-flex items-center flex-shrink-0" title="Perfil Verificado">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                <span className="relative inline-flex items-center justify-center flex-shrink-0 group/badge cursor-pointer" title="Perfil Verificado">
+                  <svg className="w-5 h-5 text-blue-500 transform transition hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9.905 2.522a2.15 2.15 0 0 1 2.19 0l1.458.847c.677.393 1.505.352 2.144-.106l1.378-.973a2.15 2.15 0 0 1 2.651.34l1.036 1.037a2.15 2.15 0 0 1 .34 2.651l-.973 1.378c-.458.639-.499 1.467-.106 2.144l.847 1.458a2.15 2.15 0 0 1 0 2.19l-.847 1.458c-.393.677-.352 1.505.106 2.144l.973 1.378a2.15 2.15 0 0 1-.34 2.651l-1.036 1.037a2.15 2.15 0 0 1-2.651.34l-1.378-.973c-.639-.458-1.467-.499-2.144-.106l-1.458.847a2.15 2.15 0 0 1-2.19 0l-1.458-.847c-.677-.393-1.505-.352-2.144.106l-1.378.973a2.15 2.15 0 0 1-2.651-.34L2.7 20.354a2.15 2.15 0 0 1-.34-2.651l.973-1.378c.458-.639.499-1.467.106-2.144l-.847-1.458a2.15 2.15 0 0 1 0-2.19l.847-1.458c.393-.677.352-1.505-.106-2.144L2.36 6.554a2.15 2.15 0 0 1 .34-2.651l1.036-1.037a2.15 2.15 0 0 1 2.651-.34l1.378.973c.639.458 1.467.499 2.144.106l1.458-.847zM9.5 14.5l6-6-1.4-1.4-4.6 4.6-2.1-2.1-1.4 1.4 3.5 3.5z" />
                   </svg>
                 </span>
               )}
