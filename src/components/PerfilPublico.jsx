@@ -56,14 +56,15 @@ export default function PerfilPublico({ perfilAlvo, usuarioLogado, onVoltar, dar
             alt="Avatar" 
             className="w-28 h-28 rounded-full object-cover border-4 border-white dark:border-slate-900 shadow-2xl bg-slate-800" 
           />
-          <div>
+          <div className="flex items-center justify-center gap-1.5">
             <h2 className="text-xl font-extrabold tracking-tight">{perfilAlvoAtualizado.nome || 'Usuário'}</h2>
-            <p className="text-xs text-blue-400 font-bold mt-0.5">@{perfilAlvoAtualizado.username || 'usuario'}</p>
-            
-            {/* Adicionado o whitespace-pre-line aqui embaixo 👇 */}
-            <p className="text-xs opacity-80 mt-2 max-w-md leading-relaxed whitespace-pre-line">
-              {perfilAlvoAtualizado.biografia || 'Praticando a fé e o amor ao próximo.'}
-            </p>
+            {perfilAlvoAtualizado.verificado && (
+              <span className="text-blue-500 inline-flex items-center" title="Perfil Verificado">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+              </span>
+            )}
           </div>
 
           {/* Botões de Ação Dinâmicos (Adicionar Amigo, Aceitar, Chat) */}
