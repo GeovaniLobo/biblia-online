@@ -28,83 +28,77 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const [abaAtivaFiltro, setAbaAtivaFiltro] = useState('todos');
   const editorRef = useRef(null);
 
-  useEffect(() => {
-    async function carregarDadosGlobais() {
-      let planosSalvos = [];
-      if (typeof BancoDeDados.getPlanosEstudo === 'function') {
-        planosSalvos = await BancoDeDados.getPlanosEstudo();
-      } else {
-        const local = localStorage.getItem('rede_planos_estudo_global');
-        planosSalvos = local ? JSON.parse(local) : [];
-      }
+  // Função unificada para carregar dados de forma global e compartilhada
+  const carregarDadosCompartilhados = () => {
+    // 1. Planos de Estudo
+    const planosLocal = localStorage.getItem('rede_planos_estudo_global');
+    let planosSalvos = planosLocal ? JSON.parse(planosLocal) : [];
 
-      if (!planosSalvos || planosSalvos.length === 0) {
-        const planoExemplo = [
-          {
-            id: 1,
-            criador: 'geovanilobo',
-            titulo: 'Como se aproximar de Deus nos dias de hoje',
-            descricao: 'Um devocional profundo de 7 dias para silenciar o barulho do mundo e cultivar uma intimidade real com o Criador.',
-            capa: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80',
-            dias: Array.from({ length: 7 }, (_, i) => ({
-              dia: i + 1,
-              tituloDia: `Dia ${i + 1}: Jornada Espiritual`,
-              conteudoEstudo: `<p>Reflexão guiada para o dia ${i + 1}: Busquem ao Senhor e meditem em Sua palavra para guiar os seus passos em meio às correrias modernas.</p>`,
-              perguntaPratica: `Qual distração você pode remover hoje para passar 10 minutos em silêncio com Deus?`,
-              midia: '',
-              tipoMidia: 'imagem',
-              concluido: false
-            }))
-          }
-        ];
-        planosSalvos = planoExemplo;
-        salvarPlanosGlobais(planoExemplo);
-      }
-      setPlanos(planosSalvos);
-
-      // Carregar comentários públicos globais
-      let comentariosSalvos = {};
-      if (typeof BancoDeDados.getComentariosPlanos === 'function') {
-        comentariosSalvos = await BancoDeDados.getComentariosPlanos();
-      } else {
-        const localComentarios = localStorage.getItem('rede_comentarios_planos_global');
-        comentariosSalvos = localComentarios ? JSON.parse(localComentarios) : {};
-      }
-      setComentariosDias(comentariosSalvos || {});
-
-      // Carregar avatares dos perfis da comunidade
-      let perfis = [];
-      if (typeof BancoDeDados.getPerfisCadastrados === 'function') {
-        perfis = await BancoDeDados.getPerfisCadastrados();
-      } else {
-        const localPerfis = localStorage.getItem('perfis_cadastrados_comunidade');
-        perfis = localPerfis ? JSON.parse(localPerfis) : [];
-      }
-      const mapaPerfis = {};
-      perfis.forEach(p => {
-        mapaPerfis[p.username] = p.foto;
-      });
-      setPerfisUsuarios(mapaPerfis);
+    if (!planosSalvos || planosSalvos.length === 0) {
+      planosSalvos = [
+        {
+          id: 1,
+          criador: 'geovanilobo',
+          titulo: 'Como se aproximar de Deus nos dias de hoje',
+          descricao: 'Um devocional profundo de 7 dias para silenciar o barulho do mundo e cultivar uma intimidade real com o Criador.',
+          capa: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80',
+          dias: Array.from({ length: 7 }, (_, i) => ({
+            dia: i + 1,
+            tituloDia: `Dia ${i + 1}: Jornada Espiritual`,
+            conteudoEstudo: `<p>Reflexão guiada para o dia ${i + 1}: Busquem ao Senhor e meditem em Sua palavra.</p>`,
+            perguntaPratica: `Qual distração você pode remover hoje para passar 10 minutos em silêncio com Deus?`,
+            midia: '',
+            tipoMidia: 'imagem',
+            concluido: false
+          }))
+        }
+      ];
+      localStorage.setItem('rede_planos_estudo_global', JSON.stringify(planosSalvos));
     }
-    carregarDadosGlobais();
-  }, [usuarioLogado.username]);
+    setPlanos(planosSalvos);
+
+    // 2. Comentários Públicos Compartilhados
+    const comentariosLocal = localStorage.getItem('rede_comentarios_planos_global');
+    if (comentariosLocal) {
+      setComentariosDias(JSON.parse(comentariosLocal));
+    }
+
+    // 3. Perfis e Avatares Cadastrados na Comunidade
+    const perfisLocal = localStorage.getItem('perfis_cadastrados_comunidade');
+    const perfisArr = perfisLocal ? JSON.parse(perfisLocal) : [];
+    
+    // Garante que o usuário logado atual também tenha seu perfil mapeado com a foto correta
+    const mapa = {};
+    perfisArr.forEach(p => {
+      mapa[p.username] = p.foto;
+    });
+    if (usuarioLogado?.username && usuarioLogado?.foto) {
+      mapa[usuarioLogado.username] = usuarioLogado.foto;
+    }
+    setPerfisUsuarios(mapa);
+  };
+
+  useEffect(() => {
+    carregarDadosCompartilhados();
+
+    // Sincronização automática em tempo real entre abas / contas no mesmo navegador
+    const aoMudarStorage = (e) => {
+      if (e.key === 'rede_comentarios_planos_global' || e.key === 'rede_planos_estudo_global') {
+        carregarDadosCompartilhados();
+      }
+    };
+    window.addEventListener('storage', aoMudarStorage);
+    return () => window.removeEventListener('storage', aoMudarStorage);
+  }, [usuarioLogado]);
 
   const salvarPlanosGlobais = (novosPlanos) => {
     setPlanos(novosPlanos);
-    if (typeof BancoDeDados.salvarPlanosEstudo === 'function') {
-      BancoDeDados.salvarPlanosEstudo(novosPlanos);
-    } else {
-      localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanos));
-    }
+    localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanos));
   };
 
   const salvarComentariosGlobais = (novosComentarios) => {
     setComentariosDias(novosComentarios);
-    if (typeof BancoDeDados.salvarComentariosPlanos === 'function') {
-      BancoDeDados.salvarComentariosPlanos(novosComentarios);
-    } else {
-      localStorage.setItem('rede_comentarios_planos_global', JSON.stringify(novosComentarios));
-    }
+    localStorage.setItem('rede_comentarios_planos_global', JSON.stringify(novosComentarios));
   };
 
   const processarArquivo = (file) => {
@@ -217,10 +211,14 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
     const chave = `${planoId}_dia_${diaNum}`;
     const listaAtual = comentariosDias[chave] || [];
+    
+    // Pega a foto atualizada do usuário logado diretamente
+    const avatarAtual = usuarioLogado?.foto || perfisUsuarios[usuarioLogado.username] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80';
+
     const novoComentarioObj = {
       id: Date.now(),
       username: usuarioLogado.username,
-      avatar: usuarioLogado.foto || perfisUsuarios[usuarioLogado.username] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80',
+      avatar: avatarAtual,
       texto: novoComentarioDia.trim(),
       horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
@@ -254,7 +252,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
             </div>
             <h3 className="text-xl font-black text-emerald-400">Jornada Concluída!</h3>
             <p className="text-xs opacity-80 leading-relaxed">
-              Parabéns, @{usuarioLogado.username}! Você concluiu 100% do plano de estudo com dedicação e constância na Palavra. Sua fé foi fortalecida! ✨
+              Parabéns, @{usuarioLogado.username}! Você concluiu 100% do plano de estudo com dedicação e constância na Palavra. ✨
             </p>
             <button 
               onClick={() => setMostrarModalConquista(false)}
@@ -380,7 +378,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
             <div className="w-full h-64 sm:h-80 rounded-3xl overflow-hidden shadow-xl border border-slate-800/40 relative">
               <img src={planoSelecionado.capa} alt={planoSelecionado.titulo} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-6">
-                <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/10">
+                <div className="flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/10">
                   <img 
                     src={perfisUsuarios[planoSelecionado.criador] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'} 
                     alt="Criador" 
@@ -569,7 +567,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     </div>
                   )}
 
-                  {/* SEÇÃO DE COMENTÁRIOS PÚBLICOS DA COMUNIDADE COM FOTO DE PERFIL */}
+                  {/* SEÇÃO DE COMENTÁRIOS PÚBLICOS DA COMUNIDADE COM FOTO DE PERFIL CORRIGIDA */}
                   <div className="pt-6 border-t border-slate-800/40 space-y-4">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
                       💬 Reflexões e Comentários da Comunidade ({listaComentarios.length})
@@ -602,7 +600,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                                 <img 
                                   src={c.avatar || perfisUsuarios[c.username] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'} 
                                   alt="Avatar" 
-                                  className="w-6 h-6 rounded-full object-cover" 
+                                  className="w-6 h-6 rounded-full object-cover border border-slate-700" 
                                 />
                                 <span className="font-bold text-blue-500">@{c.username}</span>
                               </div>
@@ -658,7 +656,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <div className="flex items-center gap-1.5">
-                          <img src={avatarCriador} alt="Avatar" className="w-4 h-4 rounded-full object-cover" />
+                          <img src={avatarCriador} alt="Avatar" className="w-4 h-4 rounded-full object-cover border border-slate-700" />
                           <span className="text-[10px] text-blue-400 font-bold">@{plano.criador}</span>
                         </div>
                         <span className="text-xs font-black text-emerald-400">{progresso}%</span>
