@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BancoDeDados } from '../services/database';
 
 export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const [planos, setPlanos] = useState([]);
@@ -18,35 +19,51 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const [tipoMidiaDia, setTipoMidiaDia] = useState('imagem');
   const [enviandoMidia, setEnviandoMidia] = useState(false);
 
+  const [abaAtivaFiltro, setAbaAtivaFiltro] = useState('todos'); // 'todos' ou 'meus'
+
   useEffect(() => {
-    const dadosSalvos = localStorage.getItem(`planos_estudo_${usuarioLogado.username}`);
-    if (dadosSalvos) {
-      setPlanos(JSON.parse(dadosSalvos));
-    } else {
-      const planoExemplo = [
-        {
-          id: 1,
-          criador: usuarioLogado.username,
-          titulo: 'Fortalecendo a Fé em 7 Dias',
-          descricao: 'Um plano prático para renovar suas forças espirituais diariamente.',
-          dias: Array.from({ length: 7 }, (_, i) => ({
-            dia: i + 1,
-            tituloDia: `Dia ${i + 1}: Caminhando em Oração`,
-            conteudoEstudo: 'Insira aqui suas reflexões, anotações e versículos para este dia...',
-            midia: '',
-            tipoMidia: 'imagem',
-            concluido: false
-          }))
-        }
-      ];
-      setPlanos(planoExemplo);
-      localStorage.setItem(`planos_estudo_${usuarioLogado.username}`, JSON.stringify(planoExemplo));
+    async function carregarPlanosGlobais() {
+      // Tenta buscar os planos públicos salvos no banco global/localStorage compartilhado da rede
+      let planosSalvos = [];
+      if (typeof BancoDeDados.getPlanosEstudo === 'function') {
+        planosSalvos = await BancoDeDados.getPlanosEstudo();
+      } else {
+        const local = localStorage.getItem('rede_planos_estudo_global');
+        planosSalvos = local ? JSON.parse(local) : [];
+      }
+
+      if (!planosSalvos || planosSalvos.length === 0) {
+        const planoExemplo = [
+          {
+            id: 1,
+            criador: 'geovanilobo',
+            titulo: 'Fortalecendo a Fé em 7 Dias',
+            descricao: 'Um plano prático sugerido pela comunidade para renovar suas forças espirituais.',
+            dias: Array.from({ length: 7 }, (_, i) => ({
+              dia: i + 1,
+              tituloDia: `Dia ${i + 1}: Caminhando em Oração`,
+              conteudoEstudo: 'Reflexão guiada para este dia...',
+              midia: '',
+              tipoMidia: 'imagem',
+              concluido: false
+            }))
+          }
+        ];
+        planosSalvos = planoExemplo;
+        salvarPlanosGlobais(planoExemplo);
+      }
+      setPlanos(planosSalvos);
     }
+    carregarPlanosGlobais();
   }, [usuarioLogado.username]);
 
-  const salvarPlanosStorage = (novosPlanos) => {
+  const salvarPlanosGlobais = (novosPlanos) => {
     setPlanos(novosPlanos);
-    localStorage.setItem(`planos_estudo_${usuarioLogado.username}`, JSON.stringify(novosPlanos));
+    if (typeof BancoDeDados.salvarPlanosEstudo === 'function') {
+      BancoDeDados.salvarPlanosEstudo(novosPlanos);
+    } else {
+      localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanos));
+    }
   };
 
   const criarPlanoEstudo = (e) => {
@@ -71,7 +88,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     };
 
     const atualizados = [novoPlanoObj, ...planos];
-    salvarPlanosStorage(atualizados);
+    salvarPlanosGlobais(atualizados);
 
     setNovoTitulo('');
     setNovaDescricao('');
@@ -90,6 +107,12 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const salvarEdicaoDiaAtual = () => {
     if (!planoSelecionado) return;
 
+    // Trava de segurança: Apenas o criador pode editar o conteúdo do plano
+    if (planoSelecionado.criador !== usuarioLogado.username) {
+      alert('Apenas o criador deste plano pode alterar o conteúdo oficial dele. Você pode acompanhar seu progresso marcando os dias como concluídos!');
+      return;
+    }
+
     const diasAtualizados = [...planoSelecionado.dias];
     diasAtualizados[diaAtivoIndex] = {
       ...diasAtualizados[diaAtivoIndex],
@@ -102,8 +125,8 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     setPlanoSelecionado(planoAtualizado);
 
     const novosPlanos = planos.map(p => p.id === planoAtualizado.id ? planoAtualizado : p);
-    salvarPlanosStorage(novosPlanos);
-    alert('Estudo do dia salvo com sucesso! 🚀');
+    salvarPlanosGlobais(novosPlanos);
+    alert('Alterações do plano salvas com sucesso para a comunidade! 🚀');
   };
 
   const alternarConclusaoDia = (diaNum) => {
@@ -120,7 +143,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     setPlanoSelecionado(planoAtualizado);
 
     const novosPlanos = planos.map(p => p.id === planoAtualizado.id ? planoAtualizado : p);
-    salvarPlanosStorage(novosPlanos);
+    salvarPlanosGlobais(novosPlanos);
   };
 
   const calcularProgresso = (dias) => {
@@ -129,6 +152,13 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     return Math.round((concluidos / dias.length) * 100);
   };
 
+  const planosFiltrados = planos.filter(p => {
+    if (abaAtivaFiltro === 'meus') return p.criador === usuarioLogado.username;
+    return true; // 'todos' (sugestões públicas da comunidade)
+  });
+
+  const souOCriador = planoSelecionado && planoSelecionado.criador === usuarioLogado.username;
+
   return (
     <div className={`w-full max-w-5xl mx-auto px-4 py-8 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
@@ -136,25 +166,43 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-800">
         <div>
           <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
-            Planos de Estudo Profissionais <span className="text-blue-500">📖</span>
+            Planos de Estudo da Comunidade <span className="text-blue-500">📖</span>
           </h2>
-          <p className="text-xs opacity-70 mt-1">Gerencie jornadas diárias com anotações, versículos e anexos multimídia.</p>
+          <p className="text-xs opacity-70 mt-1">Explore sugestões criadas por membros da rede ou crie sua própria jornada.</p>
         </div>
 
         <button 
           onClick={() => setModalCriarAberto(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md transition flex items-center gap-2"
         >
-          ✨ Criar Novo Plano
+          ✨ Criar Novo Plano Público
         </button>
       </div>
+
+      {/* Abas de Filtro (Todos / Meus) */}
+      {!planoSelecionado && (
+        <div className="flex gap-2 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 w-fit">
+          <button 
+            onClick={() => setAbaAtivaFiltro('todos')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${abaAtivaFiltro === 'todos' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+          >
+            🌟 Sugestões da Comunidade
+          </button>
+          <button 
+            onClick={() => setAbaAtivaFiltro('meus')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${abaAtivaFiltro === 'meus' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+          >
+            👤 Meus Planos Criados
+          </button>
+        </div>
+      )}
 
       {/* Modal Criar Plano */}
       {modalCriarAberto && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <div className="flex justify-between items-center border-b pb-3 border-slate-700">
-              <h3 className="font-extrabold text-sm">Criar Novo Plano de Estudo</h3>
+              <h3 className="font-extrabold text-sm">Criar Plano Público para a Comunidade</h3>
               <button onClick={() => setModalCriarAberto(false)} className="text-sm font-bold opacity-70">✕</button>
             </div>
 
@@ -172,10 +220,10 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
               </div>
 
               <div>
-                <label className="text-xs font-bold opacity-70 block mb-1">Descrição:</label>
+                <label className="text-xs font-bold opacity-70 block mb-1">Descrição / Objetivo:</label>
                 <textarea 
                   rows="3"
-                  placeholder="Objetivo do plano..." 
+                  placeholder="Sobre o que é este plano?" 
                   value={novaDescricao}
                   onChange={(e) => setNovaDescricao(e.target.value)}
                   required
@@ -199,27 +247,30 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
               </div>
 
               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow-md transition">
-                Criar Plano com {totalDias} Dias 🚀
+                Publicar Plano na Comunidade 🚀
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* Visualização de um Plano Específico (Com Editor por Dia) */}
+      {/* Visualização de um Plano Selecionado */}
       {planoSelecionado ? (
         <div className="space-y-6">
           <div className={`p-6 rounded-3xl border shadow-xl space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
               <div>
                 <button onClick={() => setPlanoSelecionado(null)} className="text-xs font-bold text-blue-500 hover:underline mb-1 inline-block">
-                  ← Voltar para todos os planos
+                  ← Voltar para as sugestões
                 </button>
-                <h3 className="text-xl font-black">{planoSelecionado.titulo}</h3>
-                <p className="text-xs opacity-75">{planoSelecionado.descricao}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <h3 className="text-xl font-black">{planoSelecionado.titulo}</h3>
+                  <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold">Criado por @{planoSelecionado.criador}</span>
+                </div>
+                <p className="text-xs opacity-75 mt-1">{planoSelecionado.descricao}</p>
               </div>
               <div className="text-right">
-                <span className="text-xs font-bold text-blue-500 uppercase tracking-wider">Progresso Geral</span>
+                <span className="text-xs font-bold text-blue-500 uppercase tracking-wider">Seu Progresso</span>
                 <span className="block text-2xl font-black">{calcularProgresso(planoSelecionado.dias)}%</span>
               </div>
             </div>
@@ -254,15 +305,17 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
             </div>
           </div>
 
-          {/* Editor do Dia Selecionado */}
+          {/* Editor / Visualizador do Dia */}
           {(() => {
             const diaAtual = planoSelecionado.dias[diaAtivoIndex];
             return (
               <div className={`p-6 rounded-3xl border shadow-xl space-y-6 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <div className="flex justify-between items-center border-b pb-4 border-slate-800">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4 border-slate-800">
                   <div>
-                    <h4 className="text-lg font-extrabold text-blue-400">Estudo do Dia {diaAtual.dia}</h4>
-                    <p className="text-xs opacity-60">Escreva suas anotações, insira versículos e adicione mídias de apoio.</p>
+                    <h4 className="text-lg font-extrabold text-blue-400">Conteúdo do Dia {diaAtual.dia}</h4>
+                    <p className="text-xs opacity-60">
+                      {souOCriador ? 'Você é o criador deste plano. Você pode editar o conteúdo oficial abaixo.' : `Criado por @${planoSelecionado.criador}. Acompanhe sua leitura e marque os dias concluídos.`}
+                    </p>
                   </div>
 
                   <button 
@@ -279,75 +332,81 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs font-bold opacity-70 block mb-2">Anotações, Reflexões e Versículos do Dia {diaAtual.dia}:</label>
+                    <label className="text-xs font-bold opacity-70 block mb-2">
+                      {souOCriador ? 'Editar Conteúdo Oficial do Estudo:' : 'Conteúdo / Reflexão do Estudo:'}
+                    </label>
                     <textarea 
                       rows="6"
                       value={textoEstudoDia}
+                      disabled={!souOCriador && Boolean(diaAtual.conteudoEstudo)}
                       onChange={(e) => setTextoEstudoDia(e.target.value)}
-                      placeholder="Digite suas reflexões espirituais, orações ou versículos meditados hoje..."
-                      className={`w-full text-xs sm:text-sm rounded-2xl p-4 border leading-relaxed ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
+                      placeholder="Nenhum conteúdo adicionado para este dia ainda..."
+                      className={`w-full text-xs sm:text-sm rounded-2xl p-4 border leading-relaxed ${
+                        !souOCriador ? 'opacity-90 cursor-default' : ''
+                      } ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
                     ></textarea>
                   </div>
 
-                  {/* Seção de Anexar Mídia */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold opacity-70 block">Mídia de Apoio (Foto ou Vídeo):</label>
-                    <div className="border-2 border-dashed border-slate-700 rounded-2xl p-4 text-center space-y-3">
-                      {enviandoMidia ? (
-                        <p className="text-xs font-bold text-blue-500 animate-pulse">Carregando arquivo...</p>
-                      ) : midiaDiaUrl ? (
-                        <div className="space-y-2">
-                          {tipoMidiaDia === 'video' ? (
-                            <video src={midiaDiaUrl} controls className="w-full h-48 object-cover rounded-xl" />
-                          ) : (
-                            <img src={midiaDiaUrl} alt="Mídia Anexada" className="w-full h-48 object-cover rounded-xl" />
-                          )}
-                          <button onClick={() => setMidiaDiaUrl('')} className="text-xs text-red-400 font-bold hover:underline">Remover Mídia</button>
-                        </div>
+                  {/* Exibição ou Edição de Mídia */}
+                  {midiaDiaUrl && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold opacity-70 block">Mídia Anexada pelo Criador:</label>
+                      {tipoMidiaDia === 'video' ? (
+                        <video src={midiaDiaUrl} controls className="w-full h-48 object-cover rounded-xl" />
                       ) : (
-                        <label className="inline-block bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer transition border border-slate-700">
-                          📁 Anexar Imagem ou Vídeo para este Dia
-                          <input 
-                            type="file" 
-                            accept="image/*,video/*" 
-                            onChange={async (e) => {
-                              const file = e.target.files[0];
-                              if (file) {
-                                setEnviandoMidia(true);
-                                const url = await processarArquivo(file);
-                                setEnviandoMidia(false);
-                                setTipoMidiaDia(file.type.startsWith('video') ? 'video' : 'imagem');
-                                setMidiaDiaUrl(url);
-                              }
-                            }} 
-                            className="hidden" 
-                          />
-                        </label>
+                        <img src={midiaDiaUrl} alt="Mídia do Estudo" className="w-full h-48 object-cover rounded-xl" />
                       )}
                     </div>
-                  </div>
+                  )}
 
-                  <button 
-                    onClick={salvarEdicaoDiaAtual}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow-md transition"
-                  >
-                    Salvar Alterações do Dia {diaAtual.dia} 💾
-                  </button>
+                  {souOCriador && (
+                    <div className="space-y-2 pt-2 border-t border-slate-800">
+                      <label className="text-xs font-bold text-blue-400 block">Painel do Criador: Anexar/Alterar Mídia</label>
+                      <label className="inline-block bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer transition border border-slate-700">
+                        📁 Enviar Foto ou Vídeo
+                        <input 
+                          type="file" 
+                          accept="image/*,video/*" 
+                          onChange={async (e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              setEnviandoMidia(true);
+                              const url = await processarArquivo(file);
+                              setEnviandoMidia(false);
+                              setTipoMidiaDia(file.type.startsWith('video') ? 'video' : 'imagem');
+                              setMidiaDiaUrl(url);
+                            }
+                          }} 
+                          className="hidden" 
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {souOCriador && (
+                    <button 
+                      onClick={salvarEdicaoDiaAtual}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow-md transition mt-4"
+                    >
+                      Salvar Alterações Oficiais do Dia {diaAtual.dia} 💾
+                    </button>
+                  )}
                 </div>
               </div>
             );
           })()}
         </div>
       ) : (
-        /* Lista de Planos */
+        /* Lista de Sugestões / Planos */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {planos.length === 0 ? (
+          {planosFiltrados.length === 0 ? (
             <div className={`col-span-2 p-12 text-center rounded-3xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <p className="text-xs opacity-60">Nenhum plano cadastrado.</p>
+              <p className="text-xs opacity-60">Nenhum plano encontrado nesta categoria.</p>
             </div>
           ) : (
-            planos.map(plano => {
+            planosFiltrados.map(plano => {
               const progresso = calcularProgresso(plano.dias);
+              const eMeu = plano.criador === usuarioLogado.username;
               return (
                 <div 
                   key={plano.id}
@@ -362,9 +421,12 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-500/10 px-2.5 py-1 rounded-full">
-                        {plano.dias.length} Dias
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-500/10 px-2.5 py-1 rounded-full">
+                          {plano.dias.length} Dias
+                        </span>
+                        {eMeu && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">Meu Plano</span>}
+                      </div>
                       <h3 className="text-base font-extrabold mt-2">{plano.titulo}</h3>
                     </div>
                     <span className="text-sm font-black text-emerald-500">{progresso}%</span>
@@ -378,7 +440,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
                   <div className="flex justify-between items-center text-[10px] opacity-60 pt-2 border-t border-slate-800">
                     <span>Criado por @{plano.criador}</span>
-                    <span className="font-bold text-blue-400">Abrir Plano de Estudos →</span>
+                    <span className="font-bold text-blue-400">Fazer este Estudo →</span>
                   </div>
                 </div>
               );
