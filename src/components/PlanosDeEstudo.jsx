@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BancoDeDados } from '../services/database';
 
 export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
@@ -11,7 +11,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const [totalDias, setTotalDias] = useState(7);
 
   const [planoSelecionado, setPlanoSelecionado] = useState(null);
-  const [modoLeitura, setModoLeitura] = useState(false); // Tela de introdução vs Tela de leitura dos dias
+  const [modoLeitura, setModoLeitura] = useState(false);
   const [diaAtivoIndex, setDiaAtivoIndex] = useState(0);
 
   const [textoEstudoDia, setTextoEstudoDia] = useState('');
@@ -20,6 +20,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const [enviandoMidia, setEnviandoMidia] = useState(false);
 
   const [abaAtivaFiltro, setAbaAtivaFiltro] = useState('todos');
+  const editorRef = useRef(null);
 
   useEffect(() => {
     async function carregarPlanosGlobais() {
@@ -37,12 +38,12 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
             id: 1,
             criador: 'geovanilobo',
             titulo: 'Fundamentos de Uma Caminhada Firme',
-            descricao: 'Um devocional prático para renovar suas forças espirituais, fortalecer sua fé e caminhar com propósito todos os dias.',
+            descricao: 'Um devocional prático para renovar suas forças espirituais e caminhar com propósito.',
             capa: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1200&q=80',
             dias: Array.from({ length: 7 }, (_, i) => ({
               dia: i + 1,
               tituloDia: `Dia ${i + 1}: Renovando as Forças`,
-              conteudoEstudo: `Reflexão guiada para o dia ${i + 1}: Busquem ao Senhor e meditem em Sua palavra para guiar os seus passos.`,
+              conteudoEstudo: `<p>Reflexão guiada para o dia ${i + 1}: Busquem ao Senhor e meditem em Sua palavra.</p>`,
               midia: '',
               tipoMidia: 'imagem',
               concluido: false
@@ -86,7 +87,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     const diasArray = Array.from({ length: Number(totalDias) }, (_, i) => ({
       dia: i + 1,
       tituloDia: `Dia ${i + 1}: Jornada de Crescimento`,
-      conteudoEstudo: `Escreva aqui o conteúdo de estudo oficial para o dia ${i + 1}...`,
+      conteudoEstudo: `<p>Escreva aqui o conteúdo de estudo oficial para o dia ${i + 1}...</p>`,
       midia: '',
       tipoMidia: 'imagem',
       concluido: false
@@ -111,6 +112,13 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     setModalCriarAberto(false);
   };
 
+  const aplicarFormatacao = (comando, valor = null) => {
+    document.execCommand(comando, false, valor);
+    if (editorRef.current) {
+      setTextoEstudoDia(editorRef.current.innerHTML);
+    }
+  };
+
   const salvarEdicaoDiaAtual = () => {
     if (!planoSelecionado) return;
 
@@ -119,16 +127,19 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       return;
     }
 
+    const conteudoFinal = editorRef.current ? editorRef.current.innerHTML : textoEstudoDia;
+
     const diasAtualizados = [...planoSelecionado.dias];
     diasAtualizados[diaAtivoIndex] = {
       ...diasAtualizados[diaAtivoIndex],
-      conteudoEstudo: textoEstudoDia,
+      conteudoEstudo: conteudoFinal,
       midia: midiaDiaUrl,
       tipoMidia: tipoMidiaDia
     };
 
     const planoAtualizado = { ...planoSelecionado, dias: diasAtualizados };
     setPlanosSelecionadoComAtualizacao(planoAtualizado);
+    alert('Alterações salvas com sucesso! 🚀');
   };
 
   const setPlanosSelecionadoComAtualizacao = (planoAtualizado) => {
@@ -167,9 +178,8 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   return (
     <div className={`w-full max-w-4xl mx-auto px-4 py-8 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
-      {/* Cabeçalho Principal */}
       {!planoSelecionado && (
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-700/40">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-700/20">
           <div>
             <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
               Planos de Estudo 📖
@@ -186,25 +196,23 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* Filtros de Início */}
       {!planoSelecionado && (
-        <div className="flex gap-2 bg-slate-900/40 p-1.5 rounded-2xl border border-slate-800 w-fit">
+        <div className="flex gap-2 bg-slate-900/10 p-1.5 rounded-2xl border border-slate-800/20 w-fit">
           <button 
             onClick={() => setAbaAtivaFiltro('todos')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${abaAtivaFiltro === 'todos' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${abaAtivaFiltro === 'todos' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
           >
             🌟 Sugestões
           </button>
           <button 
             onClick={() => setAbaAtivaFiltro('meus')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${abaAtivaFiltro === 'meus' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${abaAtivaFiltro === 'meus' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
           >
             👤 Meus Planos
           </button>
         </div>
       )}
 
-      {/* Modal Criar Plano */}
       {modalCriarAberto && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -272,7 +280,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* TELA DE APRESENTAÇÃO DO PLANO (Estilo Bible.com) */}
+      {/* TELA DE APRESENTAÇÃO */}
       {planoSelecionado && !modoLeitura && (
         <div className="space-y-6">
           <button onClick={() => setPlanoSelecionado(null)} className="text-xs font-bold text-blue-500 hover:underline inline-block">
@@ -282,8 +290,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
           <div className="space-y-4">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{planoSelecionado.titulo}</h1>
             
-            {/* Capa em Destaque */}
-            <div className="w-full h-64 sm:h-80 rounded-3xl overflow-hidden shadow-xl border border-slate-800 relative">
+            <div className="w-full h-64 sm:h-80 rounded-3xl overflow-hidden shadow-xl border border-slate-800/40 relative">
               <img src={planoSelecionado.capa} alt={planoSelecionado.titulo} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-6">
                 <span className="text-xs bg-blue-600 text-white font-bold px-3 py-1.5 rounded-full shadow-lg">
@@ -292,10 +299,9 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
               </div>
             </div>
 
-            {/* Ações e Progresso */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-transparent border border-slate-800/40">
               <div className="flex items-center gap-3">
-                <span className="text-xs font-bold bg-slate-800 text-slate-300 px-3 py-1.5 rounded-xl">
+                <span className="text-xs font-bold bg-slate-800/20 text-slate-300 px-3 py-1.5 rounded-xl">
                   {planoSelecionado.dias.length} Dias
                 </span>
                 <span className="text-xs font-bold text-emerald-400">
@@ -311,8 +317,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
               </button>
             </div>
 
-            {/* Descrição Completa */}
-            <div className="p-6 rounded-3xl bg-slate-900/30 border border-slate-800 space-y-4 leading-relaxed text-sm opacity-90">
+            <div className="p-6 rounded-3xl bg-transparent border border-slate-800/30 space-y-4 leading-relaxed text-sm opacity-90">
               <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">Sobre o Plano</h3>
               <p>{planoSelecionado.descricao}</p>
             </div>
@@ -320,7 +325,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* TELA DE LEITURA DIÁRIA DO PLANO */}
+      {/* TELA DE LEITURA DIÁRIA (SEM FUNDO CINZA) */}
       {planoSelecionado && modoLeitura && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -332,14 +337,15 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
             </span>
           </div>
 
-          {/* Seletor de Dias */}
           <div className="flex gap-2 overflow-x-auto pb-2">
             {planoSelecionado.dias.map((d, index) => (
               <button
                 key={d.dia}
                 onClick={() => {
                   setDiaAtivoIndex(index);
-                  setTextoEstudoDia(d.conteudoEstudo || '');
+                  const conteudo = d.conteudoEstudo || '';
+                  setTextoEstudoDia(conteudo);
+                  if (editorRef.current) editorRef.current.innerHTML = conteudo;
                   setMidiaDiaUrl(d.midia || '');
                   setTipoMidiaDia(d.tipoMidia || 'imagem');
                 }}
@@ -348,7 +354,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     ? 'bg-blue-600 text-white border-blue-500 shadow-md' 
                     : d.concluido 
                       ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400' 
-                      : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-800'
+                      : 'bg-transparent border-slate-800/50 text-slate-400 hover:text-white'
                 }`}
               >
                 <span>Dia {d.dia}</span>
@@ -357,12 +363,11 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
             ))}
           </div>
 
-          {/* Conteúdo do Dia */}
           {(() => {
             const diaAtual = planoSelecionado.dias[diaAtivoIndex];
             return (
-              <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/50 border border-slate-800 space-y-6 shadow-xl">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4 border-slate-800">
+              <div className="p-2 space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4 border-slate-800/30">
                   <div>
                     <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Dia {diaAtual.dia} de {planoSelecionado.dias.length}</span>
                     <h3 className="text-xl font-black mt-1">{planoSelecionado.titulo}</h3>
@@ -373,7 +378,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     className={`px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm ${
                       diaAtual.concluido 
                         ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                        : 'bg-slate-800/30 text-slate-300 hover:bg-slate-700 border border-slate-700/40'
                     }`}
                   >
                     {diaAtual.concluido ? '✓ Dia Concluído' : 'Marcar como Concluído'}
@@ -382,40 +387,61 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
                 <div className="space-y-4">
                   {souOCriador ? (
-                    <div>
-                      <label className="text-xs font-bold text-blue-400 block mb-2">Painel do Criador (Edição Oficial):</label>
-                      <textarea 
-                        rows="8"
-                        value={textoEstudoDia}
-                        onChange={(e) => setTextoEstudoDia(e.target.value)}
-                        className="w-full text-sm rounded-2xl p-4 border bg-slate-900 border-slate-700 text-white leading-relaxed"
-                      ></textarea>
+                    <div className="space-y-3">
+                      <label className="text-xs font-bold text-blue-400 block">Editor de Conteúdo Profissional:</label>
+                      
+                      {/* Barra de Ferramentas do Editor */}
+                      <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-slate-900/40 border border-slate-800/60">
+                        <button type="button" onClick={() => aplicarFormatacao('bold')} className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 rounded text-white" title="Negrito"><b>B</b></button>
+                        <button type="button" onClick={() => aplicarFormatacao('italic')} className="px-2.5 py-1 text-xs italic bg-slate-800 hover:bg-slate-700 rounded text-white" title="Itálico"><i>I</i></button>
+                        <button type="button" onClick={() => aplicarFormatacao('underline')} className="px-2.5 py-1 text-xs underline bg-slate-800 hover:bg-slate-700 rounded text-white" title="Sublinhado"><u>U</u></button>
+                        <span className="w-px h-5 bg-slate-700 self-center mx-1"></span>
+                        <button type="button" onClick={() => aplicarFormatacao('fontSize', '4')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white" title="Título Médio">Título</button>
+                        <button type="button" onClick={() => aplicarFormatacao('fontSize', '3')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white" title="Texto Normal">Normal</button>
+                        <span className="w-px h-5 bg-slate-700 self-center mx-1"></span>
+                        <button type="button" onClick={() => aplicarFormatacao('justifyLeft')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white" title="Alinhar à Esquerda">Left</button>
+                        <button type="button" onClick={() => aplicarFormatacao('justifyCenter')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white" title="Centralizar">Center</button>
+                      </div>
+
+                      {/* Caixa de Texto Rica (ContentEditable) sem fundo cinza escuro pesado */}
+                      <div 
+                        ref={editorRef}
+                        contentEditable={true}
+                        suppressContentEditableWarning={true}
+                        onInput={(e) => setTextoEstudoDia(e.currentTarget.innerHTML)}
+                        className="w-full min-h-[220px] text-sm sm:text-base rounded-2xl p-4 border border-slate-800/50 bg-transparent focus:outline-none focus:border-blue-500 leading-relaxed text-inherit"
+                        dangerouslySetInnerHTML={{ __html: diaAtual.conteudoEstudo || '' }}
+                      ></div>
+
                       <button 
                         onClick={salvarEdicaoDiaAtual}
-                        className="mt-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition"
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-md"
                       >
                         Salvar Alterações Oficiais 💾
                       </button>
                     </div>
                   ) : (
-                    <div className="prose prose-invert max-w-none text-sm sm:text-base leading-relaxed opacity-90 whitespace-pre-wrap">
-                      {diaAtual.conteudoEstudo || "Nenhum conteúdo publicado para este dia ainda."}
-                    </div>
+                    <div 
+                      className="prose prose-invert max-w-none text-sm sm:text-base leading-relaxed opacity-95"
+                      dangerouslySetInnerHTML={{ __html: diaAtual.conteudoEstudo || "Nenhum conteúdo publicado para este dia ainda." }}
+                    ></div>
                   )}
 
+                  {/* Exibição da Mídia */}
                   {midiaDiaUrl && (
                     <div className="pt-4">
                       {tipoMidiaDia === 'video' ? (
-                        <video src={midiaDiaUrl} controls className="w-full h-64 object-cover rounded-2xl" />
+                        <video src={midiaDiaUrl} controls className="w-full max-h-96 object-contain rounded-2xl border border-slate-800/40" />
                       ) : (
-                        <img src={midiaDiaUrl} alt="Mídia do Estudo" className="w-full h-64 object-cover rounded-2xl" />
+                        <img src={midiaDiaUrl} alt="Mídia do Estudo" className="w-full max-h-96 object-contain rounded-2xl border border-slate-800/40" />
                       )}
                     </div>
                   )}
 
+                  {/* Upload Direto de Imagem sem precisar de link */}
                   {souOCriador && (
-                    <div className="pt-4 border-t border-slate-800 space-y-2">
-                      <label className="text-xs font-bold opacity-70 block">Anexar Mídia para este dia:</label>
+                    <div className="pt-4 border-t border-slate-800/30 space-y-2">
+                      <label className="text-xs font-bold text-blue-400 block">Anexar Imagem ou Vídeo (Upload Direto):</label>
                       <input 
                         type="file" 
                         accept="image/*,video/*" 
@@ -429,8 +455,9 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                             setMidiaDiaUrl(url);
                           }
                         }} 
-                        className="text-xs opacity-75"
+                        className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
                       />
+                      {enviandoMidia && <p className="text-xs text-blue-400 animate-pulse">Carregando arquivo...</p>}
                     </div>
                   )}
                 </div>
@@ -440,11 +467,11 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* LISTA DE PLANOS (Sugestões) */}
+      {/* LISTA DE PLANOS */}
       {!planoSelecionado && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {planosFiltrados.length === 0 ? (
-            <div className="col-span-2 p-12 text-center rounded-3xl border bg-slate-900/30 border-slate-800">
+            <div className="col-span-2 p-12 text-center rounded-3xl border bg-transparent border-slate-800/20">
               <p className="text-xs opacity-60">Nenhum plano encontrado.</p>
             </div>
           ) : (
@@ -462,11 +489,11 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     setMidiaDiaUrl(plano.dias[0]?.midia || '');
                     setTipoMidiaDia(plano.dias[0]?.tipoMidia || 'imagem');
                   }}
-                  className="rounded-3xl border bg-slate-900/40 border-slate-800 overflow-hidden cursor-pointer transition hover:scale-[1.01] hover:border-blue-500/50 shadow-lg flex flex-col"
+                  className="rounded-3xl border bg-transparent border-slate-800/40 overflow-hidden cursor-pointer transition hover:scale-[1.01] hover:border-blue-500/50 shadow-sm flex flex-col"
                 >
                   <div className="h-40 w-full relative">
                     <img src={plano.capa} alt={plano.titulo} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                     <span className="absolute bottom-3 left-3 text-[10px] bg-blue-600 text-white font-bold px-2.5 py-1 rounded-full">
                       {plano.dias.length} Dias
                     </span>
@@ -482,7 +509,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                       <p className="text-xs opacity-75 line-clamp-2 mt-1">{plano.descricao}</p>
                     </div>
 
-                    <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-2">
+                    <div className="w-full h-1.5 bg-slate-800/30 rounded-full overflow-hidden mt-2">
                       <div className="h-full bg-emerald-500" style={{ width: `${progresso}%` }}></div>
                     </div>
                   </div>
