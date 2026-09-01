@@ -65,7 +65,6 @@ export default function App() {
 
   useEffect(() => {
     const tratarRotaUrl = async () => {
-      // Decodifica a URL para ler acentos ou caracteres caso venham codificados (ex: %C3%A3)
       const rawPath = window.location.pathname.replace('/', '').trim();
       const path = decodeURIComponent(rawPath);
       
@@ -86,7 +85,7 @@ export default function App() {
         let perfis = await BancoDeDados.getPerfisCadastrados();
         
         if (!perfis || perfis.length === 0) {
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise(r => setTimeout(r, 400));
           perfis = await BancoDeDados.getPerfisCadastrados();
         }
 
@@ -107,16 +106,37 @@ export default function App() {
         setCarregando(false);
       }
     };
+
     tratarRotaUrl();
     window.addEventListener('popstate', tratarRotaUrl);
     return () => window.removeEventListener('popstate', tratarRotaUrl);
   }, []);
 
-  const navegarPara = (rota, aba) => {
+  const navegarPara = async (rota, aba) => {
     window.history.pushState({}, '', rota);
     setAbaPrincipal(aba);
-    if (aba !== 'perfilUrl') setPerfilUrlAlvo(null);
     setMenuAberto(false);
+
+    if (aba === 'perfilUrl') {
+      const usernameAlvo = decodeURIComponent(rota.replace('/', '').trim());
+      setCarregando(true);
+      let perfis = await BancoDeDados.getPerfisCadastrados();
+      const encontrado = perfis.find(p => p.username.toLowerCase() === usernameAlvo.toLowerCase());
+      
+      if (encontrado) {
+        setPerfilUrlAlvo(encontrado);
+      } else {
+        setPerfilUrlAlvo({ 
+          username: usernameAlvo, 
+          nome: usernameAlvo, 
+          foto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80', 
+          biografia: 'Praticando a fé e o amor ao próximo.' 
+        });
+      }
+      setCarregando(false);
+    } else {
+      setPerfilUrlAlvo(null);
+    }
   };
 
   useEffect(() => {
