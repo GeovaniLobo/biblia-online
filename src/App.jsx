@@ -302,7 +302,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setDarkMode(!darkMode)}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs transition flex items-center justify-center"
+                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs transition flex items-center justify-center cursor-pointer"
                 title="Alternar Tema"
               >
                 {darkMode ? (
@@ -313,7 +313,7 @@ export default function App() {
               </button>
               <button
                 onClick={() => setMenuAberto(false)}
-                className="md:hidden p-1.5 rounded-lg bg-slate-800 text-white text-xs"
+                className="md:hidden p-1.5 rounded-lg bg-slate-800 text-white text-xs cursor-pointer"
               >
                 ✕
               </button>
@@ -337,7 +337,7 @@ export default function App() {
                       setUsuarioLogado(null);
                       navegarPara('/', 'biblia');
                     }}
-                    className="text-[10px] text-red-400 bg-red-500/10 px-2 py-1 rounded"
+                    className="text-[10px] text-red-400 bg-red-500/10 px-2 py-1 rounded cursor-pointer"
                   >
                     Sair
                   </button>
@@ -345,7 +345,7 @@ export default function App() {
 
                 <button
                   onClick={() => navegarPara('/editarPerfil', 'editarPerfil')}
-                  className="w-full bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold py-1.5 rounded-lg transition"
+                  className="w-full bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold py-1.5 rounded-lg transition cursor-pointer"
                 >
                   Editar Perfil
                 </button>
@@ -356,7 +356,7 @@ export default function App() {
                     navigator.clipboard.writeText(link);
                     alert(`Link copiado: ${link}`);
                   }}
-                  className="w-full bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold py-1.5 rounded-lg"
+                  className="w-full bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold py-1.5 rounded-lg cursor-pointer"
                 >
                   Copiar Meu Link de Perfil
                 </button>
@@ -364,7 +364,7 @@ export default function App() {
             ) : (
               <button
                 onClick={() => { setModalLoginAberto(true); setMenuAberto(false); }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-lg shadow-md flex items-center justify-center gap-1.5"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-lg shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 Entrar na Comunidade
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
@@ -378,7 +378,7 @@ export default function App() {
                   setVersaoSelecionada(e.target.value);
                   setCapituloAtual(1);
                 }}
-                className="w-full bg-slate-800 border border-slate-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none"
+                className="w-full bg-slate-800 border border-slate-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none cursor-pointer"
               >
                 {traducoesDisponiveis.map((t) => (
                   <option key={t.id} value={t.id}>{t.nome}</option>
@@ -390,7 +390,7 @@ export default function App() {
             <div className="grid grid-cols-2 gap-1 mt-2 bg-slate-800 p-1 rounded-lg text-center">
               <button
                 onClick={() => navegarPara('/', 'biblia')}
-                className={`text-[11px] py-1 rounded font-medium ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+                className={`text-[11px] py-1 rounded font-medium cursor-pointer ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
               >
                 Bíblia
               </button>
@@ -399,7 +399,7 @@ export default function App() {
                   if (!usuarioLogado) setModalLoginAberto(true);
                   else navegarPara('/devocional', 'devocional');
                 }}
-                className={`text-[11px] py-1 rounded font-medium ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+                className={`text-[11px] py-1 rounded font-medium cursor-pointer ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
               >
                 Devocionais
               </button>
@@ -408,7 +408,7 @@ export default function App() {
                   if (!usuarioLogado) setModalLoginAberto(true);
                   else navegarPara('/planos', 'planos');
                 }}
-                className={`text-[11px] py-1 rounded font-medium ${abaPrincipal === 'planos' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+                className={`text-[11px] py-1 rounded font-medium cursor-pointer ${abaPrincipal === 'planos' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
               >
                 Planos
               </button>
@@ -417,7 +417,7 @@ export default function App() {
                   if (!usuarioLogado) setModalLoginAberto(true);
                   else navegarPara('/comunidade', 'comunidade');
                 }}
-                className={`text-[11px] py-1 rounded font-medium relative flex items-center justify-center gap-1 ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+                className={`text-[11px] py-1 rounded font-medium relative flex items-center justify-center gap-1 cursor-pointer ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
               >
                 Comunidade
                 {totalNaoLidas > 0 && (
@@ -441,7 +441,7 @@ export default function App() {
                       setCapituloAtual(1);
                       setMenuAberto(false);
                     }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium flex justify-between items-center ${
+                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium flex justify-between items-center cursor-pointer ${
                       livroIndex === index ? "bg-blue-600 text-white shadow-md" : "hover:bg-slate-800 text-slate-300"
                     }`}
                   >
@@ -469,7 +469,7 @@ export default function App() {
             {!modoFoco && (
               <button
                 onClick={() => setMenuAberto(!menuAberto)}
-                className={`p-2 rounded-lg text-xs font-semibold transition ${darkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}
+                className={`p-2 rounded-lg text-xs font-semibold transition cursor-pointer ${darkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}
               >
                 ☰ Menu / Livros
               </button>
@@ -492,7 +492,7 @@ export default function App() {
                     setCapituloAtual(Number(e.target.value));
                     setVersiculosSelecionados([]);
                   }}
-                  className={`text-xs font-bold rounded-lg px-2 py-1.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-blue-400' : 'bg-slate-100 border-slate-300 text-blue-600'}`}
+                  className={`text-xs font-bold rounded-lg px-2 py-1.5 border cursor-pointer ${darkMode ? 'bg-slate-800 border-slate-700 text-blue-400' : 'bg-slate-100 border-slate-300 text-blue-600'}`}
                 >
                   {Array.from({ length: totalCapitulosDoLivro }, (_, i) => i + 1).map((numCap) => (
                     <option key={numCap} value={numCap}>
@@ -508,7 +508,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setModoFoco(!modoFoco)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${modoFoco ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-700/20 border-slate-600'}`}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition cursor-pointer ${modoFoco ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-700/20 border-slate-600'}`}
                 title="Modo Leitura Imersiva / Foco"
               >
                 {modoFoco ? '📖 Sair do Modo Foco' : '✨ Modo Foco'}
@@ -517,7 +517,7 @@ export default function App() {
               <select
                 value={tamanhoFonte}
                 onChange={(e) => setTamanhoFonte(e.target.value)}
-                className={`text-xs rounded-lg px-2 py-1 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300'}`}
+                className={`text-xs rounded-lg px-2 py-1 border cursor-pointer ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300'}`}
               >
                 <option value="text-sm">Fonte Pequena</option>
                 <option value="text-base sm:text-lg">Fonte Normal</option>
@@ -540,14 +540,14 @@ export default function App() {
                 <button 
                   onClick={() => { setCapituloAtual((prev) => Math.max(prev - 1, 1)); setVersiculosSelecionados([]); }}
                   disabled={capituloAtual === 1}
-                  className={`px-2.5 py-1 text-xs rounded font-medium disabled:opacity-40 ${darkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}
+                  className={`px-2.5 py-1 text-xs rounded font-medium disabled:opacity-40 cursor-pointer ${darkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}
                 >
                   ←
                 </button>
                 <button 
                   onClick={() => { setCapituloAtual((prev) => Math.min(prev + 1, totalCapitulosDoLivro)); setVersiculosSelecionados([]); }}
                   disabled={capituloAtual === totalCapitulosDoLivro}
-                  className="px-2.5 py-1 bg-blue-600 disabled:opacity-40 text-xs rounded font-medium text-white"
+                  className="px-2.5 py-1 bg-blue-600 disabled:opacity-40 text-xs rounded font-medium text-white cursor-pointer"
                 >
                   →
                 </button>
@@ -577,7 +577,7 @@ export default function App() {
                             setTermoBusca('');
                           }
                         }}
-                        className="text-[11px] text-blue-400 hover:underline"
+                        className="text-[11px] text-blue-400 hover:underline cursor-pointer"
                       >
                         Ir para o capítulo →
                       </button>
@@ -625,11 +625,11 @@ export default function App() {
                           </p>
 
                           <div className="flex items-center justify-end gap-2 pt-2 sm:pt-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => setNotaVersiculoAtiva(chaveMarcacao)} className="text-xs bg-slate-700/20 hover:bg-slate-700/40 px-2 py-1 rounded" title="Adicionar Nota">📝</button>
+                            <button onClick={() => setNotaVersiculoAtiva(chaveMarcacao)} className="text-xs bg-slate-700/20 hover:bg-slate-700/40 px-2 py-1 rounded cursor-pointer" title="Adicionar Nota">📝</button>
 
                             <button
                               onClick={() => toggleFavorito(livroAtualObj.name, capituloAtual, numeroV, textoVersiculo)}
-                              className={`text-sm px-1.5 py-0.5 rounded ${isFavorito ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
+                              className={`text-sm px-1.5 py-0.5 rounded cursor-pointer ${isFavorito ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
                               title="Favoritar"
                             >
                               {isFavorito ? '❤️' : '🤍'}
@@ -653,8 +653,8 @@ export default function App() {
                               className="w-full text-xs p-2 rounded bg-slate-900 border border-slate-700 text-white"
                             />
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => setNotaVersiculoAtiva(null)} className="text-xs px-2 py-1 opacity-70">Cancelar</button>
-                              <button onClick={() => salvarNotaVersiculo(chaveMarcacao)} className="bg-blue-600 text-white text-xs px-3 py-1 rounded font-bold">Salvar Nota</button>
+                              <button onClick={() => setNotaVersiculoAtiva(null)} className="text-xs px-2 py-1 opacity-70 cursor-pointer">Cancelar</button>
+                              <button onClick={() => salvarNotaVersiculo(chaveMarcacao)} className="bg-blue-600 text-white text-xs px-3 py-1 rounded font-bold cursor-pointer">Salvar Nota</button>
                             </div>
                           </div>
                         )}
@@ -682,14 +682,26 @@ export default function App() {
             />
           )}
 
-          {abaPrincipal === 'perfilUrl' && perfilUrlAlvo && usuarioLogado && (
-            <PerfilPublico
-              perfilAlvo={perfilUrlAlvo}
-              usuarioLogado={usuarioLogado}
-              onVoltar={() => navegarPara('/comunidade', 'comunidade')}
-              darkMode={darkMode}
-              onToggleDarkMode={() => setDarkMode(!darkMode)}
-            />
+          {abaPrincipal === 'perfilUrl' && (
+            perfilUrlAlvo ? (
+              <PerfilPublico
+                perfilAlvo={perfilUrlAlvo}
+                usuarioLogado={usuarioLogado}
+                onVoltar={() => navegarPara(usuarioLogado ? '/comunidade' : '/', usuarioLogado ? 'comunidade' : 'biblia')}
+                darkMode={darkMode}
+                onToggleDarkMode={() => setDarkMode(!darkMode)}
+              />
+            ) : (
+              <div className="p-12 text-center space-y-4">
+                <p className="text-xs opacity-60 animate-pulse">Carregando perfil...</p>
+                <button
+                  onClick={() => navegarPara('/', 'biblia')}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Ir para o Início
+                </button>
+              </div>
+            )
           )}
 
           {abaPrincipal === 'editarPerfil' && usuarioLogado && (
@@ -714,22 +726,22 @@ export default function App() {
 
             <div className="flex items-center gap-2">
               <span className="text-[10px] opacity-75">Destacar:</span>
-              <button onClick={() => destacarVersiculosSelecionados('bg-amber-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-amber-400 shadow" title="Amarelo"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-emerald-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-emerald-500 shadow" title="Verde"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-blue-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-blue-500 shadow" title="Azul"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-pink-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-pink-500 shadow" title="Rosa"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-amber-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-amber-400 shadow cursor-pointer" title="Amarelo"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-emerald-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-emerald-500 shadow cursor-pointer" title="Verde"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-blue-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-blue-500 shadow cursor-pointer" title="Azul"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-pink-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-pink-500 shadow cursor-pointer" title="Rosa"></button>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 onClick={copiarVersiculosSelecionados}
-                className="bg-slate-800 text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-slate-700 transition"
+                className="bg-slate-800 text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-slate-700 transition cursor-pointer"
               >
                 📋 {copiadoFeedback ? 'Copiado!' : 'Copiar'}
               </button>
               <button
                 onClick={() => setVersiculosSelecionados([])}
-                className="text-xs text-slate-400 px-2 py-1"
+                className="text-xs text-slate-400 px-2 py-1 cursor-pointer"
               >
                 ✕
               </button>
