@@ -19,11 +19,20 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   
   const [carregandoComunidade, setCarregandoComunidade] = useState(true);
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
+  
+  // Estados do Chat Flutuante Atualizados
   const [chatComUsuario, setChatComUsuario] = useState(null);
   const [mensagensChat, setMensagensChat] = useState([]);
   const [textoMensagemChat, setTextoMensagemChat] = useState('');
   const [enviandoMidia, setEnviandoMidia] = useState(false);
   const [mostrarEmojisChat, setMostrarEmojisChat] = useState(false);
+  const [visualizacaoUnicaChat, setVisualizacaoUnicaChat] = useState(false);
+  const [mensagensVisualizadasChat, setMensagensVisualizadasChat] = useState({});
+
+  const emojisListaCompleta = [
+    '😊', '😂', '❤️', '🔥', '✨', '👏', '🙏', '😍', '🎉', '💡',
+    '👍', '😎', '😢', '⭐', '🙌', '💪', '🥳', '👇', '🚀', '🕊️'
+  ];
 
   const [abaNotificacoesAberta, setAbaNotificacoesAberta] = useState(false);
   const [abaSolicitacoesAberta, setAbaSolicitacoesAberta] = useState(false);
@@ -366,15 +375,33 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setNotificacoes(notifsAtualizadas || []);
   };
 
-  const enviarMensagemChat = async (e) => {
-    e.preventDefault();
-    if (!textoMensagemChat.trim() || !chatComUsuario) return;
+  // Funções atualizadas para o Chat Flutuante
+  const enviarMensagemChat = async (e, arquivoMidia = null, tipoMidia = null) => {
+    if (e) e.preventDefault();
+    if (!textoMensagemChat.trim() && !arquivoMidia) return;
     
+    let urlMidia = arquivoMidia;
+    if (arquivoMidia && typeof arquivoMidia !== 'string') {
+      setEnviandoMidia(true);
+      try {
+        if (typeof BancoDeDados.uploadMidiaStory === 'function') {
+          urlMidia = await BancoDeDados.uploadMidiaStory(arquivoMidia);
+        }
+      } catch (err) {}
+      if (!urlMidia) {
+        urlMidia = await processarArquivoParaUrl(arquivoMidia);
+      }
+      setEnviandoMidia(false);
+    }
+
     const novaMsg = {
       id: Date.now(),
       remetente: usuarioLogado.username,
       destinatario: chatComUsuario,
-      texto: textoMensagemChat.trim(),
+      texto: textoMensagemChat.trim() || (tipoMidia === 'video' ? '[Vídeo]' : '[Imagem]'),
+      midia: urlMidia || null,
+      tipoMidia: tipoMidia || null,
+      visualizacaoUnica: visualizacaoUnicaChat,
       horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
@@ -386,41 +413,27 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       setMensagensChat(prev => [...prev, novaMsg]);
     }
     setTextoMensagemChat('');
+    setVisualizacaoUnicaChat(false);
     setMostrarEmojisChat(false);
   };
 
-  const enviarMidiaChat = async (e, tipo) => {
+  const lidarComEnvioMidiaChat = async (e) => {
     const file = e.target.files[0];
     if (!file || !chatComUsuario) return;
-    setEnviandoMidia(true);
-    
-    let urlMidia = '';
-    try {
-      if (typeof BancoDeDados.uploadMidiaStory === 'function') {
-        urlMidia = await BancoDeDados.uploadMidiaStory(file);
-      }
-    } catch (err) {}
-    if (!urlMidia) {
-      urlMidia = await processarArquivoParaUrl(file);
+    const tipo = file.type.startsWith('video') ? 'video' : 'imagem';
+    await enviarMensagemChat(null, file, tipo);
+  };
+
+  const apagarMensagemChatParaTodos = async (msgId) => {
+    if (window.confirm('Deseja apagar esta mensagem para todos?')) {
+      const novasMensagens = mensagensChat.filter(m => m.id !== msgId);
+      setMensagensChat(novasMensagens);
     }
-    setEnviandoMidia(false);
+  };
 
-    const novaMsg = {
-      id: Date.now(),
-      remetente: usuarioLogado.username,
-      destinatario: chatComUsuario,
-      texto: tipo === 'video' ? '[Vídeo]' : '[Imagem]',
-      midia: urlMidia,
-      tipoMidia: tipo,
-      horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    if (typeof BancoDeDados.enviarMensagemChat === 'function') {
-      await BancoDeDados.enviarMensagemChat(novaMsg);
-      const msgsAtualizadas = await BancoDeDados.getMensagensChat(usuarioLogado.username, chatComUsuario);
-      setMensagensChat(msgsAtualizadas || []);
-    } else {
-      setMensagensChat(prev => [...prev, novaMsg]);
+  const limparConversaChat = async () => {
+    if (window.confirm('Deseja limpar todo o histórico desta conversa?')) {
+      setMensagensChat([]);
     }
   };
 
@@ -1867,21 +1880,45 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
       </div>
 
+      {/* Janela do Chat Flutuante Atualizada */}
       {chatComUsuario ? (
-        <div className="fixed bottom-4 right-4 z-50 w-[360px] sm:w-[380px] h-[500px] max-h-[85vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden backdrop-blur-md bg-slate-900 border-slate-700 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed bottom-4 right-4 z-50 w-[360px] sm:w-[380px] h-[520px] max-h-[85vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden backdrop-blur-md bg-slate-900 border-slate-700 animate-in fade-in zoom-in-95 duration-200">
+          
+          {/* Cabeçalho do Chat */}
           <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0"></span>
-              <span className="text-[11px] font-extrabold text-white uppercase tracking-wider truncate">Chat com @{chatComUsuario}</span>
-            </div>
-            <button 
-              onClick={() => setChatComUsuario(null)} 
-              className="text-[11px] font-bold text-slate-400 hover:text-white px-2 py-1 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition flex-shrink-0"
+            <div 
+              onClick={() => { setChatComUsuario(null); abrirPerfilPorUsername(chatComUsuario); }}
+              className="flex items-center gap-2.5 min-w-0 cursor-pointer group"
             >
-              ✕ Minimizar
-            </button>
+              <img 
+                src={perfisReais.find(p => p.username === chatComUsuario)?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
+                className="w-8 h-8 rounded-full object-cover border border-blue-500 shadow-sm flex-shrink-0" 
+                alt="Perfil"
+              />
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-white block truncate group-hover:underline">@{chatComUsuario}</span>
+                <span className="text-[10px] text-blue-400 block">Chat Privado</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={limparConversaChat}
+                className="text-[10px] font-bold text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 px-2 py-1 rounded-lg transition"
+                title="Limpar Conversa"
+              >
+                Limpar
+              </button>
+              <button 
+                onClick={() => setChatComUsuario(null)} 
+                className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
+          {/* Histórico do Chat com Fotos e Opção de Apagar */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-950/60 flex flex-col">
             {mensagensChat.length === 0 ? (
               <div className="text-center my-auto opacity-50 text-xs text-slate-400">
@@ -1890,19 +1927,52 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             ) : (
               mensagensChat.map((m, idx) => {
                 const souEu = m.remetente === usuarioLogado.username;
+                const fotoAvatar = souEu ? fotoPerfilOficial : (perfisReais.find(p => p.username === chatComUsuario)?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80');
+                const jaViu = mensagensVisualizadasChat[m.id];
+
                 return (
-                  <div key={idx} className={`flex flex-col max-w-[80%] ${souEu ? 'ml-auto items-end' : 'mr-auto items-start'}`}>
-                    <div className={`p-3 rounded-2xl text-xs shadow-sm ${souEu ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'}`}>
-                      {m.midia ? (
-                        m.tipoMidia === 'video' ? (
-                          <video src={m.midia} controls className="w-48 h-36 object-cover rounded-xl mb-1" />
+                  <div key={m.id || idx} className={`flex items-end gap-2 ${souEu ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}>
+                    <img src={fotoAvatar} className="w-6 h-6 rounded-full object-cover border border-slate-600 flex-shrink-0 mb-1" alt="Avatar" />
+                    
+                    <div className={`flex flex-col max-w-[75%] ${souEu ? 'items-end' : 'items-start'}`}>
+                      <div className={`p-3 rounded-2xl text-xs shadow-sm relative group ${souEu ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'}`}>
+                        
+                        {m.visualizacaoUnica && !souEu && !jaViu ? (
+                          <div 
+                            onClick={() => setMensagensVisualizadasChat(prev => ({ ...prev, [m.id]: true }))}
+                            className="cursor-pointer bg-blue-500/20 border border-blue-400/40 p-2 rounded-xl text-center space-y-1 hover:bg-blue-500/30 transition"
+                          >
+                            <span className="text-xs">👁️ Mídia Única</span>
+                            <p className="text-[9px] underline font-bold text-blue-300">Clique para ver</p>
+                          </div>
                         ) : (
-                          <img src={m.midia} alt="Mídia" className="w-48 h-36 object-cover rounded-xl mb-1" />
-                        )
-                      ) : null}
-                      <p className="break-words">{m.texto}</p>
+                          <>
+                            {m.midia && (!m.visualizacaoUnica || souEu || jaViu) ? (
+                              m.tipoMidia === 'video' ? (
+                                <video src={m.midia} controls className="w-44 h-32 object-cover rounded-xl mb-1" />
+                              ) : (
+                                <img src={m.midia} alt="Mídia" className="w-44 h-32 object-cover rounded-xl mb-1" />
+                              )
+                            ) : null}
+
+                            {(!m.visualizacaoUnica || souEu || jaViu) && <p className="break-words leading-relaxed">{m.texto}</p>}
+                          </>
+                        )}
+
+                        <div className="flex items-center justify-between gap-3 pt-1">
+                          {souEu && (
+                            <button 
+                              onClick={() => apagarMensagemChatParaTodos(m.id)}
+                              className="text-[9px] opacity-70 hover:opacity-100 text-red-200 hover:underline"
+                              title="Apagar para todos"
+                            >
+                              Apagar
+                            </button>
+                          )}
+                          <span className="text-[9px] opacity-60 ml-auto">{m.horario}</span>
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-[9px] opacity-50 mt-1">{m.horario}</span>
                   </div>
                 );
               })
@@ -1910,14 +1980,15 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             <div ref={chatFimRef} />
           </div>
 
+          {/* Seletor de Emojis Completo */}
           {mostrarEmojisChat && (
-            <div className="bg-slate-800 p-2 border-t border-slate-700 flex gap-2 flex-wrap justify-around">
-              {['😊', '❤️', '🙏', '🔥', '✨', '👏', '😂', '👍', '🎉', '💡'].map(emoji => (
+            <div className="bg-slate-800 p-2 border-t border-slate-700 grid grid-cols-10 gap-1 max-h-32 overflow-y-auto">
+              {emojisListaCompleta.map((emoji, i) => (
                 <button 
-                  key={emoji} 
+                  key={i} 
                   type="button" 
                   onClick={() => setTextoMensagemChat(prev => prev + emoji)}
-                  className="text-lg hover:scale-125 transition"
+                  className="text-lg hover:scale-125 transition text-center p-0.5"
                 >
                   {emoji}
                 </button>
@@ -1925,39 +1996,54 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
           )}
 
-          <form onSubmit={enviarMensagemChat} className="p-3 bg-slate-900 border-t border-slate-700 flex items-center gap-2">
-            <button 
-              type="button" 
-              onClick={() => setMostrarEmojisChat(!mostrarEmojisChat)}
-              className="text-slate-400 hover:text-white p-1.5 transition text-base"
-              title="Emojis"
-            >
-              😊
-            </button>
+          {/* Input e Controles de Envio */}
+          <form onSubmit={enviarMensagemChat} className="p-3 bg-slate-900 border-t border-slate-700 space-y-2">
+            <div className="flex items-center gap-2">
+              <button 
+                type="button" 
+                onClick={() => setMostrarEmojisChat(!mostrarEmojisChat)}
+                className="text-slate-400 hover:text-white p-1.5 transition text-base"
+                title="Lista de Emojis"
+              >
+                😊
+              </button>
 
-            <label className="text-slate-400 hover:text-white p-1.5 cursor-pointer transition text-base" title="Enviar Imagem">
-              📷
-              <input type="file" accept="image/*" onChange={(e) => enviarMidiaChat(e, 'imagem')} className="hidden" />
-            </label>
+              <label className="text-slate-400 hover:text-white p-1.5 cursor-pointer transition" title="Enviar Imagem ou Vídeo">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <input type="file" accept="image/*,video/*" onChange={lidarComEnvioMidiaChat} className="hidden" />
+              </label>
 
-            <label className="text-slate-400 hover:text-white p-1.5 cursor-pointer transition text-base" title="Enviar Vídeo">
-              📹
-              <input type="file" accept="video/*" onChange={(e) => enviarMidiaChat(e, 'video')} className="hidden" />
-            </label>
+              <input 
+                type="text" 
+                placeholder={enviandoMidia ? "Enviando..." : "Digite sua mensagem..."}
+                disabled={enviandoMidia}
+                value={textoMensagemChat}
+                onChange={(e) => setTextoMensagemChat(e.target.value)}
+                className="flex-1 bg-slate-800 text-xs text-white rounded-xl px-3.5 py-2.5 border border-slate-700 focus:outline-none focus:border-blue-500"
+              />
 
-            <input 
-              type="text" 
-              placeholder={enviandoMidia ? "Processando..." : "Digite sua mensagem..."}
-              disabled={enviandoMidia}
-              value={textoMensagemChat}
-              onChange={(e) => setTextoMensagemChat(e.target.value)}
-              className="flex-1 bg-slate-800 text-xs text-white rounded-xl px-3 py-2 border border-slate-700 focus:outline-none focus:border-blue-500"
-            />
+              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition shadow-sm">
+                Enviar
+              </button>
+            </div>
 
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-xl font-bold transition shadow-sm">
-              Enviar
-            </button>
+            {/* Checkbox Visualização Única no Chat Flutuante */}
+            <div className="flex items-center gap-2 pl-1">
+              <input 
+                type="checkbox" 
+                id="visUnicaChatFlutuante"
+                checked={visualizacaoUnicaChat} 
+                onChange={(e) => setVisualizacaoUnicaChat(e.target.checked)} 
+                className="w-3.5 h-3.5 rounded border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <label htmlFor="visUnicaChatFlutuante" className="text-[10px] font-semibold text-slate-300 cursor-pointer select-none">
+                👁️ Visualização única
+              </label>
+            </div>
           </form>
+
         </div>
       ) : (
         <div className="fixed bottom-6 right-6 z-50">
