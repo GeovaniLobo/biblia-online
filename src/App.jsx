@@ -96,41 +96,50 @@ export default function App() {
       if (!path || path === 'biblia') {
         setAbaPrincipal('biblia');
         setPerfilUrlAlvo(null);
+        setCarregando(false);
       } else if (path === 'comunidade') {
         setAbaPrincipal('comunidade');
         setPerfilUrlAlvo(null);
+        setCarregando(false);
       } else if (path === 'devocional') {
         setAbaPrincipal('devocional');
         setPerfilUrlAlvo(null);
+        setCarregando(false);
       } else if (path === 'planos') {
         setAbaPrincipal('planos');
         setPerfilUrlAlvo(null);
+        setCarregando(false);
       } else if (path === 'editarPerfil') {
         setAbaPrincipal('editarPerfil');
         setPerfilUrlAlvo(null);
+        setCarregando(false);
       } else {
         setCarregando(true);
-        let perfis = await BancoDeDados.getPerfisCadastrados();
+        let perfis = [];
         
-        if (!perfis || perfis.length === 0) {
-          await new Promise(r => setTimeout(r, 500));
+        // Tenta buscar os perfis com retentativas rápidas caso o banco demore a responder
+        for (let i = 0; i < 5; i++) {
           perfis = await BancoDeDados.getPerfisCadastrados();
+          if (perfis && perfis.length > 0) break;
+          await new Promise(r => setTimeout(r, 200));
         }
 
-        const encontrado = perfis.find(p => p.username.toLowerCase() === path.toLowerCase());
+        const encontrado = perfis?.find(p => p.username.toLowerCase() === path.toLowerCase());
         
         if (encontrado) {
           setPerfilUrlAlvo(encontrado);
-          setAbaPrincipal('perfilUrl');
         } else {
+          // Fallback caso o perfil exista na URL mas ainda não esteja na lista sincronizada
           setPerfilUrlAlvo({ 
             username: path, 
             nome: path, 
             foto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80', 
-            biografia: 'Praticando a fé e o amor ao próximo.' 
+            biografia: 'Praticando a fé e o amor ao próximo.',
+            amigos: [],
+            verificado: false
           });
-          setAbaPrincipal('perfilUrl');
         }
+        setAbaPrincipal('perfilUrl');
         setCarregando(false);
       }
     };
