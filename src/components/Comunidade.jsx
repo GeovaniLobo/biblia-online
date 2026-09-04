@@ -16,7 +16,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [notificacoes, setNotificacoes] = useState([]);
   const [pedidosOracao, setPedidosOracao] = useState([]);
   const [stories, setStories] = useState([]);
-  const [grupos, setGrupos] = useState([]);
   
   const [carregandoComunidade, setCarregandoComunidade] = useState(true);
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
@@ -28,9 +27,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
   const [abaNotificacoesAberta, setAbaNotificacoesAberta] = useState(false);
   const [abaSolicitacoesAberta, setAbaSolicitacoesAberta] = useState(false);
-  const [modalCriarGrupoAberto, setModalCriarGrupoAberto] = useState(false);
-  const [nomeNovoGrupo, setNomeNovoGrupo] = useState('');
-  const [descNovoGrupo, setDescNovoGrupo] = useState('');
 
   const [postDetalheId, setPostDetalheId] = useState(null);
   const [menuOpcoesPostAberto, setMenuOpcoesPostAberto] = useState(null);
@@ -97,6 +93,14 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     </span>
   );
 
+  // Função auxiliar para verificar se o usuário está online de verdade (ativo nos últimos 45 segundos)
+  const estaOnline = (ultimoAcessoTimestamp) => {
+    if (!ultimoAcessoTimestamp) return false;
+    const agora = Date.now();
+    const diferencaSegundos = (agora - Number(ultimoAcessoTimestamp)) / 1000;
+    return diferencaSegundos <= 45;
+  };
+
   useEffect(() => {
     let montado = true;
     async function carregarDadosIniciais() {
@@ -110,12 +114,13 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           data_nascimento: usuarioLogado.dataNascimento || ''
         });
 
+        await BancoDeDados.atualizarUltimoAcesso(usuarioLogado.username);
+
         const perfis = await BancoDeDados.getPerfisCadastrados();
         const pubs = await BancoDeDados.getPublicacoes();
         const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
         const pedidos = await BancoDeDados.getPedidosOracao();
         const strs = await BancoDeDados.getStories();
-        const grps = await BancoDeDados.getGrupos();
 
         if (montado) {
           setPerfisReais(perfis || []);
@@ -123,7 +128,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           setNotificacoes(notifs || []);
           setPedidosOracao(pedidos || []);
           setStories(strs || []);
-          setGrupos(grps || []);
 
           const meuPerfil = perfis.find(p => p.username === usuarioLogado.username);
           if (meuPerfil && meuPerfil.verificado) {
@@ -154,6 +158,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
     carregarDadosIniciais();
 
+    // Heartbeat a cada 20 segundos para manter o status online real atualizado
+    const intervaloHeartbeat = setInterval(() => {
+      BancoDeDados.atualizarUltimoAcesso(usuarioLogado.username);
+    }, 20000);
+
     const intervalo = setInterval(async () => {
       try {
         const pubs = await BancoDeDados.getPublicacoes();
@@ -161,7 +170,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         const perfis = await BancoDeDados.getPerfisCadastrados();
         const pedidos = await BancoDeDados.getPedidosOracao();
         const strs = await BancoDeDados.getStories();
-        const grps = await BancoDeDados.getGrupos();
 
         if (montado) {
           setPublicacoes(pubs || []);
@@ -169,7 +177,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           setPerfisReais(perfis || []);
           setPedidosOracao(pedidos || []);
           setStories(strs || []);
-          setGrupos(grps || []);
         }
       } catch (e) {}
     }, 5000);
@@ -177,6 +184,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return () => {
       montado = false;
       clearInterval(intervalo);
+      clearInterval(intervaloHeartbeat);
     };
   }, [usuarioLogado]);
 
@@ -708,6 +716,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     const nomeAtualizado = perfilAutorReal.nome || post.autor;
     const autorVerificado = perfilAutorReal.verificado;
     const autorTemStory = storiesFiltradosAmigos.some(s => s.username === post.username);
+    const autorOnline = estaOnline(perfilAutorReal.ultimo_acesso);
 
     const reacoes = post.reacoes || { amem: [], aleluia: [], amor: [] };
     const meuAmem = (reacoes.amem || []).includes(usuarioLogado.username);
@@ -724,7 +733,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           >
             <div className={`relative w-12 h-12 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${autorTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse' : 'border-2 border-blue-500/30'}`}>
               <img src={avatarAtualizado} alt="Avatar" className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
+              {autorOnline && <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full" title="Online agora"></span>}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1">
@@ -883,6 +892,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 const fotoComentario = perfilAutorComentario.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
                 const autorComentarioVerificado = perfilAutorComentario.verificado;
                 const autorComentarioTemStory = storiesFiltradosAmigos.some(s => s.username === c.username);
+                const autorComentarioOnline = estaOnline(perfilAutorComentario.ultimo_acesso);
 
                 const reacoesComentario = c.reacoes || { amem: [], aleluia: [], amor: [] };
                 const meuAmemCom = (reacoesComentario.amem || []).includes(usuarioLogado.username);
@@ -907,7 +917,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         className={`relative w-7 h-7 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${autorComentarioTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-sm' : ''}`}
                       >
                         <img src={fotoComentario} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-                        <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-slate-900 rounded-full"></span>
+                        {autorComentarioOnline && <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-slate-900 rounded-full" title="Online agora"></span>}
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center justify-between">
@@ -1089,6 +1099,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     const perfilNotif = perfisReais.find(p => p.username === usernameNotif) || {};
                     const fotoNotif = perfilNotif.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
                     const temStoryNotif = storiesFiltradosAmigos.some(s => s.username === usernameNotif);
+                    const notifOnline = estaOnline(perfilNotif.ultimo_acesso);
 
                     return (
                       <div key={idx} className={`p-3 rounded-2xl border text-xs flex items-center gap-3 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
@@ -1098,7 +1109,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                             className={`relative w-9 h-9 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${temStoryNotif ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-md' : ''}`}
                           >
                             <img src={fotoNotif} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-slate-900 rounded-full"></span>
+                            {notifOnline && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-slate-900 rounded-full" title="Online agora"></span>}
                           </div>
                         ) : (
                           <div className="w-9 h-9 rounded-full bg-blue-600/20 text-blue-500 flex items-center justify-center font-bold flex-shrink-0">🔔</div>
@@ -1122,7 +1133,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             title="Meu Perfil"
           >
             <img src={fotoPerfilOficial} alt="Meu Perfil" className="w-full h-full rounded-full object-cover" />
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full" title="Online agora"></span>
           </div>
         </div>
       </div>
@@ -1177,63 +1188,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   );
                 })
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {modalCriarGrupoAberto && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            <div className="flex justify-between items-center border-b pb-3 border-slate-700">
-              <h3 className="font-extrabold text-sm">✨ Criar Grupo ou Célula de Estudo</h3>
-              <button onClick={() => setModalCriarGrupoAberto(false)} className="text-sm font-bold">✕</button>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-bold opacity-70 block mb-1">Nome do Grupo:</label>
-                <input 
-                  type="text" 
-                  placeholder="Ex: Jovens Fazedores de História" 
-                  value={nomeNovoGrupo} 
-                  onChange={(e) => setNomeNovoGrupo(e.target.value)} 
-                  className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} 
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold opacity-70 block mb-1">Descrição / Objetivo:</label>
-                <textarea 
-                  rows="3" 
-                  placeholder="Qual o propósito deste grupo?" 
-                  value={descNovoGrupo} 
-                  onChange={(e) => setDescNovoGrupo(e.target.value)} 
-                  className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
-                ></textarea>
-              </div>
-
-              <button 
-                onClick={async () => {
-                  if (!nomeNovoGrupo.trim()) return;
-                  const novoG = {
-                    id: Date.now(),
-                    nome: nomeNovoGrupo.trim(),
-                    descricao: descNovoGrupo.trim(),
-                    criador: usuarioLogado.username,
-                    membros: [usuarioLogado.username]
-                  };
-                  const atualizados = await BancoDeDados.criarGrupo(novoG);
-                  setGrupos(atualizados || []);
-                  setNomeNovoGrupo('');
-                  setDescNovoGrupo('');
-                  setModalCriarGrupoAberto(false);
-                  mostrarToast('Grupo criado com sucesso! 🚀');
-                }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl transition shadow-md"
-              >
-                Salvar e Criar Grupo
-              </button>
             </div>
           </div>
         </div>
@@ -1485,7 +1439,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               >
                 <div className="relative">
                   <img src={storyAtivoObj.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition" />
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-slate-900 rounded-full"></span>
+                  {estaOnline(perfisReais.find(p => p.username === storyAtivoObj.username)?.ultimo_acesso) && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-slate-900 rounded-full"></span>}
                 </div>
                 <div>
                   <div className="flex items-center gap-1">
@@ -1601,7 +1555,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     >
                       <div className="relative">
                         <img src={vis.foto} className="w-8 h-8 rounded-full object-cover border border-blue-500" />
-                        <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-slate-900 rounded-full"></span>
+                        {estaOnline(perfisReais.find(p => p.username === vis.username)?.ultimo_acesso) && <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-slate-900 rounded-full"></span>}
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-bold truncate text-white hover:underline">{vis.nome}</p>
@@ -1644,7 +1598,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <div className={`w-24 h-24 rounded-full p-1 mx-auto flex items-center justify-center transition ${temStoryAtivo ? (meusStoriesVistos ? 'border-2 border-slate-500/40 opacity-75' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-xl') : ''}`}>
                 <img src={fotoPerfilOficial} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 shadow-md group-hover:opacity-90 transition" />
               </div>
-              <span className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
+              <span className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full" title="Online agora"></span>
               {temStoryAtivo && (
                 <span className={`absolute -top-1 right-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md ${meusStoriesVistos ? 'bg-slate-600 text-slate-300' : 'bg-gradient-to-r from-rose-600 to-amber-500 text-white'}`}>Story</span>
               )}
@@ -1742,72 +1696,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </form>
           </div>
 
-          <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">📖 Células / Grupos de Estudo</h3>
-              <button 
-                onClick={() => setModalCriarGrupoAberto(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl transition shadow-xs"
-              >
-                + Criar Grupo
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {grupos.length === 0 ? (
-                <p className="text-xs opacity-50 col-span-2 text-center py-4">Nenhum grupo criado ainda. Seja o primeiro!</p>
-              ) : (
-                grupos.map(g => {
-                  const membrosGrupo = g.membros || [];
-                  const jaMembro = membrosGrupo.includes(usuarioLogado.username);
-                  const souCriadorGrupo = g.criador === usuarioLogado.username;
-
-                  return (
-                    <div key={g.id} className={`p-3.5 rounded-2xl border space-y-2 flex flex-col justify-between ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-bold text-xs text-blue-400">{g.nome}</h4>
-                          {souCriadorGrupo && (
-                            <button 
-                              onClick={async () => {
-                                if (window.confirm(`Deseja realmente excluir o grupo "${g.nome}"?`)) {
-                                  const atualizados = await BancoDeDados.excluirGrupo(g.id);
-                                  setGrupos(atualizados || []);
-                                  mostrarToast('Grupo excluído com sucesso.');
-                                }
-                              }}
-                              className="text-[10px] text-red-400 hover:text-red-500 font-bold px-1.5 py-0.5 rounded transition"
-                              title="Excluir grupo"
-                            >
-                              ✕ Excluir
-                            </button>
-                          )}
-                        </div>
-                        <p className="text-[11px] opacity-75 line-clamp-2 mt-1">{g.descricao}</p>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-700/30">
-                        <span className="text-[10px] opacity-60">👥 {membrosGrupo.length} {membrosGrupo.length === 1 ? 'membro' : 'membros'}</span>
-                        <button 
-                          onClick={async () => {
-                            if (!jaMembro) {
-                              const atualizados = await BancoDeDados.entrarNoGrupo(g.id, usuarioLogado.username);
-                              setGrupos(atualizados || []);
-                              mostrarToast(`Você entrou no grupo ${g.nome}! 🎉`);
-                            }
-                          }}
-                          className={`text-[10px] px-3 py-1 rounded-lg font-bold transition ${jaMembro ? 'bg-emerald-500/20 text-emerald-400 cursor-default' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-                        >
-                          {jaMembro ? 'Participando ✓' : 'Participar'}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
           <div className={`p-6 rounded-3xl border shadow-md space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração 🙏</h3>
             <form onSubmit={criarPedidoOracaoHandler} className="flex gap-2">
@@ -1898,6 +1786,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
                   ).length;
                   const amigoTemStory = storiesFiltradosAmigos.some(s => s.username === amigo.username);
+                  const amigoOnline = estaOnline(amigo.ultimo_acesso);
 
                   return (
                     <div 
@@ -1914,7 +1803,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                           className={`relative w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${amigoTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
                         >
                           <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
+                          {amigoOnline && <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full" title="Online agora"></span>}
                         </div>
 
                         <div className="min-w-0">
@@ -1954,6 +1843,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 membrosFiltrados.map(membro => {
                   const enviei = meuPerfilBanco.pedidos_enviados?.includes(membro.username);
                   const membroTemStory = storiesFiltradosAmigos.some(s => s.username === membro.username);
+                  const membroOnline = estaOnline(membro.ultimo_acesso);
 
                   return (
                     <div key={membro.username} className={`p-3 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
@@ -1963,7 +1853,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       >
                         <div className={`relative w-8 h-8 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${membroTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-sm animate-pulse' : ''}`}>
                           <img src={membro.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white" />
-                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-slate-900 rounded-full"></span>
+                          {membroOnline && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-slate-900 rounded-full" title="Online agora"></span>}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1 min-w-0">
