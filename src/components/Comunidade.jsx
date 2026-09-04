@@ -20,7 +20,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [carregandoComunidade, setCarregandoComunidade] = useState(true);
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
   
-  // Estados do Chat Flutuante Atualizados
+  // Estados do Chat Flutuante
   const [chatComUsuario, setChatComUsuario] = useState(null);
   const [mensagensChat, setMensagensChat] = useState([]);
   const [textoMensagemChat, setTextoMensagemChat] = useState('');
@@ -375,10 +375,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setNotificacoes(notifsAtualizadas || []);
   };
 
-  // Funções atualizadas para o Chat Flutuante
+  // Funções de envio e chat atualizadas e corrigidas
   const enviarMensagemChat = async (e, arquivoMidia = null, tipoMidia = null) => {
     if (e) e.preventDefault();
     if (!textoMensagemChat.trim() && !arquivoMidia) return;
+    if (!chatComUsuario) return;
     
     let urlMidia = arquivoMidia;
     if (arquivoMidia && typeof arquivoMidia !== 'string') {
@@ -412,6 +413,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     } else {
       setMensagensChat(prev => [...prev, novaMsg]);
     }
+
     setTextoMensagemChat('');
     setVisualizacaoUnicaChat(false);
     setMostrarEmojisChat(false);
@@ -1880,7 +1882,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
       </div>
 
-      {/* Janela do Chat Flutuante Atualizada */}
+      {/* Janela do Chat Flutuante */}
       {chatComUsuario ? (
         <div className="fixed bottom-4 right-4 z-50 w-[360px] sm:w-[380px] h-[520px] max-h-[85vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden backdrop-blur-md bg-slate-900 border-slate-700 animate-in fade-in zoom-in-95 duration-200">
           
@@ -1918,7 +1920,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
           </div>
 
-          {/* Histórico do Chat com Fotos e Opção de Apagar */}
+          {/* Histórico do Chat */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-950/60 flex flex-col">
             {mensagensChat.length === 0 ? (
               <div className="text-center my-auto opacity-50 text-xs text-slate-400">
@@ -1996,7 +1998,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
           )}
 
-          {/* Input e Controles de Envio */}
+          {/* Input e Controles de Envio Corrigidos */}
           <form onSubmit={enviarMensagemChat} className="p-3 bg-slate-900 border-t border-slate-700 space-y-2">
             <div className="flex items-center gap-2">
               <button 
@@ -2029,7 +2031,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               </button>
             </div>
 
-            {/* Checkbox Visualização Única no Chat Flutuante */}
+            {/* Checkbox Visualização Única */}
             <div className="flex items-center gap-2 pl-1">
               <input 
                 type="checkbox" 
