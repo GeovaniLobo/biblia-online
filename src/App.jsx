@@ -31,18 +31,19 @@ export default function App() {
   const [usuarioLogado, setUsuarioLogado] = useState(BancoDeDados.getUsuarioLogado());
   const [modalLoginAberto, setModalLoginAberto] = useState(false);
 
-  // Determina aba e perfil inicial de forma síncrona baseada na URL atual (Evita tela branca)
+  // Inicialização segura das abas e perfis baseada na URL
   const initialPath = decodeURIComponent(window.location.pathname.replace('/', '').trim());
   const isSystemRoute = ['', 'biblia', 'comunidade', 'devocional', 'planos', 'editarPerfil'].includes(initialPath);
 
   const [abaPrincipal, setAbaPrincipal] = useState(isSystemRoute ? (initialPath || 'biblia') : 'perfilUrl'); 
   const [perfilUrlAlvo, setPerfilUrlAlvo] = useState(() => {
     if (isSystemRoute) return null;
+    // Fallback inicial imediato para evitar tela branca enquanto o Supabase responde
     return { 
       username: initialPath, 
       nome: initialPath, 
       foto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80', 
-      biografia: 'Praticando a fé e o amor ao próximo.',
+      biografia: 'Carregando perfil...',
       amigos: [],
       verificado: false
     };
@@ -61,7 +62,7 @@ export default function App() {
   const [versiculosSelecionados, setVersiculosSelecionados] = useState([]);
   const [copiadoFeedback, setCopiadoFeedback] = useState(false);
 
-  // Lista de versículos para a Palavra do Dia Dinâmica (muda automaticamente após as 00:00)
+  // Lista de versículos para a Palavra do Dia Dinâmica
   const versiculosDoDia = [
     { texto: "Lâmpada para os meus pés é a tua palavra, e luz para o meu caminho.", referencia: "Salmos 119:105" },
     { texto: "O Senhor é o meu pastor; de nada faltará.", referencia: "Salmos 23:1" },
@@ -104,6 +105,7 @@ export default function App() {
     return () => clearInterval(intervalo);
   }, [usuarioLogado]);
 
+  // Sincronização robusta com o Supabase ao carregar a página ou mudar a URL
   useEffect(() => {
     const tratarRotaUrl = async () => {
       const rawPath = window.location.pathname.replace('/', '').trim();
@@ -126,11 +128,29 @@ export default function App() {
         setPerfilUrlAlvo(null);
       } else {
         setAbaPrincipal('perfilUrl');
-        let perfis = await BancoDeDados.getPerfisCadastrados();
-        const encontrado = perfis?.find(p => p.username.toLowerCase() === path.toLowerCase());
+        
+        // Busca direta no Supabase através da função do seu database.js
+        let perfis = [];
+        try {
+          perfis = await BancoDeDados.getPerfisCadastrados();
+        } catch (e) {
+          console.error("Erro ao buscar perfis do Supabase:", e);
+        }
+
+        const encontrado = perfis?.find(p => p.username?.toLowerCase() === path.toLowerCase());
         
         if (encontrado) {
           setPerfilUrlAlvo(encontrado);
+        } else {
+          // Se não achar na tabela, mantém os dados básicos para não quebrar a tela
+          setPerfilUrlAlvo({
+            username: path,
+            nome: path,
+            foto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+            biografia: 'Praticando a fé e o amor ao próximo.',
+            amigos: [],
+            verificado: false
+          });
         }
       }
     };
@@ -681,9 +701,9 @@ export default function App() {
             />
           )}
 
-          {abaPrincipal === 'perfilUrl' && perfilUrlAlvo && (
+          {abaPrincipal === 'perfilUrl' && (
             <PerfilPublico
-              perfilAlvo={perfilUrlAlvo}
+              perfilAlvo={perfilUrlAlvo || { username: initialPath, nome: initialPath, amigos: [] }}
               usuarioLogado={usuarioLogado}
               onVoltar={() => navegarPara(usuarioLogado ? '/comunidade' : '/', usuarioLogado ? 'comunidade' : 'biblia')}
               darkMode={darkMode}
