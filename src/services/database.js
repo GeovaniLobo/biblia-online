@@ -479,5 +479,44 @@ export const BancoDeDados = {
       await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?id=eq.${id}`, { method: 'DELETE', headers });
       return await BancoDeDados.getPedidosOracao();
     } catch (err) { return []; }
+  },
+
+  // --- GRUPOS / CÉLULAS DE ESTUDO ---
+  getGrupos: async () => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/grupos?select=*`, { method: 'GET', headers });
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (err) { return []; }
+  },
+
+  criarGrupo: async (novoGrupo) => {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/grupos`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(novoGrupo)
+      });
+      return await BancoDeDados.getGrupos();
+    } catch (e) { return []; }
+  },
+
+  entrarNoGrupo: async (grupoId, username) => {
+    try {
+      const grupos = await BancoDeDados.getGrupos();
+      const grupo = grupos.find(g => g.id === grupoId);
+      if (grupo) {
+        let membros = grupo.membros || [];
+        if (!membros.includes(username)) {
+          membros.push(username);
+          await fetch(`${SUPABASE_URL}/rest/v1/grupos?id=eq.${grupoId}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ membros })
+          });
+        }
+      }
+      return await BancoDeDados.getGrupos();
+    } catch (e) { return []; }
   }
 };
