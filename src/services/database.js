@@ -87,7 +87,7 @@ export const BancoDeDados = {
     }
   },
 
-  // --- STORIES ---
+  // --- STORIES (Com filtro de 24 horas) ---
   getStories: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/stories?select=*&order=id.desc`, { method: 'GET', headers });
@@ -96,13 +96,11 @@ export const BancoDeDados = {
       
       if (!data) return [];
 
-      // Filtra automaticamente apenas os stories postados nas últimas 24 horas (24 * 60 * 60 * 1000 ms)
       const agora = Date.now();
       const limite24h = 24 * 60 * 60 * 1000;
       
       const storiesValidos = data.filter(s => {
         if (!s.id) return false;
-        // O id do story é gerado com Date.now() no momento da criação
         return (agora - Number(s.id)) <= limite24h;
       });
 
@@ -110,6 +108,19 @@ export const BancoDeDados = {
     } catch (err) { 
       return []; 
     }
+  },
+
+  salvarStory: async (story) => {
+    try {
+      const novoStoryComVisualizacoes = { ...story, visualizacoes: [], curtidas: [] };
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(novoStoryComVisualizacoes)
+      });
+      if (!response.ok) return await BancoDeDados.getStories();
+      return await BancoDeDados.getStories();
+    } catch (err) { return []; }
   },
 
   registrarVisualizacaoStory: async (storyId, dadosVisualizador) => {
@@ -226,7 +237,6 @@ export const BancoDeDados = {
       const pubs = await BancoDeDados.getPublicacoes();
       const p = pubs.find(x => x.id === id);
       if (p) {
-        // Padronizado para usar 'aleluia' consistentemente
         let reacoes = p.reacoes || { amem: [], aleluia: [], amor: [] };
         if (!reacoes.amem) reacoes = { amem: [], aleluia: [], amor: [] };
 
@@ -248,41 +258,6 @@ export const BancoDeDados = {
       }
     } catch (e) {
       console.error("Erro ao reagir na publicação:", e);
-    }
-    return await BancoDeDados.getPublicacoes();
-  },
-
-  reagirComentarioPub: async (publicacaoId, comentarioId, tipoReacao, username) => {
-    try {
-      const pubs = await BancoDeDados.getPublicacoes();
-      const p = pubs.find(x => x.id === publicacaoId);
-      if (p && p.comentarios) {
-        const novosComentarios = p.comentarios.map(c => {
-          if (c.id === comentarioId) {
-            // Padronizado para usar 'aleluia' consistentemente
-            let reacoes = c.reacoes || { amem: [], aleluia: [], amor: [] };
-            if (!reacoes.amem) reacoes = { amem: [], aleluia: [], amor: [] };
-
-            Object.keys(reacoes).forEach(tipo => {
-              reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== username);
-            });
-
-            if (reacoes[tipoReacao]) {
-              reacoes[tipoReacao].push(username);
-            }
-            return { ...c, reacoes };
-          }
-          return c;
-        });
-
-        await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${publicacaoId}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ comentarios: novosComentarios })
-        });
-      }
-    } catch (e) {
-      console.error("Erro ao reagir no comentário:", e);
     }
     return await BancoDeDados.getPublicacoes();
   },
@@ -311,14 +286,16 @@ export const BancoDeDados = {
       if (p && p.comentarios) {
         const novosComentarios = p.comentarios.map(c => {
           if (c.id === comentarioId) {
-            let reacoes = c.reacoes || { amem: [], gloria: [], amor: [] };
-            if (!reacoes.amem) reacoes = { amem: [], gloria: [], amor: [] };
+            let reacoes = c.reacoes || { amem: [], aleluia: [], amor: [] };
+            if (!reacoes.amem) reacoes = { amem: [], aleluia: [], amor: [] };
 
             Object.keys(reacoes).forEach(tipo => {
               reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== username);
             });
 
-            reacoes[tipoReacao].push(username);
+            if (reacoes[tipoReacao]) {
+              reacoes[tipoReacao].push(username);
+            }
             return { ...c, reacoes };
           }
           return c;
@@ -330,7 +307,9 @@ export const BancoDeDados = {
           body: JSON.stringify({ comentarios: novosComentarios })
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Erro ao reagir no comentário:", e);
+    }
     return await BancoDeDados.getPublicacoes();
   },
 
