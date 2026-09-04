@@ -93,14 +93,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     </span>
   );
 
-  // Função auxiliar para verificar se o usuário está online de verdade (ativo nos últimos 45 segundos)
-  const estaOnline = (ultimoAcessoTimestamp) => {
-    if (!ultimoAcessoTimestamp) return false;
-    const agora = Date.now();
-    const diferencaSegundos = (agora - Number(ultimoAcessoTimestamp)) / 1000;
-    return diferencaSegundos <= 45;
-  };
-
   useEffect(() => {
     let montado = true;
     async function carregarDadosIniciais() {
@@ -113,8 +105,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           foto: usuarioLogado.foto || '',
           data_nascimento: usuarioLogado.dataNascimento || ''
         });
-
-        await BancoDeDados.atualizarUltimoAcesso(usuarioLogado.username);
 
         const perfis = await BancoDeDados.getPerfisCadastrados();
         const pubs = await BancoDeDados.getPublicacoes();
@@ -158,11 +148,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
     carregarDadosIniciais();
 
-    // Heartbeat a cada 20 segundos para manter o status online real atualizado
-    const intervaloHeartbeat = setInterval(() => {
-      BancoDeDados.atualizarUltimoAcesso(usuarioLogado.username);
-    }, 20000);
-
     const intervalo = setInterval(async () => {
       try {
         const pubs = await BancoDeDados.getPublicacoes();
@@ -184,7 +169,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return () => {
       montado = false;
       clearInterval(intervalo);
-      clearInterval(intervaloHeartbeat);
     };
   }, [usuarioLogado]);
 
@@ -716,7 +700,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     const nomeAtualizado = perfilAutorReal.nome || post.autor;
     const autorVerificado = perfilAutorReal.verificado;
     const autorTemStory = storiesFiltradosAmigos.some(s => s.username === post.username);
-    const autorOnline = estaOnline(perfilAutorReal.ultimo_acesso);
 
     const reacoes = post.reacoes || { amem: [], aleluia: [], amor: [] };
     const meuAmem = (reacoes.amem || []).includes(usuarioLogado.username);
@@ -733,7 +716,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           >
             <div className={`relative w-12 h-12 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${autorTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse' : 'border-2 border-blue-500/30'}`}>
               <img src={avatarAtualizado} alt="Avatar" className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-              {autorOnline && <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full" title="Online agora"></span>}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1">
@@ -892,7 +874,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 const fotoComentario = perfilAutorComentario.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
                 const autorComentarioVerificado = perfilAutorComentario.verificado;
                 const autorComentarioTemStory = storiesFiltradosAmigos.some(s => s.username === c.username);
-                const autorComentarioOnline = estaOnline(perfilAutorComentario.ultimo_acesso);
 
                 const reacoesComentario = c.reacoes || { amem: [], aleluia: [], amor: [] };
                 const meuAmemCom = (reacoesComentario.amem || []).includes(usuarioLogado.username);
@@ -917,7 +898,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         className={`relative w-7 h-7 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${autorComentarioTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-sm' : ''}`}
                       >
                         <img src={fotoComentario} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-                        {autorComentarioOnline && <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-slate-900 rounded-full" title="Online agora"></span>}
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center justify-between">
@@ -1099,7 +1079,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     const perfilNotif = perfisReais.find(p => p.username === usernameNotif) || {};
                     const fotoNotif = perfilNotif.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
                     const temStoryNotif = storiesFiltradosAmigos.some(s => s.username === usernameNotif);
-                    const notifOnline = estaOnline(perfilNotif.ultimo_acesso);
 
                     return (
                       <div key={idx} className={`p-3 rounded-2xl border text-xs flex items-center gap-3 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
@@ -1109,7 +1088,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                             className={`relative w-9 h-9 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${temStoryNotif ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-md' : ''}`}
                           >
                             <img src={fotoNotif} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-                            {notifOnline && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-slate-900 rounded-full" title="Online agora"></span>}
                           </div>
                         ) : (
                           <div className="w-9 h-9 rounded-full bg-blue-600/20 text-blue-500 flex items-center justify-center font-bold flex-shrink-0">🔔</div>
@@ -1133,7 +1111,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             title="Meu Perfil"
           >
             <img src={fotoPerfilOficial} alt="Meu Perfil" className="w-full h-full rounded-full object-cover" />
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full" title="Online agora"></span>
           </div>
         </div>
       </div>
@@ -1439,7 +1416,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               >
                 <div className="relative">
                   <img src={storyAtivoObj.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition" />
-                  {estaOnline(perfisReais.find(p => p.username === storyAtivoObj.username)?.ultimo_acesso) && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-slate-900 rounded-full"></span>}
                 </div>
                 <div>
                   <div className="flex items-center gap-1">
@@ -1555,7 +1531,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     >
                       <div className="relative">
                         <img src={vis.foto} className="w-8 h-8 rounded-full object-cover border border-blue-500" />
-                        {estaOnline(perfisReais.find(p => p.username === vis.username)?.ultimo_acesso) && <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-slate-900 rounded-full"></span>}
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-bold truncate text-white hover:underline">{vis.nome}</p>
@@ -1598,7 +1573,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <div className={`w-24 h-24 rounded-full p-1 mx-auto flex items-center justify-center transition ${temStoryAtivo ? (meusStoriesVistos ? 'border-2 border-slate-500/40 opacity-75' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-xl') : ''}`}>
                 <img src={fotoPerfilOficial} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 shadow-md group-hover:opacity-90 transition" />
               </div>
-              <span className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full" title="Online agora"></span>
               {temStoryAtivo && (
                 <span className={`absolute -top-1 right-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md ${meusStoriesVistos ? 'bg-slate-600 text-slate-300' : 'bg-gradient-to-r from-rose-600 to-amber-500 text-white'}`}>Story</span>
               )}
@@ -1786,7 +1760,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
                   ).length;
                   const amigoTemStory = storiesFiltradosAmigos.some(s => s.username === amigo.username);
-                  const amigoOnline = estaOnline(amigo.ultimo_acesso);
 
                   return (
                     <div 
@@ -1803,7 +1776,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                           className={`relative w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${amigoTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
                         >
                           <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-                          {amigoOnline && <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full" title="Online agora"></span>}
                         </div>
 
                         <div className="min-w-0">
@@ -1843,7 +1815,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 membrosFiltrados.map(membro => {
                   const enviei = meuPerfilBanco.pedidos_enviados?.includes(membro.username);
                   const membroTemStory = storiesFiltradosAmigos.some(s => s.username === membro.username);
-                  const membroOnline = estaOnline(membro.ultimo_acesso);
 
                   return (
                     <div key={membro.username} className={`p-3 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
@@ -1853,7 +1824,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       >
                         <div className={`relative w-8 h-8 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${membroTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-sm animate-pulse' : ''}`}>
                           <img src={membro.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white" />
-                          {membroOnline && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-slate-900 rounded-full" title="Online agora"></span>}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1 min-w-0">
@@ -1901,7 +1871,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         <div className="fixed bottom-4 right-4 z-50 w-[360px] sm:w-[380px] h-[500px] max-h-[85vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden backdrop-blur-md bg-slate-900 border-slate-700 animate-in fade-in zoom-in-95 duration-200">
           <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0"></span>
               <span className="text-[11px] font-extrabold text-white uppercase tracking-wider truncate">Chat com @{chatComUsuario}</span>
             </div>
             <button 
