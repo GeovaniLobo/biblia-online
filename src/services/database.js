@@ -226,15 +226,19 @@ export const BancoDeDados = {
       const pubs = await BancoDeDados.getPublicacoes();
       const p = pubs.find(x => x.id === id);
       if (p) {
-        let reacoes = p.reacoes || { amem: [], gloria: [], amor: [] };
-        if (!reacoes.amem) reacoes = { amem: [], gloria: [], amor: [] };
+        // Padronizado para usar 'aleluia' consistentemente
+        let reacoes = p.reacoes || { amem: [], aleluia: [], amor: [] };
+        if (!reacoes.amem) reacoes = { amem: [], aleluia: [], amor: [] };
 
         Object.keys(reacoes).forEach(tipo => {
           reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== usernameUsuario);
         });
 
-        reacoes[tipoReacao].push(usernameUsuario);
-        const totalReacoes = (reacoes.amem.length + reacoes.gloria.length + reacoes.amor.length);
+        if (reacoes[tipoReacao]) {
+          reacoes[tipoReacao].push(usernameUsuario);
+        }
+        
+        const totalReacoes = Object.values(reacoes).reduce((acc, curr) => acc + curr.length, 0);
 
         await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
           method: 'PATCH',
@@ -242,7 +246,44 @@ export const BancoDeDados = {
           body: JSON.stringify({ reacoes, curtidas: totalReacoes })
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Erro ao reagir na publicação:", e);
+    }
+    return await BancoDeDados.getPublicacoes();
+  },
+
+  reagirComentarioPub: async (publicacaoId, comentarioId, tipoReacao, username) => {
+    try {
+      const pubs = await BancoDeDados.getPublicacoes();
+      const p = pubs.find(x => x.id === publicacaoId);
+      if (p && p.comentarios) {
+        const novosComentarios = p.comentarios.map(c => {
+          if (c.id === comentarioId) {
+            // Padronizado para usar 'aleluia' consistentemente
+            let reacoes = c.reacoes || { amem: [], aleluia: [], amor: [] };
+            if (!reacoes.amem) reacoes = { amem: [], aleluia: [], amor: [] };
+
+            Object.keys(reacoes).forEach(tipo => {
+              reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== username);
+            });
+
+            if (reacoes[tipoReacao]) {
+              reacoes[tipoReacao].push(username);
+            }
+            return { ...c, reacoes };
+          }
+          return c;
+        });
+
+        await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${publicacaoId}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ comentarios: novosComentarios })
+        });
+      }
+    } catch (e) {
+      console.error("Erro ao reagir no comentário:", e);
+    }
     return await BancoDeDados.getPublicacoes();
   },
 
