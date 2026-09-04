@@ -30,8 +30,24 @@ export default function App() {
 
   const [usuarioLogado, setUsuarioLogado] = useState(BancoDeDados.getUsuarioLogado());
   const [modalLoginAberto, setModalLoginAberto] = useState(false);
-  const [abaPrincipal, setAbaPrincipal] = useState('biblia'); 
-  const [perfilUrlAlvo, setPerfilUrlAlvo] = useState(null);
+
+  // Determina aba e perfil inicial de forma síncrona baseada na URL atual (Evita tela branca)
+  const initialPath = decodeURIComponent(window.location.pathname.replace('/', '').trim());
+  const isSystemRoute = ['', 'biblia', 'comunidade', 'devocional', 'planos', 'editarPerfil'].includes(initialPath);
+
+  const [abaPrincipal, setAbaPrincipal] = useState(isSystemRoute ? (initialPath || 'biblia') : 'perfilUrl'); 
+  const [perfilUrlAlvo, setPerfilUrlAlvo] = useState(() => {
+    if (isSystemRoute) return null;
+    return { 
+      username: initialPath, 
+      nome: initialPath, 
+      foto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80', 
+      biografia: 'Praticando a fé e o amor ao próximo.',
+      amigos: [],
+      verificado: false
+    };
+  });
+
   const [totalNaoLidas, setTotalNaoLidas] = useState(0);
 
   const [favoritos, setFavoritos] = useState(() => {
@@ -96,51 +112,26 @@ export default function App() {
       if (!path || path === 'biblia') {
         setAbaPrincipal('biblia');
         setPerfilUrlAlvo(null);
-        setCarregando(false);
       } else if (path === 'comunidade') {
         setAbaPrincipal('comunidade');
         setPerfilUrlAlvo(null);
-        setCarregando(false);
       } else if (path === 'devocional') {
         setAbaPrincipal('devocional');
         setPerfilUrlAlvo(null);
-        setCarregando(false);
       } else if (path === 'planos') {
         setAbaPrincipal('planos');
         setPerfilUrlAlvo(null);
-        setCarregando(false);
       } else if (path === 'editarPerfil') {
         setAbaPrincipal('editarPerfil');
         setPerfilUrlAlvo(null);
-        setCarregando(false);
       } else {
-        setCarregando(true);
-        let perfis = [];
-        
-        // Tenta buscar os perfis com retentativas rápidas caso o banco demore a responder
-        for (let i = 0; i < 5; i++) {
-          perfis = await BancoDeDados.getPerfisCadastrados();
-          if (perfis && perfis.length > 0) break;
-          await new Promise(r => setTimeout(r, 200));
-        }
-
+        setAbaPrincipal('perfilUrl');
+        let perfis = await BancoDeDados.getPerfisCadastrados();
         const encontrado = perfis?.find(p => p.username.toLowerCase() === path.toLowerCase());
         
         if (encontrado) {
           setPerfilUrlAlvo(encontrado);
-        } else {
-          // Fallback caso o perfil exista na URL mas ainda não esteja na lista sincronizada
-          setPerfilUrlAlvo({ 
-            username: path, 
-            nome: path, 
-            foto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80', 
-            biografia: 'Praticando a fé e o amor ao próximo.',
-            amigos: [],
-            verificado: false
-          });
         }
-        setAbaPrincipal('perfilUrl');
-        setCarregando(false);
       }
     };
     tratarRotaUrl();
@@ -228,7 +219,7 @@ export default function App() {
 
     const primeiroNum = versiculosSelecionados[0].numero;
     const ultimoNum = versiculosSelecionados[versiculosSelecionados.length - 1].numero;
-    const referencia = versiculosSelecionados.length > 1 
+    const reference = versiculosSelecionados.length > 1 
       ? `${livroAtualObj.name} ${capituloAtual}:${primeiroNum}-${ultimoNum}`
       : `${livroAtualObj.name} ${capituloAtual}:${primeiroNum}`;
 
@@ -237,7 +228,7 @@ export default function App() {
       autor: usuarioLogado.nome,
       username: usuarioLogado.username,
       avatar: usuarioLogado.foto,
-      tema: `📖 ${referencia}`,
+      tema: `📖 ${reference}`,
       texto: textosFormatados.join(' '),
       imagem: '',
       curtidas: 0,
@@ -395,7 +386,7 @@ export default function App() {
               </select>
             </div>
 
-            {/* Menu de Abas Atualizado com Planos de Estudo */}
+            {/* Menu de Abas */}
             <div className="grid grid-cols-2 gap-1 mt-2 bg-slate-800 p-1 rounded-lg text-center">
               <button
                 onClick={() => navegarPara('/', 'biblia')}
@@ -597,7 +588,6 @@ export default function App() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Palavra do Dia Dinâmica e Automática */}
                 <div className={`p-4 rounded-2xl border shadow-sm ${darkMode ? 'bg-blue-950/30 border-blue-800/40 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-900'}`}>
                   <h4 className="text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">🌟 Palavra do Dia</h4>
                   <p className="text-sm italic">"{palavraAtual.texto}" — {palavraAtual.referencia}</p>
@@ -691,26 +681,14 @@ export default function App() {
             />
           )}
 
-          {abaPrincipal === 'perfilUrl' && (
-            perfilUrlAlvo ? (
-              <PerfilPublico
-                perfilAlvo={perfilUrlAlvo}
-                usuarioLogado={usuarioLogado}
-                onVoltar={() => navegarPara(usuarioLogado ? '/comunidade' : '/', usuarioLogado ? 'comunidade' : 'biblia')}
-                darkMode={darkMode}
-                onToggleDarkMode={() => setDarkMode(!darkMode)}
-              />
-            ) : (
-              <div className="p-12 text-center space-y-4">
-                <p className="text-xs opacity-60 animate-pulse">Carregando perfil...</p>
-                <button
-                  onClick={() => navegarPara('/', 'biblia')}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer"
-                >
-                  Ir para o Início
-                </button>
-              </div>
-            )
+          {abaPrincipal === 'perfilUrl' && perfilUrlAlvo && (
+            <PerfilPublico
+              perfilAlvo={perfilUrlAlvo}
+              usuarioLogado={usuarioLogado}
+              onVoltar={() => navegarPara(usuarioLogado ? '/comunidade' : '/', usuarioLogado ? 'comunidade' : 'biblia')}
+              darkMode={darkMode}
+              onToggleDarkMode={() => setDarkMode(!darkMode)}
+            />
           )}
 
           {abaPrincipal === 'editarPerfil' && usuarioLogado && (
