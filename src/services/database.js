@@ -92,21 +92,24 @@ export const BancoDeDados = {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/stories?select=*&order=id.desc`, { method: 'GET', headers });
       if (!response.ok) return [];
-      return await response.json();
-    } catch (err) { return []; }
-  },
+      const data = await response.json();
+      
+      if (!data) return [];
 
-  salvarStory: async (story) => {
-    try {
-      const novoStoryComVisualizacoes = { ...story, visualizacoes: [], curtidas: [] };
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(novoStoryComVisualizacoes)
+      // Filtra automaticamente apenas os stories postados nas últimas 24 horas (24 * 60 * 60 * 1000 ms)
+      const agora = Date.now();
+      const limite24h = 24 * 60 * 60 * 1000;
+      
+      const storiesValidos = data.filter(s => {
+        if (!s.id) return false;
+        // O id do story é gerado com Date.now() no momento da criação
+        return (agora - Number(s.id)) <= limite24h;
       });
-      if (!response.ok) return await BancoDeDados.getStories();
-      return await BancoDeDados.getStories();
-    } catch (err) { return []; }
+
+      return storiesValidos;
+    } catch (err) { 
+      return []; 
+    }
   },
 
   registrarVisualizacaoStory: async (storyId, dadosVisualizador) => {
