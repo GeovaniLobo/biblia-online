@@ -9,51 +9,64 @@ export default function PerfilPublico({
 }) {
   const [publicacoesUsuario, setPublicacoesUsuario] = useState([]);
   const [perfisAtualizados, setPerfisAtualizados] = useState([]);
+  const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
     async function carregarDados() {
-      const pubs = await BancoDeDados.getPublicacoes();
-      const perfis = await BancoDeDados.getPerfisCadastrados();
-      setPublicacoesUsuario(
-        pubs.filter((p) => p.username === perfilAlvo.username),
-      );
-      setPerfisAtualizados(perfis);
+      if (!perfilAlvo || !perfilAlvo.username) {
+        setCarregando(false);
+        return;
+      }
+      try {
+        const pubs = await BancoDeDados.getPublicacoes();
+        const perfis = await BancoDeDados.getPerfisCadastrados();
+        setPublicacoesUsuario(
+          pubs.filter((p) => p.username === perfilAlvo.username)
+        );
+        setPerfisAtualizados(perfis);
+      } catch (erro) {
+        console.error("Erro ao carregar dados do perfil:", erro);
+      } finally {
+        setCarregando(false);
+      }
     }
     carregarDados();
   }, [perfilAlvo]);
 
-  // Busca o perfil atualizado do alvo no banco para garantir status de amizade em tempo real
-  const perfilAlvoAtualizado =
-    perfisAtualizados.find((p) => p.username === perfilAlvo.username) ||
-    perfilAlvo;
-  const euNoBanco = perfisAtualizados.find(
-    (p) => p.username === usuarioLogado.username,
-  ) || { amigos: [], pedidos_enviados: [], pedidos_recebidos: [] };
-
-  const ehAmigo = euNoBanco.amigos?.includes(perfilAlvoAtualizado.username);
-  const envieiPedido = euNoBanco.pedidos_enviados?.includes(
-    perfilAlvoAtualizado.username,
-  );
-  const recebiPedido = euNoBanco.pedidos_recebidos?.includes(
-    perfilAlvoAtualizado.username,
-  );
-  const eMeuProprioPerfil =
-    usuarioLogado.username === perfilAlvoAtualizado.username;
-  const perfilVerificado = perfilAlvoAtualizado.verificado;
-
-  if (!perfilAlvo) {
+  // Proteção contra renderização inicial sem dados
+  if (carregando || !perfilAlvo) {
     return (
-      <div className="p-6 text-center space-y-4">
-        <p className="text-sm opacity-60">Perfil não encontrado.</p>
+      <div className={`p-12 text-center space-y-4 max-w-2xl mx-auto rounded-3xl border shadow-xl ${darkMode ? "bg-slate-900 border-slate-800 text-white" : "bg-white border-slate-200 text-slate-900"}`}>
+        <p className="text-xs opacity-60 animate-pulse">Carregando perfil...</p>
         <button
           onClick={onVoltar}
-          className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold"
+          className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-700 transition"
         >
           Voltar
         </button>
       </div>
     );
   }
+
+  // Busca o perfil atualizado do alvo no banco para garantir status de amizade em tempo real
+  const perfilAlvoAtualizado =
+    perfisAtualizados.find((p) => p.username === perfilAlvo.username) ||
+    perfilAlvo;
+    
+  const euNoBanco = perfisAtualizados.find(
+    (p) => p.username === usuarioLogado?.username
+  ) || { amigos: [], pedidos_enviados: [], pedidos_recebidos: [] };
+
+  const ehAmigo = euNoBanco.amigos?.includes(perfilAlvoAtualizado.username);
+  const envieiPedido = euNoBanco.pedidos_enviados?.includes(
+    perfilAlvoAtualizado.username
+  );
+  const recebiPedido = euNoBanco.pedidos_recebidos?.includes(
+    perfilAlvoAtualizado.username
+  );
+  const eMeuProprioPerfil =
+    usuarioLogado?.username === perfilAlvoAtualizado.username;
+  const perfilVerificado = perfilAlvoAtualizado.verificado;
 
   return (
     <div
@@ -63,7 +76,7 @@ export default function PerfilPublico({
       <div className="h-36 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800 relative p-4 flex justify-between items-start">
         <button
           onClick={onVoltar}
-          className="bg-black/40 hover:bg-black/60 text-white text-xs px-3 py-1.5 rounded-xl font-bold backdrop-blur-md transition flex items-center gap-1 shadow-md"
+          className="bg-black/40 hover:bg-black/60 text-white text-xs px-3 py-1.5 rounded-xl font-bold backdrop-blur-md transition flex items-center gap-1 shadow-md cursor-pointer"
         >
           ← Voltar
         </button>
@@ -88,11 +101,11 @@ export default function PerfilPublico({
               </h2>
               {perfilVerificado && (
                 <span className="relative inline-flex items-center justify-center flex-shrink-0 group/badge cursor-pointer -translate-y-0.5" title="Perfil Verificado">
-  <svg className="w-5 h-5 text-blue-500 transform transition hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2c-.65 0-1.28.31-1.66.85l-.78 1.13c-.38.55-1.03.86-1.69.81l-1.37-.11c-.78-.06-1.46.46-1.61 1.23l-.28 1.35c-.15.72-.63 1.3-1.28 1.62l-1.18.59c-.68.34-.97 1.17-.65 1.86l.6 1.25c.33.68.33 1.49 0 2.17l-.6 1.25c-.32.69-.03 1.52.65 1.86l1.18.59c.65.32 1.13.9 1.28 1.62l.28 1.35c.15.77.83 1.29 1.61 1.23l1.37-.11c.66-.05 1.31-.26 1.69-.81l.78 1.13c.38.54 1.01.85 1.66.85s1.28-.31 1.66-.85l.78-1.13c.38-.55 1.03-.86 1.69-.81l1.37.11c.78.06 1.46-.46 1.61-1.23l.28-1.35c.15-.72.63-1.3 1.28-1.62l1.18-.59c.68-.34.97-1.17.65-1.86l-.6-1.25c-.33-.68-.33-1.49 0-2.17l.6-1.25c.32-.69.03-1.52-.65-1.86l-1.18-.59c-.65-.32-1.13-.9-1.28-1.62l-.28-1.35c-.15-.77-.83-1.29-1.61-1.23l-1.37.11c-.66.05-1.31-.26-1.69-.81l-.78-1.13A2.01 2.01 0 0 0 12 2z" />
-    <path d="m9.5 13.79-2.15-2.15a1 1 0 0 0-1.41 1.41l2.86 2.86a1 1 0 0 0 1.41 0l6.14-6.14a1 1 0 0 0-1.41-1.41L9.5 13.79z" fill="#ffffff" />
-  </svg>
-</span>
+                  <svg className="w-5 h-5 text-blue-500 transform transition hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2c-.65 0-1.28.31-1.66.85l-.78 1.13c-.38.55-1.03.86-1.69.81l-1.37-.11c-.78-.06-1.46.46-1.61 1.23l-.28 1.35c-.15.72-.63 1.3-1.28 1.62l-1.18.59c-.68.34-.97 1.17-.65 1.86l.6 1.25c.33.68.33 1.49 0 2.17l-.6 1.25c-.32.69-.03 1.52.65 1.86l1.18.59c.65.32 1.13.9 1.28 1.62l.28 1.35c.15.77.83 1.29 1.61 1.23l1.37-.11c.66-.05 1.31-.26 1.69-.81l.78 1.13c.38.54 1.01.85 1.66.85s1.28-.31 1.66-.85l.78-1.13c.38-.55 1.03-.86 1.69-.81l1.37.11c.78.06 1.46-.46 1.61-1.23l.28-1.35c.15-.72.63-1.3 1.28-1.62l1.18-.59c.68-.34.97-1.17.65-1.86l-.6-1.25c-.33-.68-.33-1.49 0-2.17l.6-1.25c.32-.69.03-1.52-.65-1.86l-1.18-.59c-.65-.32-1.13-.9-1.28-1.62l-.28-1.35c-.15-.77-.83-1.29-1.61-1.23l-1.37.11c-.66.05-1.31-.26-1.69-.81l-.78-1.13A2.01 2.01 0 0 0 12 2z" />
+                    <path d="m9.5 13.79-2.15-2.15a1 1 0 0 0-1.41 1.41l2.86 2.86a1 1 0 0 0 1.41 0l6.14-6.14a1 1 0 0 0-1.41-1.41L9.5 13.79z" fill="#ffffff" />
+                  </svg>
+                </span>
               )}
             </div>
             <p className="text-xs text-blue-400 font-bold mt-0.5">
@@ -105,8 +118,8 @@ export default function PerfilPublico({
             </p>
           </div>
 
-          {/* Botões de Ação Dinâmicos (Adicionar Amigo, Aceitar, Chat) */}
-          {!eMeuProprioPerfil && (
+          {/* Botões de Ação Dinâmicos */}
+          {!eMeuProprioPerfil && usuarioLogado && (
             <div className="pt-2 flex gap-2">
               {ehAmigo ? (
                 <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5">
@@ -122,11 +135,11 @@ export default function PerfilPublico({
                     onClick={async () => {
                       await BancoDeDados.aceitarPedidoAmizade(
                         usuarioLogado.username,
-                        perfilAlvoAtualizado.username,
+                        perfilAlvoAtualizado.username
                       );
                       window.location.reload();
                     }}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-md"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-md cursor-pointer"
                   >
                     Aceitar Amizade
                   </button>
@@ -136,11 +149,11 @@ export default function PerfilPublico({
                   onClick={async () => {
                     await BancoDeDados.enviarPedidoAmizade(
                       usuarioLogado.username,
-                      perfilAlvoAtualizado.username,
+                      perfilAlvoAtualizado.username
                     );
                     window.location.reload();
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-xs font-bold transition shadow-md flex items-center gap-1.5"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-xs font-bold transition shadow-md flex items-center gap-1.5 cursor-pointer"
                 >
                   Adicionar Amigo
                 </button>
