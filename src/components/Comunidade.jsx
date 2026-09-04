@@ -16,6 +16,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [notificacoes, setNotificacoes] = useState([]);
   const [pedidosOracao, setPedidosOracao] = useState([]);
   const [stories, setStories] = useState([]);
+  const [grupos, setGrupos] = useState([]);
   
   const [carregandoComunidade, setCarregandoComunidade] = useState(true);
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
@@ -27,6 +28,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
   const [abaNotificacoesAberta, setAbaNotificacoesAberta] = useState(false);
   const [abaSolicitacoesAberta, setAbaSolicitacoesAberta] = useState(false);
+  const [modalCriarGrupoAberto, setModalCriarGrupoAberto] = useState(false);
+  const [nomeNovoGrupo, setNomeNovoGrupo] = useState('');
+  const [descNovoGrupo, setDescNovoGrupo] = useState('');
 
   const [postDetalheId, setPostDetalheId] = useState(null);
   const [menuOpcoesPostAberto, setMenuOpcoesPostAberto] = useState(null);
@@ -56,6 +60,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [termoBuscaMencaoComentario, setTermoBuscaMencaoComentario] = useState('');
 
   const [termoBuscaComunidade, setTermoBuscaComunidade] = useState('');
+  const [filtroFeed, setFiltroFeed] = useState('todos'); // 'todos', 'versiculos', 'oracao', 'testemunhos'
   const [pubTexto, setPubTexto] = useState('');
   const [pubImagem, setPubImagem] = useState('');
   const [pubTema, setPubTema] = useState('');
@@ -83,7 +88,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     });
   };
 
-  // Componente de Selo Verificado Reutilizável
   const SeloVerificado = ({ tamanho = "w-4 h-4" }) => (
     <span className="relative inline-flex items-center justify-center flex-shrink-0 group/badge cursor-pointer -translate-y-0.5 ml-1" title="Perfil Verificado">
       <svg className={`${tamanho} text-blue-500 transform transition hover:scale-110`} viewBox="0 0 24 24" fill="currentColor">
@@ -111,6 +115,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
         const pedidos = await BancoDeDados.getPedidosOracao();
         const strs = await BancoDeDados.getStories();
+        const grps = await BancoDeDados.getGrupos();
 
         if (montado) {
           setPerfisReais(perfis || []);
@@ -118,8 +123,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           setNotificacoes(notifs || []);
           setPedidosOracao(pedidos || []);
           setStories(strs || []);
+          setGrupos(grps || []);
 
-          // Verifica se o usuário atual é verificado sem disparar duplicatas
           const meuPerfil = perfis.find(p => p.username === usuarioLogado.username);
           if (meuPerfil && meuPerfil.verificado) {
             const jaTemNotifVerificado = notifs.some(n => n.texto && n.texto.includes('perfil foi verificado'));
@@ -156,6 +161,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         const perfis = await BancoDeDados.getPerfisCadastrados();
         const pedidos = await BancoDeDados.getPedidosOracao();
         const strs = await BancoDeDados.getStories();
+        const grps = await BancoDeDados.getGrupos();
 
         if (montado) {
           setPublicacoes(pubs || []);
@@ -163,6 +169,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           setPerfisReais(perfis || []);
           setPedidosOracao(pedidos || []);
           setStories(strs || []);
+          setGrupos(grps || []);
         }
       } catch (e) {}
     }, 5000);
@@ -661,9 +668,16 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const outrosUsuarios = perfisReais.filter(p => p.username !== usuarioLogado.username && !meusAmigos.includes(p.username));
 
   const publicacoesFiltradas = publicacoes.filter(post => {
-    if (!termoBuscaComunidade.trim()) return true;
     const termo = termoBuscaComunidade.toLowerCase();
-    return (post.tema || '').toLowerCase().includes(termo) || (post.texto || '').toLowerCase().includes(termo) || (post.autor || '').toLowerCase().includes(termo);
+    const matchBusca = !termoBuscaComunidade.trim() || (post.tema || '').toLowerCase().includes(termo) || (post.texto || '').toLowerCase().includes(termo);
+    
+    if (!matchBusca) return false;
+
+    if (filtroFeed === 'versiculos') return (post.tema || '').toLowerCase().includes('versículo') || (post.tema || '').toLowerCase().includes('📖');
+    if (filtroFeed === 'oracao') return (post.tema || '').toLowerCase().includes('oração') || (post.tema || '').toLowerCase().includes('pedindo');
+    if (filtroFeed === 'testemunhos') return (post.tema || '').toLowerCase().includes('testemunho') || (post.tema || '').toLowerCase().includes('milagre');
+
+    return true;
   });
 
   const membrosFiltrados = outrosUsuarios.filter(membro => {
@@ -708,8 +722,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             className="flex items-center gap-3 cursor-pointer group min-w-0 pr-2" 
             onClick={() => clicarPerfilOuStory(post.username)}
           >
-            <div className={`w-12 h-12 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${autorTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse' : 'border-2 border-blue-500/30'}`}>
+            <div className={`relative w-12 h-12 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${autorTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse' : 'border-2 border-blue-500/30'}`}>
               <img src={avatarAtualizado} alt="Avatar" className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1">
@@ -889,9 +904,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     <div className="flex items-start gap-2.5">
                       <div 
                         onClick={() => clicarPerfilOuStory(c.username)}
-                        className={`w-7 h-7 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${autorComentarioTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-sm' : ''}`}
+                        className={`relative w-7 h-7 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${autorComentarioTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-sm' : ''}`}
                       >
                         <img src={fotoComentario} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
+                        <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-slate-900 rounded-full"></span>
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center justify-between">
@@ -1021,7 +1037,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 relative">
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
-            Comunidade <span className="text-blue-500">🌐</span>
+            Luz do Mundo <span className="text-blue-500">✨</span>
           </h2>
         </div>
 
@@ -1079,9 +1095,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         {usernameNotif ? (
                           <div 
                             onClick={() => clicarPerfilOuStory(usernameNotif)}
-                            className={`w-9 h-9 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${temStoryNotif ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-md' : ''}`}
+                            className={`relative w-9 h-9 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${temStoryNotif ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-md' : ''}`}
                           >
                             <img src={fotoNotif} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
+                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-slate-900 rounded-full"></span>
                           </div>
                         ) : (
                           <div className="w-9 h-9 rounded-full bg-blue-600/20 text-blue-500 flex items-center justify-center font-bold flex-shrink-0">🔔</div>
@@ -1101,10 +1118,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
           <div 
             onClick={() => abrirPerfilPorUsername(usuarioLogado.username)}
-            className="w-10 h-10 rounded-full p-0.5 border-2 border-blue-500 cursor-pointer hover:scale-105 transition shadow-sm overflow-hidden flex-shrink-0"
+            className="relative w-10 h-10 rounded-full p-0.5 border-2 border-blue-500 cursor-pointer hover:scale-105 transition shadow-sm overflow-hidden flex-shrink-0"
             title="Meu Perfil"
           >
             <img src={fotoPerfilOficial} alt="Meu Perfil" className="w-full h-full rounded-full object-cover" />
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
           </div>
         </div>
       </div>
@@ -1159,6 +1177,63 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   );
                 })
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalCriarGrupoAberto && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <div className="flex justify-between items-center border-b pb-3 border-slate-700">
+              <h3 className="font-extrabold text-sm">✨ Criar Grupo ou Célula de Estudo</h3>
+              <button onClick={() => setModalCriarGrupoAberto(false)} className="text-sm font-bold">✕</button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold opacity-70 block mb-1">Nome do Grupo:</label>
+                <input 
+                  type="text" 
+                  placeholder="Ex: Jovens Fazedores de História" 
+                  value={nomeNovoGrupo} 
+                  onChange={(e) => setNomeNovoGrupo(e.target.value)} 
+                  className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} 
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold opacity-70 block mb-1">Descrição / Objetivo:</label>
+                <textarea 
+                  rows="3" 
+                  placeholder="Qual o propósito deste grupo?" 
+                  value={descNovoGrupo} 
+                  onChange={(e) => setDescNovoGrupo(e.target.value)} 
+                  className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
+                ></textarea>
+              </div>
+
+              <button 
+                onClick={async () => {
+                  if (!nomeNovoGrupo.trim()) return;
+                  const novoG = {
+                    id: Date.now(),
+                    nome: nomeNovoGrupo.trim(),
+                    descricao: descNovoGrupo.trim(),
+                    criador: usuarioLogado.username,
+                    membros: [usuarioLogado.username]
+                  };
+                  const atualizados = await BancoDeDados.criarGrupo(novoG);
+                  setGrupos(atualizados || []);
+                  setNomeNovoGrupo('');
+                  setDescNovoGrupo('');
+                  setModalCriarGrupoAberto(false);
+                  mostrarToast('Grupo criado com sucesso! 🚀');
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl transition shadow-md"
+              >
+                Salvar e Criar Grupo
+              </button>
             </div>
           </div>
         </div>
@@ -1408,7 +1483,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 onClick={() => { setUsuarioStoryVisualizando(null); abrirPerfilPorUsername(storyAtivoObj.username); }}
                 className="flex items-center gap-2 cursor-pointer group"
               >
-                <img src={storyAtivoObj.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition" />
+                <div className="relative">
+                  <img src={storyAtivoObj.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-slate-900 rounded-full"></span>
+                </div>
                 <div>
                   <div className="flex items-center gap-1">
                     <span className="text-white text-xs font-bold drop-shadow-md group-hover:underline">{storyAtivoObj.autor}</span>
@@ -1521,7 +1599,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         abrirPerfilPorUsername(vis.username);
                       }}
                     >
-                      <img src={vis.foto} className="w-8 h-8 rounded-full object-cover border border-blue-500" />
+                      <div className="relative">
+                        <img src={vis.foto} className="w-8 h-8 rounded-full object-cover border border-blue-500" />
+                        <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-slate-900 rounded-full"></span>
+                      </div>
                       <div className="min-w-0">
                         <p className="text-xs font-bold truncate text-white hover:underline">{vis.nome}</p>
                         <p className="text-[10px] text-blue-400 truncate">@{vis.username}</p>
@@ -1563,8 +1644,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <div className={`w-24 h-24 rounded-full p-1 mx-auto flex items-center justify-center transition ${temStoryAtivo ? (meusStoriesVistos ? 'border-2 border-slate-500/40 opacity-75' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-xl') : ''}`}>
                 <img src={fotoPerfilOficial} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 shadow-md group-hover:opacity-90 transition" />
               </div>
+              <span className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
               {temStoryAtivo && (
-                <span className={`absolute bottom-0 right-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md ${meusStoriesVistos ? 'bg-slate-600 text-slate-300' : 'bg-gradient-to-r from-rose-600 to-amber-500 text-white'}`}>Story</span>
+                <span className={`absolute -top-1 right-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md ${meusStoriesVistos ? 'bg-slate-600 text-slate-300' : 'bg-gradient-to-r from-rose-600 to-amber-500 text-white'}`}>Story</span>
               )}
             </div>
 
@@ -1660,6 +1742,52 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </form>
           </div>
 
+          <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">📖 Células / Grupos de Estudo</h3>
+              <button 
+                onClick={() => setModalCriarGrupoAberto(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl transition shadow-xs"
+              >
+                + Criar Grupo
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {grupos.length === 0 ? (
+                <p className="text-xs opacity-50 col-span-2 text-center py-4">Nenhum grupo criado ainda. Seja o primeiro!</p>
+              ) : (
+                grupos.map(g => {
+                  const membrosGrupo = g.membros || [];
+                  const jaMembro = membrosGrupo.includes(usuarioLogado.username);
+                  return (
+                    <div key={g.id} className={`p-3.5 rounded-2xl border space-y-2 flex flex-col justify-between ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      <div>
+                        <h4 className="font-bold text-xs text-blue-400">{g.nome}</h4>
+                        <p className="text-[11px] opacity-75 line-clamp-2 mt-1">{g.descricao}</p>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-700/30">
+                        <span className="text-[10px] opacity-60">👥 {membrosGrupo.length} membros</span>
+                        <button 
+                          onClick={async () => {
+                            if (!jaMembro) {
+                              const atualizados = await BancoDeDados.entrarNoGrupo(g.id, usuarioLogado.username);
+                              setGrupos(atualizados || []);
+                              mostrarToast(`Você entrou no grupo ${g.nome}! 🎉`);
+                            }
+                          }}
+                          className={`text-[10px] px-3 py-1 rounded-lg font-bold transition ${jaMembro ? 'bg-emerald-500/20 text-emerald-400 cursor-default' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                        >
+                          {jaMembro ? 'Participando ✓' : 'Participar'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
           <div className={`p-6 rounded-3xl border shadow-md space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração 🙏</h3>
             <form onSubmit={criarPedidoOracaoHandler} className="flex gap-2">
@@ -1714,11 +1842,21 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
           </div>
 
-          <div className="space-y-6">
-            <h3 className="text-md font-bold opacity-75">Feed da Comunidade</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-md font-bold opacity-75">Feed da Comunidade</h3>
+              
+              <div className="flex items-center gap-1.5 overflow-x-auto">
+                <button onClick={() => setFiltroFeed('todos')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'todos' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>🌐 Todos</button>
+                <button onClick={() => setFiltroFeed('versiculos')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'versiculos' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>📖 Versículos</button>
+                <button onClick={() => setFiltroFeed('oracao')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'oracao' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>🙏 Oração</button>
+                <button onClick={() => setFiltroFeed('testemunhos')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'testemunhos' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>✨ Testemunhos</button>
+              </div>
+            </div>
+
             {publicacoesFiltradas.length === 0 ? (
               <div className={`p-8 text-center rounded-3xl border shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <p className="text-xs opacity-60">Nenhuma publicação encontrada.</p>
+                <p className="text-xs opacity-60">Nenhuma publicação encontrada para este filtro.</p>
               </div>
             ) : (
               publicacoesFiltradas.map((post) => renderizarCardPublicacao(post, false))
@@ -1753,9 +1891,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                             e.stopPropagation();
                             clicarPerfilOuStory(amigo.username);
                           }}
-                          className={`w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${amigoTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
+                          className={`relative w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${amigoTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
                         >
                           <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
+                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
                         </div>
 
                         <div className="min-w-0">
@@ -1802,8 +1941,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         className="flex items-center gap-2.5 min-w-0 cursor-pointer" 
                         onClick={() => clicarPerfilOuStory(membro.username)}
                       >
-                        <div className={`w-8 h-8 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${membroTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-sm animate-pulse' : ''}`}>
+                        <div className={`relative w-8 h-8 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${membroTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-sm animate-pulse' : ''}`}>
                           <img src={membro.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white" />
+                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-slate-900 rounded-full"></span>
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1 min-w-0">
