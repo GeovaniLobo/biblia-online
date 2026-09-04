@@ -420,7 +420,20 @@ export const BancoDeDados = {
 
   enviarMensagemChat: async (novaMensagem) => {
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat`, { method: 'POST', headers, body: JSON.stringify(novaMensagem) });
+      const payload = {
+        id: novaMensagem.id,
+        remetente: novaMensagem.remetente,
+        destinatario: novaMensagem.destinatario,
+        texto: novaMensagem.texto || '',
+        horario: novaMensagem.horario
+      };
+
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat`, { 
+        method: 'POST', 
+        headers, 
+        body: JSON.stringify(payload) 
+      });
+
       if (response.ok) {
         await BancoDeDados.adicionarNotificacao(novaMensagem.destinatario, `@${novaMensagem.remetente} enviou uma nova mensagem.`, 'mensagem');
       }
