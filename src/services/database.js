@@ -484,7 +484,7 @@ export const BancoDeDados = {
   // --- GRUPOS / CÉLULAS DE ESTUDO ---
   getGrupos: async () => {
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/grupos?select=*`, { method: 'GET', headers });
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/grupos?select=*&order=id.desc`, { method: 'GET', headers });
       if (!response.ok) return [];
       return await response.json();
     } catch (err) { return []; }
@@ -516,6 +516,16 @@ export const BancoDeDados = {
           });
         }
       }
+      return await BancoDeDados.getGrupos();
+    } catch (e) { return []; }
+  },
+
+  excluirGrupo: async (grupoId) => {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/grupos?id=eq.${grupoId}`, {
+        method: 'DELETE',
+        headers
+      });
       return await BancoDeDados.getGrupos();
     } catch (e) { return []; }
   }

@@ -60,7 +60,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [termoBuscaMencaoComentario, setTermoBuscaMencaoComentario] = useState('');
 
   const [termoBuscaComunidade, setTermoBuscaComunidade] = useState('');
-  const [filtroFeed, setFiltroFeed] = useState('todos'); // 'todos', 'versiculos', 'oracao', 'testemunhos'
+  const [filtroFeed, setFiltroFeed] = useState('todos'); 
   const [pubTexto, setPubTexto] = useState('');
   const [pubImagem, setPubImagem] = useState('');
   const [pubTema, setPubTema] = useState('');
@@ -1760,14 +1760,34 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 grupos.map(g => {
                   const membrosGrupo = g.membros || [];
                   const jaMembro = membrosGrupo.includes(usuarioLogado.username);
+                  const souCriadorGrupo = g.criador === usuarioLogado.username;
+
                   return (
                     <div key={g.id} className={`p-3.5 rounded-2xl border space-y-2 flex flex-col justify-between ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                       <div>
-                        <h4 className="font-bold text-xs text-blue-400">{g.nome}</h4>
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-bold text-xs text-blue-400">{g.nome}</h4>
+                          {souCriadorGrupo && (
+                            <button 
+                              onClick={async () => {
+                                if (window.confirm(`Deseja realmente excluir o grupo "${g.nome}"?`)) {
+                                  const atualizados = await BancoDeDados.excluirGrupo(g.id);
+                                  setGrupos(atualizados || []);
+                                  mostrarToast('Grupo excluído com sucesso.');
+                                }
+                              }}
+                              className="text-[10px] text-red-400 hover:text-red-500 font-bold px-1.5 py-0.5 rounded transition"
+                              title="Excluir grupo"
+                            >
+                              ✕ Excluir
+                            </button>
+                          )}
+                        </div>
                         <p className="text-[11px] opacity-75 line-clamp-2 mt-1">{g.descricao}</p>
                       </div>
+
                       <div className="flex items-center justify-between pt-2 border-t border-slate-700/30">
-                        <span className="text-[10px] opacity-60">👥 {membrosGrupo.length} membros</span>
+                        <span className="text-[10px] opacity-60">👥 {membrosGrupo.length} {membrosGrupo.length === 1 ? 'membro' : 'membros'}</span>
                         <button 
                           onClick={async () => {
                             if (!jaMembro) {
