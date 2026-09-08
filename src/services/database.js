@@ -480,7 +480,14 @@ export const BancoDeDados = {
 
   salvarPedidoOracao: async (pedido) => {
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao`, { method: 'POST', headers, body: JSON.stringify(pedido) });
+      const payload = {
+        id: pedido.id,
+        username: pedido.username,
+        autor: pedido.autor || pedido.username,
+        texto: pedido.texto,
+        apoios: 0
+      };
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao`, { method: 'POST', headers, body: JSON.stringify(payload) });
       if (!response.ok) return await BancoDeDados.getPedidosOracao();
       return await BancoDeDados.getPedidosOracao();
     } catch (err) { return []; }
