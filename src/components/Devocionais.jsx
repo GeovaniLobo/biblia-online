@@ -125,7 +125,7 @@ export default function Devocionais({ usuarioLogado, darkMode }) {
                     onClick={() => excluirDevocional(dev.id)}
                     className="text-xs text-red-400 hover:underline font-semibold"
                   >
-                    🗑️ Excluir
+                     Excluir
                   </button>
                 </div>
               </div>

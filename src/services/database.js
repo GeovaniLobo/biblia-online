@@ -425,6 +425,9 @@ export const BancoDeDados = {
         remetente: novaMensagem.remetente,
         destinatario: novaMensagem.destinatario,
         texto: novaMensagem.texto || '',
+        midia: novaMensagem.midia || null,
+        tipo_midia: novaMensagem.tipoMidia || null,
+        visualizacao_unica: Boolean(novaMensagem.visualizacaoUnica),
         horario: novaMensagem.horario
       };
 
@@ -510,5 +513,18 @@ export const BancoDeDados = {
       await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?id=eq.${id}`, { method: 'DELETE', headers });
       return await BancoDeDados.getPedidosOracao();
     } catch (err) { return []; }
-  }
+  },
+
+  limparConversaChat: async (usuarioA, usuarioB) => {
+    try {
+      // Deleta do Supabase todas as mensagens trocadas entre usuarioA e usuarioB
+      await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat?or=(and(remetente.eq.${usuarioA},destinatario.eq.${usuarioB}),and(remetente.eq.${usuarioB},destinatario.eq.${usuarioA}))`, {
+        method: 'DELETE',
+        headers
+      });
+      return [];
+    } catch (err) {
+      return [];
+    }
+  },
 };

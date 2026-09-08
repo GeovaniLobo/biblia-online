@@ -96,7 +96,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const SeloVerificado = ({ tamanho = "w-4 h-4" }) => (
     <span className="relative inline-flex items-center justify-center flex-shrink-0 group/badge cursor-pointer -translate-y-0.5 ml-1" title="Perfil Verificado">
       <svg className={`${tamanho} text-blue-500 transform transition hover:scale-110`} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2c-.65 0-1.28.31-1.66.85l-.78 1.13c-.38.55-1.03.86-1.69.81l-1.37-.11c-.78-.06-1.46.46-1.61 1.23l-.28 1.35c-.15.72-.63 1.3-1.28 1.62l-1.18.59c-.68.34-.97 1.17-.65 1.86l.6 1.25c.33.68.33 1.49 0 2.17l-.6 1.25c-.32.69-.03 1.52.65 1.86l1.18.59c.65.32 1.13.9 1.28 1.62l.28 1.35c.15.77.83 1.29 1.61 1.23l1.37-.11c.66-.05 1.31-.26 1.69-.81l.78 1.13c.38.54 1.01.85 1.66.85s1.28-.31 1.66-.85l.78-1.13c.38-.55 1.03-.86 1.69-.81l1.37.11c.78.06 1.46-.46 1.61-1.23l.28-1.35c.15-.72.63-1.3 1.28-1.62l1.18-.59c.68-.34.97-1.17.65-1.86l-.6-1.25c-.33-.68-.33-1.49 0-2.17l.6-1.25c.32-.69.03-1.52-.65-1.86l-1.18-.59c-.65-.32-1.13-.9-1.28-1.62l-.28-1.35c-.15-.77-.83-1.29-1.61-1.23l-1.37.11c-.66.05-1.31-.26-1.69-.81l-.78-1.13A2.01 2.01 0 0 0 12 2z" />
+        <path d="M12 2c-.65 0-1.28.31-1.66.85l-.78 1.13c-.38.55-1.03.86-1.69.81l-1.37-.11c-.78-.06-1.46.46-1.61 1.23l-.28 1.35c-.15.72-.63 1.3-1.28 1.62l-1.18.59c-.68.34-.97 1.17-.65 1.86l.6 1.25c.33.68.33 1.49 0 2.17l-.6 1.25c-.32.69-.03 1.52.65 1.86l1.18.59c.65.32 1.13.9 1.28 1.62l.28 1.35c.15.77.83 1.29 1.61 1.23l1.37-.11c.66-.05 1.31-.26 1.69-.81l.78 1.13c.38.54 1.01.85 1.66.85s1.28-.31 1.66-.85l.78-1.13c.38-.55 1.03-.86 1.69-.81l1.37.11c.78.06 1.46-.46 1.61-1.23l.28-1.35c.15-.72.63-1.3 1.28-1.62l1.18-.59c.68-.34.97-1.17.65-1.86l-.6-1.25c-.33-.68-.33-1.49 0-2.17l.6-1.25c.32-.69.03-1.52.65-1.86l-1.18-.59c-.65-.32-1.13-.9-1.28-1.62l-.28-1.35c-.15-.77-.83-1.29-1.61-1.23l-1.37.11c-.66.05-1.31-.26-1.69-.81l-.78-1.13A2.01 2.01 0 0 0 12 2z" />
         <path d="m9.5 13.79-2.15-2.15a1 1 0 0 0-1.41 1.41l2.86 2.86a1 1 0 0 0 1.41 0l6.14-6.14a1 1 0 0 0-1.41-1.41L9.5 13.79z" fill="#ffffff" />
       </svg>
     </span>
@@ -375,7 +375,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setNotificacoes(notifsAtualizadas || []);
   };
 
-  // Funções de envio e chat atualizadas e corrigidas
   const enviarMensagemChat = async (e, arquivoMidia = null, tipoMidia = null) => {
     if (e) e.preventDefault();
     if (!textoMensagemChat.trim() && !arquivoMidia) return;
@@ -430,12 +429,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     if (window.confirm('Deseja apagar esta mensagem para todos?')) {
       const novasMensagens = mensagensChat.filter(m => m.id !== msgId);
       setMensagensChat(novasMensagens);
-    }
-  };
-
-  const limparConversaChat = async () => {
-    if (window.confirm('Deseja limpar todo o histórico desta conversa?')) {
-      setMensagensChat([]);
     }
   };
 
@@ -1886,7 +1879,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       {chatComUsuario ? (
         <div className="fixed bottom-4 right-4 z-50 w-[360px] sm:w-[380px] h-[520px] max-h-[85vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden backdrop-blur-md bg-slate-900 border-slate-700 animate-in fade-in zoom-in-95 duration-200">
           
-          {/* Cabeçalho do Chat */}
           <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
             <div 
               onClick={() => { setChatComUsuario(null); abrirPerfilPorUsername(chatComUsuario); }}
@@ -1905,11 +1897,16 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
             <div className="flex items-center gap-2">
               <button 
-                onClick={limparConversaChat}
-                className="text-[10px] font-bold text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 px-2 py-1 rounded-lg transition"
-                title="Limpar Conversa"
+                onClick={async () => {
+                  if (window.confirm('Deseja realmente limpar toda a conversa?')) {
+                    await BancoDeDados.limparConversaChat(usuarioLogado.username, chatComUsuario);
+                    setMensagensChat([]);
+                    mostrarToast('Conversa limpa com sucesso!');
+                  }
+                }}
+                className="text-xs text-red-400 hover:text-red-300 font-bold px-2 py-1"
               >
-                Limpar
+                Limpar Conversa
               </button>
               <button 
                 onClick={() => setChatComUsuario(null)} 
@@ -1920,7 +1917,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
           </div>
 
-          {/* Histórico do Chat */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-950/60 flex flex-col">
             {mensagensChat.length === 0 ? (
               <div className="text-center my-auto opacity-50 text-xs text-slate-400">
@@ -1941,11 +1937,16 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         
                         {m.visualizacaoUnica && !souEu && !jaViu ? (
                           <div 
-                            onClick={() => setMensagensVisualizadasChat(prev => ({ ...prev, [m.id]: true }))}
-                            className="cursor-pointer bg-blue-500/20 border border-blue-400/40 p-2 rounded-xl text-center space-y-1 hover:bg-blue-500/30 transition"
+                            onClick={async () => {
+                              setMensagensVisualizadasChat(prev => ({ ...prev, [m.id]: true }));
+                              if (m.midia) {
+                                window.open(m.midia, '_blank');
+                              }
+                            }}
+                            className="cursor-pointer bg-blue-500/20 border border-blue-400/40 p-2.5 rounded-xl text-center space-y-1 hover:bg-blue-500/30 transition"
                           >
                             <span className="text-xs">👁️ Mídia Única</span>
-                            <p className="text-[9px] underline font-bold text-blue-300">Clique para ver</p>
+                            <p className="text-[9px] underline font-bold text-blue-300">Clique para abrir</p>
                           </div>
                         ) : (
                           <>
@@ -1982,7 +1983,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             <div ref={chatFimRef} />
           </div>
 
-          {/* Seletor de Emojis Completo */}
           {mostrarEmojisChat && (
             <div className="bg-slate-800 p-2 border-t border-slate-700 grid grid-cols-10 gap-1 max-h-32 overflow-y-auto">
               {emojisListaCompleta.map((emoji, i) => (
@@ -1998,7 +1998,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
           )}
 
-          {/* Input e Controles de Envio Corrigidos */}
           <form onSubmit={enviarMensagemChat} className="p-3 bg-slate-900 border-t border-slate-700 space-y-2">
             <div className="flex items-center gap-2">
               <button 
@@ -2031,7 +2030,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               </button>
             </div>
 
-            {/* Checkbox Visualização Única */}
             <div className="flex items-center gap-2 pl-1">
               <input 
                 type="checkbox" 
