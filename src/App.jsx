@@ -94,7 +94,6 @@ export default function App() {
 
   const [termoBusca, setTermoBusca] = useState('');
   const [resultadosBusca, setResultadosBusca] = useState([]);
-  const [modoFoco, setModoFoco] = useState(false);
   const [tamanhoFonte, setTamanhoFonte] = useState('text-base sm:text-lg');
   const [notaVersiculoAtiva, setNotaVersiculoAtiva] = useState(null);
   const [textoNota, setTextoNota] = useState('');
@@ -525,7 +524,7 @@ export default function App() {
       </div>
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative w-full">
-        <section className={`flex-1 overflow-y-auto p-4 sm:p-8 w-full pb-32 ${abaPrincipal === 'comunidade' ? 'max-w-full px-4 sm:px-8' : 'max-w-7xl mx-auto px-6 sm:px-12 lg:px-20'}`}>
+        <section className={`flex-1 overflow-y-auto p-4 sm:p-10 w-full pb-32 ${abaPrincipal === 'comunidade' ? 'max-w-full px-4 sm:px-8' : 'max-w-4xl mx-auto px-4 sm:px-8'}`}>
 
           {abaPrincipal === 'biblia' && (
             carregando ? (
@@ -534,7 +533,7 @@ export default function App() {
               <div className="space-y-3">
                 <h3 className="text-xs font-bold opacity-70 mb-3">Resultados para: "{termoBusca}" ({resultadosBusca.length})</h3>
                 {resultadosBusca.map((res, i) => (
-                  <div key={i} className={`p-3 rounded-lg border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div key={i} className={`p-4 rounded-2xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-[11px] font-bold text-blue-500">{res.livroNome} {res.capitulo}:{res.numero}</span>
                       <button
@@ -556,16 +555,16 @@ export default function App() {
                 ))}
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className={`p-4 rounded-2xl border shadow-sm ${darkMode ? 'bg-blue-950/30 border-blue-800/40 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-900'}`}>
-                  <h4 className="text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <div className="space-y-6">
+                <div className={`p-5 rounded-3xl border shadow-xs ${darkMode ? 'bg-slate-900/80 border-slate-800 text-blue-200' : 'bg-blue-50/70 border-blue-100 text-blue-900'}`}>
+                  <h4 className="text-[11px] font-extrabold uppercase tracking-widest mb-1.5 flex items-center gap-2">
                     <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                     Palavra do Dia
                   </h4>
-                  <p className="text-sm italic">"{palavraAtual.texto}" — {palavraAtual.referencia}</p>
+                  <p className="text-sm italic leading-relaxed">"{palavraAtual.texto}" — <span className="font-semibold">{palavraAtual.referencia}</span></p>
                 </div>
 
-                <div className="flex flex-wrap gap-2 items-center justify-between py-2">
+                <div className={`flex flex-wrap gap-3 items-center justify-between p-4 rounded-2xl border ${darkMode ? 'bg-slate-900/50 border-slate-800/80' : 'bg-white border-slate-200 shadow-2xs'}`}>
                   <select
                     value={livroIndex}
                     onChange={(e) => {
@@ -573,7 +572,7 @@ export default function App() {
                       setCapituloAtual(1);
                       setVersiculosSelecionados([]);
                     }}
-                    className={`text-xs font-bold rounded-xl px-3 py-2 border cursor-pointer ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300'}`}
+                    className={`text-xs font-bold rounded-xl px-4 py-2.5 border cursor-pointer focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-800'}`}
                   >
                     {bibliaCompleta.map((l, idx) => (
                       <option key={l.abbrev} value={idx}>{l.name}</option>
@@ -586,7 +585,7 @@ export default function App() {
                       setCapituloAtual(Number(e.target.value));
                       setVersiculosSelecionados([]);
                     }}
-                    className={`text-xs font-bold rounded-xl px-3 py-2 border cursor-pointer ${darkMode ? 'bg-slate-900 border-slate-700 text-blue-400' : 'bg-white border-slate-300 text-blue-600'}`}
+                    className={`text-xs font-bold rounded-xl px-4 py-2.5 border cursor-pointer focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-blue-400' : 'bg-slate-50 border-slate-300 text-blue-600'}`}
                   >
                     {Array.from({ length: totalCapitulosDoLivro }, (_, i) => i + 1).map((numCap) => (
                       <option key={numCap} value={numCap}>Capítulo {numCap}</option>
@@ -594,7 +593,7 @@ export default function App() {
                   </select>
                 </div>
 
-                <div className={`space-y-2.5 ${tamanhoFonte} leading-relaxed`}>
+                <div className={`space-y-4 ${tamanhoFonte} leading-loose`}>
                   {versiculosDoCapitulo.map((textoVersiculo, index) => {
                     const numeroV = index + 1;
                     const chaveMarcacao = `${livroAtualObj.name}_${capituloAtual}_${numeroV}`;
@@ -609,26 +608,26 @@ export default function App() {
                       <div 
                         key={index} 
                         onClick={() => toggleSelecaoVersiculo(numeroV, textoVersiculo)}
-                        className={`group flex flex-col gap-2 py-2 px-3 rounded-xl transition border cursor-pointer select-none ${
+                        className={`group flex flex-col gap-2 py-2.5 px-4 rounded-2xl transition border cursor-pointer select-none ${
                           isSelecionado 
                             ? 'bg-blue-600/20 border-blue-500/60 shadow-sm' 
                             : 'border-transparent hover:bg-blue-500/5'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start justify-between gap-3">
                           <p className="flex-1 leading-relaxed">
-                            <span className="text-xs font-extrabold text-blue-500 mr-2.5 align-super bg-blue-500/10 px-1.5 py-0.5 rounded-md">{numeroV}</span>
-                            <span className={corDestaqueAtual ? `${corDestaqueAtual} text-slate-900 font-semibold` : (darkMode ? 'text-slate-100' : 'text-slate-900')}>
+                            <span className="text-xs font-extrabold text-blue-500 mr-3 align-super bg-blue-500/10 px-2 py-0.5 rounded-md">{numeroV}</span>
+                            <span className={corDestaqueAtual ? `${corDestaqueAtual} text-slate-900 font-semibold px-1 rounded` : (darkMode ? 'text-slate-100' : 'text-slate-900')}>
                               {textoVersiculo}
                             </span>
                           </p>
 
-                          <div className="flex items-center justify-end gap-2 pt-2 sm:pt-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => setNotaVersiculoAtiva(chaveMarcacao)} className="text-xs bg-slate-700/20 hover:bg-slate-700/40 px-2 py-1 rounded cursor-pointer" title="Adicionar Nota">📝</button>
+                          <div className="flex items-center justify-end gap-2 pt-1 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => setNotaVersiculoAtiva(chaveMarcacao)} className="text-xs bg-slate-700/20 hover:bg-slate-700/40 p-1.5 rounded-lg cursor-pointer" title="Adicionar Nota">📝</button>
 
                             <button
                               onClick={() => toggleFavorito(livroAtualObj.name, capituloAtual, numeroV, textoVersiculo)}
-                              className={`text-sm px-1.5 py-0.5 rounded cursor-pointer ${isFavorito ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
+                              className={`text-sm p-1 rounded-lg cursor-pointer ${isFavorito ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
                               title="Favoritar"
                             >
                               {isFavorito ? '❤️' : '🤍'}
@@ -637,23 +636,23 @@ export default function App() {
                         </div>
 
                         {notaPessoal && (
-                          <div className="bg-amber-500/10 border border-amber-500/30 p-2 rounded-lg text-xs text-amber-600 dark:text-amber-300 italic" onClick={(e) => e.stopPropagation()}>
+                          <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl text-xs text-amber-600 dark:text-amber-300 italic" onClick={(e) => e.stopPropagation()}>
                             <b>Nota Pessoal:</b> {notaPessoal}
                           </div>
                         )}
 
                         {notaVersiculoAtiva === chaveMarcacao && (
-                          <div className="p-3 bg-slate-800 rounded-xl space-y-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="p-3.5 bg-slate-800 rounded-2xl space-y-2.5 mt-2 shadow-lg" onClick={(e) => e.stopPropagation()}>
                             <input 
                               type="text" 
                               placeholder="Escreva sua anotação pessoal..." 
                               value={textoNota} 
                               onChange={(e) => setTextoNota(e.target.value)} 
-                              className="w-full text-xs p-2 rounded bg-slate-900 border border-slate-700 text-white"
+                              className="w-full text-xs p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none"
                             />
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => setNotaVersiculoAtiva(null)} className="text-xs px-2 py-1 opacity-70 cursor-pointer">Cancelar</button>
-                              <button onClick={() => salvarNotaVersiculo(chaveMarcacao)} className="bg-blue-600 text-white text-xs px-3 py-1 rounded font-bold cursor-pointer">Salvar Nota</button>
+                              <button onClick={() => setNotaVersiculoAtiva(null)} className="text-xs px-3 py-1.5 opacity-70 cursor-pointer">Cancelar</button>
+                              <button onClick={() => salvarNotaVersiculo(chaveMarcacao)} className="bg-blue-600 text-white text-xs px-4 py-1.5 rounded-xl font-bold cursor-pointer">Salvar Nota</button>
                             </div>
                           </div>
                         )}
