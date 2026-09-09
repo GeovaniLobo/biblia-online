@@ -15,15 +15,12 @@ export default function App() {
   const [carregando, setCarregando] = useState(true);
 
   const [usuarioLogado, setUsuarioLogado] = useState(BancoDeDados.getUsuarioLogado());
-  
-  // Estado do darkMode gerenciado pelo Banco de Dados
   const [darkMode, setDarkMode] = useState(false);
 
   const [modalLoginAberto, setModalLoginAberto] = useState(false);
   const [menuPerfilAberto, setMenuPerfilAberto] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Sincronizar o tema do banco de dados assim que o usuário estiver logado ou carregar
   useEffect(() => {
     async function carregarTemaDoBanco() {
       if (usuarioLogado && usuarioLogado.username) {
@@ -41,7 +38,6 @@ export default function App() {
     carregarTemaDoBanco();
   }, [usuarioLogado]);
 
-  // Função para alternar e salvar o tema diretamente no banco de dados
   const alternarTemaBanco = async () => {
     const novoTema = !darkMode;
     setDarkMode(novoTema);
@@ -57,7 +53,6 @@ export default function App() {
     }
   };
 
-  // Fechar o balão de perfil ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -68,7 +63,6 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Inicialização segura das abas e perfis baseada na URL
   const initialPath = decodeURIComponent(window.location.pathname.replace('/', '').trim());
   const isSystemRoute = ['', 'biblia', 'comunidade', 'devocional', 'planos', 'editarPerfil'].includes(initialPath);
 
@@ -176,9 +170,7 @@ export default function App() {
         let perfis = [];
         try {
           perfis = await BancoDeDados.getPerfisCadastrados();
-        } catch (e) {
-          console.error("Erro ao buscar perfis do Supabase:", e);
-        }
+        } catch (e) {}
 
         const encontrado = perfis?.find(p => p.username?.toLowerCase() === path.toLowerCase());
         
@@ -216,10 +208,7 @@ export default function App() {
         setBibliaCompleta(dados);
         setCarregando(false);
       })
-      .catch((erro) => {
-        console.error("Erro ao carregar a Bíblia:", erro);
-        setCarregando(false);
-      });
+      .catch(() => setCarregando(false));
   }, [versaoSelecionada]);
 
   useEffect(() => {
@@ -252,7 +241,7 @@ export default function App() {
         autor: usuarioLogado.nome,
         username: usuarioLogado.username,
         avatar: usuarioLogado.foto,
-        tema: `❤️ Versículo Favoritado: ${livroNome} ${capitulo}:${numeroVersiculo}`,
+        tema: `Versículo Favoritado: ${livroNome} ${capitulo}:${numeroVersiculo}`,
         texto: `"${texto}"`,
         imagem: '',
         curtidas: 0,
@@ -290,7 +279,7 @@ export default function App() {
       autor: usuarioLogado.nome,
       username: usuarioLogado.username,
       avatar: usuarioLogado.foto,
-      tema: `📖 ${reference}`,
+      tema: `${reference}`,
       texto: textosFormatados.join(' '),
       imagem: '',
       curtidas: 0,
@@ -298,7 +287,6 @@ export default function App() {
     });
 
     setVersiculosSelecionados([]);
-    alert('Versículos destacados e compartilhados juntos no Feed! 🚀');
   };
 
   const toggleSelecaoVersiculo = (numero, texto) => {
@@ -354,16 +342,18 @@ export default function App() {
   return (
     <div className={`flex flex-col h-screen font-sans overflow-hidden ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
 
-      {/* HEADER SUPERIOR UNIFICADO COM TODAS AS FUNÇÕES */}
+      {/* HEADER SUPERIOR UNIFICADO COM ÍCONES PROFISSIONAIS */}
       <header className={`border-b px-4 lg:px-8 py-3 flex items-center justify-between gap-4 shadow-sm backdrop-blur-md z-40 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         
-        {/* Lado Esquerdo: Logo e Seletor de Livro/Tradução */}
         <div className="flex items-center gap-4">
           <span 
             onClick={() => navegarPara('/', 'biblia')}
             className="text-base sm:text-lg font-black tracking-wider flex items-center gap-2 cursor-pointer"
           >
-            BÍBLIA ONLINE <span className="text-blue-500">✨</span>
+            <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            BÍBLIA ONLINE
           </span>
 
           <select
@@ -372,7 +362,7 @@ export default function App() {
               setVersaoSelecionada(e.target.value);
               setCapituloAtual(1);
             }}
-            className={`hidden sm:block bg-slate-800 border border-slate-700 text-white text-xs rounded-lg px-2 py-1.5 focus:outline-none cursor-pointer`}
+            className="hidden sm:block bg-slate-800 border border-slate-700 text-white text-xs rounded-lg px-2 py-1.5 focus:outline-none cursor-pointer"
           >
             {traducoesDisponiveis.map((t) => (
               <option key={t.id} value={t.id}>{t.nome}</option>
@@ -380,40 +370,44 @@ export default function App() {
           </select>
         </div>
 
-        {/* Centro: Navegação Completa + Input de Pesquisa */}
+        {/* Navegação por Ícones */}
         <div className="hidden lg:flex items-center gap-2">
           <button
             onClick={() => navegarPara('/', 'biblia')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
           >
-            📖 Bíblia
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+            Bíblia
           </button>
           <button
             onClick={() => {
               if (!usuarioLogado) setModalLoginAberto(true);
               else navegarPara('/devocional', 'devocional');
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
           >
-            ⛪ Devocional
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+            Devocional
           </button>
           <button
             onClick={() => {
               if (!usuarioLogado) setModalLoginAberto(true);
               else navegarPara('/planos', 'planos');
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${abaPrincipal === 'planos' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${abaPrincipal === 'planos' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
           >
-            📅 Planos
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            Planos
           </button>
           <button
             onClick={() => {
               if (!usuarioLogado) setModalLoginAberto(true);
               else navegarPara('/comunidade', 'comunidade');
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition relative flex items-center gap-1 cursor-pointer ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition relative flex items-center gap-1.5 cursor-pointer ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
           >
-            🌐 Comunidade
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            Comunidade
             {totalNaoLidas > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-md animate-bounce">
                 {totalNaoLidas}
@@ -434,14 +428,13 @@ export default function App() {
           />
         </div>
 
-        {/* Lado Direito: Notificações + Alternar Tema Salvo no Banco + Balão da Foto de Perfil */}
+        {/* Lado Direito: Ações */}
         <div className="flex items-center gap-3">
           
-          {/* Botão de Tema (Salva direto no Banco de Dados) */}
           <button
             onClick={alternarTemaBanco}
             className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs transition flex items-center justify-center cursor-pointer shadow-sm"
-            title="Alternar Tema (Salva no Banco)"
+            title="Alternar Tema"
           >
             {darkMode ? (
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
@@ -450,18 +443,14 @@ export default function App() {
             )}
           </button>
 
-          {/* BALÃO / DROPDOWN DA FOTO DE PERFIL À DIREITA */}
+          {/* Balão de Perfil */}
           <div className="relative" ref={dropdownRef}>
             <div
               onClick={() => {
-                if (!usuarioLogado) {
-                  setModalLoginAberto(true);
-                } else {
-                  setMenuPerfilAberto(!menuPerfilAberto);
-                }
+                if (!usuarioLogado) setModalLoginAberto(true);
+                else setMenuPerfilAberto(!menuPerfilAberto);
               }}
               className="relative w-10 h-10 rounded-full p-0.5 border-2 border-blue-500 cursor-pointer hover:scale-105 transition shadow-sm overflow-hidden flex-shrink-0"
-              title={usuarioLogado ? `Logado como @${usuarioLogado.username}` : "Clique para entrar"}
             >
               <img 
                 src={usuarioLogado?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
@@ -470,7 +459,6 @@ export default function App() {
               />
             </div>
 
-            {/* Balão Suspenso */}
             {menuPerfilAberto && usuarioLogado && (
               <div className={`absolute right-0 mt-3 w-56 rounded-2xl shadow-2xl border p-2 z-50 space-y-1 backdrop-blur-md ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                 <div className="px-3 py-2 border-b border-slate-700/50 mb-1">
@@ -482,14 +470,16 @@ export default function App() {
                   onClick={() => navegarPara(`/${usuarioLogado.username}`, 'perfilUrl')}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
                 >
-                  👤 Entrar no Perfil
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  Entrar no Perfil
                 </button>
 
                 <button
                   onClick={() => navegarPara('/editarPerfil', 'editarPerfil')}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
                 >
-                  ✏️ Editar Perfil
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  Editar Perfil
                 </button>
 
                 <button
@@ -501,7 +491,8 @@ export default function App() {
                   }}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
                 >
-                  🔗 Copiar Link de Perfil
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                  Copiar Link de Perfil
                 </button>
 
                 <div className="border-t border-slate-700/50 pt-1 mt-1">
@@ -514,7 +505,8 @@ export default function App() {
                     }}
                     className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-400 hover:bg-red-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
                   >
-                    🚪 Sair
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    Sair
                   </button>
                 </div>
               </div>
@@ -524,7 +516,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Sub-barra móvel para dispositivos menores (seletor de aba rápida) */}
+      {/* Sub-barra mobile */}
       <div className={`flex lg:hidden overflow-x-auto px-4 py-2 border-b gap-2 text-xs font-bold ${darkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200'}`}>
         <button onClick={() => navegarPara('/', 'biblia')} className={`px-3 py-1 rounded-lg ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white' : 'opacity-70'}`}>Bíblia</button>
         <button onClick={() => { if(!usuarioLogado) setModalLoginAberto(true); else navegarPara('/devocional', 'devocional'); }} className={`px-3 py-1 rounded-lg ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white' : 'opacity-70'}`}>Devocional</button>
@@ -532,9 +524,7 @@ export default function App() {
         <button onClick={() => { if(!usuarioLogado) setModalLoginAberto(true); else navegarPara('/comunidade', 'comunidade'); }} className={`px-3 py-1 rounded-lg ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white' : 'opacity-70'}`}>Comunidade</button>
       </div>
 
-      {/* CONTEÚDO PRINCIPAL DA APLICAÇÃO */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative w-full">
-
         <section className={`flex-1 overflow-y-auto p-4 sm:p-6 w-full pb-32 ${abaPrincipal === 'comunidade' ? 'max-w-full px-4 sm:px-8' : 'max-w-4xl mx-auto lg:px-16'}`}>
 
           {abaPrincipal === 'biblia' && (
@@ -568,11 +558,13 @@ export default function App() {
             ) : (
               <div className="space-y-4">
                 <div className={`p-4 rounded-2xl border shadow-sm ${darkMode ? 'bg-blue-950/30 border-blue-800/40 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-900'}`}>
-                  <h4 className="text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">🌟 Palavra do Dia</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    Palavra do Dia
+                  </h4>
                   <p className="text-sm italic">"{palavraAtual.texto}" — {palavraAtual.referencia}</p>
                 </div>
 
-                {/* Seletor de Livro e Capítulo rápido na tela da Bíblia */}
                 <div className="flex flex-wrap gap-2 items-center justify-between py-2">
                   <select
                     value={livroIndex}
@@ -622,7 +614,6 @@ export default function App() {
                             ? 'bg-blue-600/20 border-blue-500/60 shadow-sm' 
                             : 'border-transparent hover:bg-blue-500/5'
                         }`}
-                        title="Clique para selecionar o versículo"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <p className="flex-1 leading-relaxed">
@@ -716,7 +707,6 @@ export default function App() {
 
         </section>
 
-        {/* Barra de Ações Flutuante para Versículos Selecionados */}
         {abaPrincipal === 'biblia' && versiculosSelecionados.length > 0 && (
           <div className="absolute bottom-6 left-4 right-4 sm:left-1/2 sm:transform sm:-translate-x-1/2 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between sm:justify-center gap-3 border border-slate-700 z-50">
             <span className="text-xs font-semibold bg-blue-600 px-2 py-1 rounded-lg">
@@ -736,7 +726,7 @@ export default function App() {
                 onClick={copiarVersiculosSelecionados}
                 className="bg-slate-800 text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-slate-700 transition cursor-pointer"
               >
-                📋 {copiadoFeedback ? 'Copiado!' : 'Copiar'}
+                Copiar
               </button>
               <button
                 onClick={() => setVersiculosSelecionados([])}
