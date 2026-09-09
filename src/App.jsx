@@ -524,186 +524,189 @@ export default function App() {
       </div>
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative w-full">
-        <section className={`flex-1 overflow-y-auto p-4 sm:p-10 w-full pb-32 ${abaPrincipal === 'comunidade' ? 'max-w-full px-4 sm:px-8' : 'max-w-4xl mx-auto px-4 sm:px-8'}`}>
+        {/* Scroll agora fixo na borda extrema da direita da tela inteira */}
+        <section className="flex-1 overflow-y-auto p-4 sm:p-10 w-full pb-32">
+          <div className="max-w-4xl mx-auto w-full">
 
-          {abaPrincipal === 'biblia' && (
-            carregando ? (
-              <p className="text-slate-400 text-center mt-10 text-sm">Carregando conteúdo...</p>
-            ) : termoBusca.trim().length >= 3 ? (
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold opacity-70 mb-3">Resultados para: "{termoBusca}" ({resultadosBusca.length})</h3>
-                {resultadosBusca.map((res, i) => (
-                  <div key={i} className={`p-4 rounded-2xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[11px] font-bold text-blue-500">{res.livroNome} {res.capitulo}:{res.numero}</span>
-                      <button
-                        onClick={() => {
-                          const idx = bibliaCompleta.findIndex(l => l.name === res.livroNome);
-                          if (idx !== -1) {
-                            setLivroIndex(idx);
-                            setCapituloAtual(res.capitulo);
-                            setTermoBusca('');
-                          }
-                        }}
-                        className="text-[11px] text-blue-400 hover:underline cursor-pointer"
-                      >
-                        Ir para o capítulo →
-                      </button>
+            {abaPrincipal === 'biblia' && (
+              carregando ? (
+                <p className="text-slate-400 text-center mt-10 text-sm">Carregando conteúdo...</p>
+              ) : termoBusca.trim().length >= 3 ? (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-bold opacity-70 mb-3">Resultados para: "{termoBusca}" ({resultadosBusca.length})</h3>
+                  {resultadosBusca.map((res, i) => (
+                    <div key={i} className={`p-4 rounded-2xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[11px] font-bold text-blue-500">{res.livroNome} {res.capitulo}:{res.numero}</span>
+                        <button
+                          onClick={() => {
+                            const idx = bibliaCompleta.findIndex(l => l.name === res.livroNome);
+                            if (idx !== -1) {
+                              setLivroIndex(idx);
+                              setCapituloAtual(res.capitulo);
+                              setTermoBusca('');
+                            }
+                          }}
+                          className="text-[11px] text-blue-400 hover:underline cursor-pointer"
+                        >
+                          Ir para o capítulo →
+                        </button>
+                      </div>
+                      <p className="text-sm leading-relaxed">{res.texto}</p>
                     </div>
-                    <p className="text-sm leading-relaxed">{res.texto}</p>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className={`p-5 rounded-3xl border shadow-xs ${darkMode ? 'bg-slate-900/80 border-slate-800 text-blue-200' : 'bg-blue-50/70 border-blue-100 text-blue-900'}`}>
+                    <h4 className="text-[11px] font-extrabold uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      Palavra do Dia
+                    </h4>
+                    <p className="text-sm italic leading-relaxed">"{palavraAtual.texto}" — <span className="font-semibold">{palavraAtual.referencia}</span></p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className={`p-5 rounded-3xl border shadow-xs ${darkMode ? 'bg-slate-900/80 border-slate-800 text-blue-200' : 'bg-blue-50/70 border-blue-100 text-blue-900'}`}>
-                  <h4 className="text-[11px] font-extrabold uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                    Palavra do Dia
-                  </h4>
-                  <p className="text-sm italic leading-relaxed">"{palavraAtual.texto}" — <span className="font-semibold">{palavraAtual.referencia}</span></p>
-                </div>
 
-                <div className={`flex flex-wrap gap-3 items-center justify-between p-4 rounded-2xl border ${darkMode ? 'bg-slate-900/50 border-slate-800/80' : 'bg-white border-slate-200 shadow-2xs'}`}>
-                  <select
-                    value={livroIndex}
-                    onChange={(e) => {
-                      setLivroIndex(Number(e.target.value));
-                      setCapituloAtual(1);
-                      setVersiculosSelecionados([]);
-                    }}
-                    className={`text-xs font-bold rounded-xl px-4 py-2.5 border cursor-pointer focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-800'}`}
-                  >
-                    {bibliaCompleta.map((l, idx) => (
-                      <option key={l.abbrev} value={idx}>{l.name}</option>
-                    ))}
-                  </select>
+                  <div className={`flex flex-wrap gap-3 items-center justify-between p-4 rounded-2xl border ${darkMode ? 'bg-slate-900/50 border-slate-800/80' : 'bg-white border-slate-200 shadow-2xs'}`}>
+                    <select
+                      value={livroIndex}
+                      onChange={(e) => {
+                        setLivroIndex(Number(e.target.value));
+                        setCapituloAtual(1);
+                        setVersiculosSelecionados([]);
+                      }}
+                      className={`text-xs font-bold rounded-xl px-4 py-2.5 border cursor-pointer focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-800'}`}
+                    >
+                      {bibliaCompleta.map((l, idx) => (
+                        <option key={l.abbrev} value={idx}>{l.name}</option>
+                      ))}
+                    </select>
 
-                  <select
-                    value={capituloAtual}
-                    onChange={(e) => {
-                      setCapituloAtual(Number(e.target.value));
-                      setVersiculosSelecionados([]);
-                    }}
-                    className={`text-xs font-bold rounded-xl px-4 py-2.5 border cursor-pointer focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-blue-400' : 'bg-slate-50 border-slate-300 text-blue-600'}`}
-                  >
-                    {Array.from({ length: totalCapitulosDoLivro }, (_, i) => i + 1).map((numCap) => (
-                      <option key={numCap} value={numCap}>Capítulo {numCap}</option>
-                    ))}
-                  </select>
-                </div>
+                    <select
+                      value={capituloAtual}
+                      onChange={(e) => {
+                        setCapituloAtual(Number(e.target.value));
+                        setVersiculosSelecionados([]);
+                      }}
+                      className={`text-xs font-bold rounded-xl px-4 py-2.5 border cursor-pointer focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-blue-400' : 'bg-slate-50 border-slate-300 text-blue-600'}`}
+                    >
+                      {Array.from({ length: totalCapitulosDoLivro }, (_, i) => i + 1).map((numCap) => (
+                        <option key={numCap} value={numCap}>Capítulo {numCap}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div className={`space-y-4 ${tamanhoFonte} leading-loose`}>
-                  {versiculosDoCapitulo.map((textoVersiculo, index) => {
-                    const numeroV = index + 1;
-                    const chaveMarcacao = `${livroAtualObj.name}_${capituloAtual}_${numeroV}`;
-                    const corDestaqueAtual = marcacoes[chaveMarcacao];
-                    const isFavorito = favoritos.some(
-                      (f) => f.livro === livroAtualObj.name && f.capitulo === capituloAtual && f.numero === numeroV
-                    );
-                    const isSelecionado = versiculosSelecionados.some(v => v.numero === numeroV);
-                    const notaPessoal = notasPessoais[chaveMarcacao];
+                  <div className={`space-y-4 ${tamanhoFonte} leading-loose`}>
+                    {versiculosDoCapitulo.map((textoVersiculo, index) => {
+                      const numeroV = index + 1;
+                      const chaveMarcacao = `${livroAtualObj.name}_${capituloAtual}_${numeroV}`;
+                      const corDestaqueAtual = marcacoes[chaveMarcacao];
+                      const isFavorito = favoritos.some(
+                        (f) => f.livro === livroAtualObj.name && f.capitulo === capituloAtual && f.numero === numeroV
+                      );
+                      const isSelecionado = versiculosSelecionados.some(v => v.numero === numeroV);
+                      const notaPessoal = notasPessoais[chaveMarcacao];
 
-                    return (
-                      <div 
-                        key={index} 
-                        onClick={() => toggleSelecaoVersiculo(numeroV, textoVersiculo)}
-                        className={`group flex flex-col gap-2 py-2.5 px-4 rounded-2xl transition border cursor-pointer select-none ${
-                          isSelecionado 
-                            ? 'bg-blue-600/20 border-blue-500/60 shadow-sm' 
-                            : 'border-transparent hover:bg-blue-500/5'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="flex-1 leading-relaxed">
-                            <span className="text-xs font-extrabold text-blue-500 mr-3 align-super bg-blue-500/10 px-2 py-0.5 rounded-md">{numeroV}</span>
-                            <span className={corDestaqueAtual ? `${corDestaqueAtual} text-slate-900 font-semibold px-1 rounded` : (darkMode ? 'text-slate-100' : 'text-slate-900')}>
-                              {textoVersiculo}
-                            </span>
-                          </p>
+                      return (
+                        <div 
+                          key={index} 
+                          onClick={() => toggleSelecaoVersiculo(numeroV, textoVersiculo)}
+                          className={`group flex flex-col gap-2 py-2.5 px-4 rounded-2xl transition border cursor-pointer select-none ${
+                            isSelecionado 
+                              ? 'bg-blue-600/20 border-blue-500/60 shadow-sm' 
+                              : 'border-transparent hover:bg-blue-500/5'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="flex-1 leading-relaxed">
+                              <span className="text-xs font-extrabold text-blue-500 mr-3 align-super bg-blue-500/10 px-2 py-0.5 rounded-md">{numeroV}</span>
+                              <span className={corDestaqueAtual ? `${corDestaqueAtual} text-slate-900 font-semibold px-1 rounded` : (darkMode ? 'text-slate-100' : 'text-slate-900')}>
+                                {textoVersiculo}
+                              </span>
+                            </p>
 
-                          <div className="flex items-center justify-end gap-2 pt-1 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => setNotaVersiculoAtiva(chaveMarcacao)} className="text-xs bg-slate-700/20 hover:bg-slate-700/40 p-1.5 rounded-lg cursor-pointer" title="Adicionar Nota">📝</button>
+                            <div className="flex items-center justify-end gap-2 pt-1 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => setNotaVersiculoAtiva(chaveMarcacao)} className="text-xs bg-slate-700/20 hover:bg-slate-700/40 p-1.5 rounded-lg cursor-pointer" title="Adicionar Nota">📝</button>
 
-                            <button
-                              onClick={() => toggleFavorito(livroAtualObj.name, capituloAtual, numeroV, textoVersiculo)}
-                              className={`text-sm p-1 rounded-lg cursor-pointer ${isFavorito ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
-                              title="Favoritar"
-                            >
-                              {isFavorito ? '❤️' : '🤍'}
-                            </button>
-                          </div>
-                        </div>
-
-                        {notaPessoal && (
-                          <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl text-xs text-amber-600 dark:text-amber-300 italic" onClick={(e) => e.stopPropagation()}>
-                            <b>Nota Pessoal:</b> {notaPessoal}
-                          </div>
-                        )}
-
-                        {notaVersiculoAtiva === chaveMarcacao && (
-                          <div className="p-3.5 bg-slate-800 rounded-2xl space-y-2.5 mt-2 shadow-lg" onClick={(e) => e.stopPropagation()}>
-                            <input 
-                              type="text" 
-                              placeholder="Escreva sua anotação pessoal..." 
-                              value={textoNota} 
-                              onChange={(e) => setTextoNota(e.target.value)} 
-                              className="w-full text-xs p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none"
-                            />
-                            <div className="flex justify-end gap-2">
-                              <button onClick={() => setNotaVersiculoAtiva(null)} className="text-xs px-3 py-1.5 opacity-70 cursor-pointer">Cancelar</button>
-                              <button onClick={() => salvarNotaVersiculo(chaveMarcacao)} className="bg-blue-600 text-white text-xs px-4 py-1.5 rounded-xl font-bold cursor-pointer">Salvar Nota</button>
+                              <button
+                                onClick={() => toggleFavorito(livroAtualObj.name, capituloAtual, numeroV, textoVersiculo)}
+                                className={`text-sm p-1 rounded-lg cursor-pointer ${isFavorito ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
+                                title="Favoritar"
+                              >
+                                {isFavorito ? '❤️' : '🤍'}
+                              </button>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+
+                          {notaPessoal && (
+                            <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl text-xs text-amber-600 dark:text-amber-300 italic" onClick={(e) => e.stopPropagation()}>
+                              <b>Nota Pessoal:</b> {notaPessoal}
+                            </div>
+                          )}
+
+                          {notaVersiculoAtiva === chaveMarcacao && (
+                            <div className="p-3.5 bg-slate-800 rounded-2xl space-y-2.5 mt-2 shadow-lg" onClick={(e) => e.stopPropagation()}>
+                              <input 
+                                type="text" 
+                                placeholder="Escreva sua anotação pessoal..." 
+                                value={textoNota} 
+                                onChange={(e) => setTextoNota(e.target.value)} 
+                                className="w-full text-xs p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none"
+                              />
+                              <div className="flex justify-end gap-2">
+                                <button onClick={() => setNotaVersiculoAtiva(null)} className="text-xs px-3 py-1.5 opacity-70 cursor-pointer">Cancelar</button>
+                                <button onClick={() => salvarNotaVersiculo(chaveMarcacao)} className="bg-blue-600 text-white text-xs px-4 py-1.5 rounded-xl font-bold cursor-pointer">Salvar Nota</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )
-          )}
+              )
+            )}
 
-          {abaPrincipal === 'devocional' && usuarioLogado && (
-            <Devocionais usuarioLogado={usuarioLogado} darkMode={darkMode} />
-          )}
+            {abaPrincipal === 'devocional' && usuarioLogado && (
+              <Devocionais usuarioLogado={usuarioLogado} darkMode={darkMode} />
+            )}
 
-          {abaPrincipal === 'planos' && usuarioLogado && (
-            <PlanosDeEstudo usuarioLogado={usuarioLogado} darkMode={darkMode} />
-          )}
+            {abaPrincipal === 'planos' && usuarioLogado && (
+              <PlanosDeEstudo usuarioLogado={usuarioLogado} darkMode={darkMode} />
+            )}
 
-          {abaPrincipal === 'comunidade' && usuarioLogado && (
-            <Comunidade 
-              usuarioLogado={usuarioLogado} 
-              darkMode={darkMode} 
-              onVerPerfil={(username) => navegarPara(`/${username}`, 'perfilUrl')}
-              abaAtual={abaPrincipal}
-              setAbaAtual={(novaAba) => navegarPara(novaAba === 'biblia' ? '/' : `/${novaAba}`, novaAba)}
-            />
-          )}
+            {abaPrincipal === 'comunidade' && usuarioLogado && (
+              <Comunidade 
+                usuarioLogado={usuarioLogado} 
+                darkMode={darkMode} 
+                onVerPerfil={(username) => navegarPara(`/${username}`, 'perfilUrl')}
+                abaAtual={abaPrincipal}
+                setAbaAtual={(novaAba) => navegarPara(novaAba === 'biblia' ? '/' : `/${novaAba}`, novaAba)}
+              />
+            )}
 
-          {abaPrincipal === 'perfilUrl' && (
-            <PerfilPublico
-              perfilAlvo={perfilUrlAlvo || { username: initialPath, nome: initialPath, amigos: [] }}
-              usuarioLogado={usuarioLogado}
-              onVoltar={() => navegarPara(usuarioLogado ? '/comunidade' : '/', usuarioLogado ? 'comunidade' : 'biblia')}
-              darkMode={darkMode}
-              onToggleDarkMode={alternarTemaBanco}
-            />
-          )}
+            {abaPrincipal === 'perfilUrl' && (
+              <PerfilPublico
+                perfilAlvo={perfilUrlAlvo || { username: initialPath, nome: initialPath, amigos: [] }}
+                usuarioLogado={usuarioLogado}
+                onVoltar={() => navegarPara(usuarioLogado ? '/comunidade' : '/', usuarioLogado ? 'comunidade' : 'biblia')}
+                darkMode={darkMode}
+                onToggleDarkMode={alternarTemaBanco}
+              />
+            )}
 
-          {abaPrincipal === 'editarPerfil' && usuarioLogado && (
-            <EditarPerfil
-              usuarioLogado={usuarioLogado}
-              onSalvo={(usuarioAtualizado) => {
-                setUsuarioLogado(usuarioAtualizado);
-                navegarPara('/comunidade', 'comunidade');
-              }}
-              onVoltar={() => navegarPara('/comunidade', 'comunidade')}
-              darkMode={darkMode}
-            />
-          )}
+            {abaPrincipal === 'editarPerfil' && usuarioLogado && (
+              <EditarPerfil
+                usuarioLogado={usuarioLogado}
+                onSalvo={(usuarioAtualizado) => {
+                  setUsuarioLogado(usuarioAtualizado);
+                  navegarPara('/comunidade', 'comunidade');
+                }}
+                onVoltar={() => navegarPara('/comunidade', 'comunidade')}
+                darkMode={darkMode}
+              />
+            )}
 
+          </div>
         </section>
 
         {abaPrincipal === 'biblia' && versiculosSelecionados.length > 0 && (
