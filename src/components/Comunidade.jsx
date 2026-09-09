@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BancoDeDados } from '../services/database';
 import PerfilPublico from './PerfilPublico';
 
-export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil, abaAtual, setAbaAtual }) {
+export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   if (!usuarioLogado) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -36,7 +36,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil, abaAt
 
   const [abaNotificacoesAberta, setAbaNotificacoesAberta] = useState(false);
   const [abaSolicitacoesAberta, setAbaSolicitacoesAberta] = useState(false);
-  const [abaAmigosModalAberta, setAbaAmigosModalAberta] = useState(false);
 
   const [postDetalheId, setPostDetalheId] = useState(null);
   const [menuOpcoesPostAberto, setMenuOpcoesPostAberto] = useState(null);
@@ -646,7 +645,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil, abaAt
   if (postDetalheId) {
     const postUnico = publicacoes.find(p => p.id === postDetalheId);
     return (
-      <div className={`w-full max-w-4xl mx-auto px-3 sm:px-6 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+      <div className={`w-full max-w-2xl mx-auto px-3 sm:px-6 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
         <button 
           onClick={() => setPostDetalheId(null)}
           className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-2"
@@ -791,7 +790,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil, abaAt
           <div className="space-y-2">
             <h4 className="text-lg font-bold break-words">{post.tema}</h4>
             {post.imagem && <img src={post.imagem} alt="Post" className="w-full h-64 sm:h-80 object-cover rounded-2xl shadow-sm" />}
-            <p className="text-sm leading-relaxed opacity-95 whitespace-pre-line break-words">{post.texto}</p>
+            <p className="text-sm leading-relaxed opacity-90 whitespace-pre-line break-words">{post.texto}</p>
           </div>
         )}
 
@@ -1022,9 +1021,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil, abaAt
   }
 
   return (
-    <div className={`w-full min-h-screen pb-12 overflow-x-hidden box-border ${darkMode ? 'text-slate-100 bg-slate-950' : 'text-slate-900 bg-slate-50'}`}>
+    <div className={`w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-10 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
-      {/* Toast de Alerta */}
       {toastMensagem && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
           <div className="bg-slate-900 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-2.5 backdrop-blur-md">
@@ -1034,910 +1032,845 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil, abaAt
         </div>
       )}
 
-      {/* HEADER SUPERIOR UNIFICADO */}
-      <header className={`sticky top-0 z-40 w-full px-4 lg:px-8 py-3 border-b shadow-sm backdrop-blur-md flex flex-wrap items-center justify-between gap-4 ${darkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-slate-200'}`}>
-        
-        {/* Logo / Título */}
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => { if(setAbaAtual) setAbaAtual('comunidade'); }}>
-          <span className="text-lg font-black tracking-tight flex items-center gap-2">
+      <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 relative">
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
             Luz do Mundo <span className="text-blue-500">✨</span>
-          </span>
+          </h2>
         </div>
 
-        {/* Input de Pesquisa Central no Header */}
-        <div className={`flex-1 max-w-md mx-2 px-3.5 py-1.5 rounded-2xl border flex items-center gap-2.5 shadow-xs ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-100 border-slate-300'}`}>
-          <svg className="w-4 h-4 opacity-50 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input 
-            type="text" 
-            placeholder="Buscar publicações, versículos ou pessoas..." 
-            value={termoBuscaComunidade}
-            onChange={(e) => setTermoBuscaComunidade(e.target.value)}
-            className={`w-full text-xs bg-transparent focus:outline-none ${darkMode ? 'text-white placeholder-slate-400' : 'text-slate-900 placeholder-slate-500'}`}
-          />
-          {termoBuscaComunidade && (
-            <button onClick={() => setTermoBuscaComunidade('')} className="text-[10px] opacity-60 hover:opacity-100 font-bold">Limpar</button>
+        <div className="flex items-center gap-3">
+          {pedidosRecebidos.length > 0 && (
+            <button 
+              onClick={() => setAbaSolicitacoesAberta(true)}
+              className="px-3 py-1.5 rounded-xl bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm animate-bounce"
+            >
+              👥 ({pedidosRecebidos.length})
+            </button>
           )}
-        </div>
 
-        {/* Navegação e Ícones do Header */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          
-          {/* Ícone de Bíblia */}
-          <button 
-            onClick={() => { if(setAbaAtual) setAbaAtual('biblia'); }}
-            className={`p-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${abaAtual === 'biblia' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
-            title="Bíblia"
-          >
-            📖 <span className="hidden md:inline">Bíblia</span>
-          </button>
-
-          {/* Ícone de Devocional */}
-          <button 
-            onClick={() => { if(setAbaAtual) setAbaAtual('devocionais'); }}
-            className={`p-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${abaAtual === 'devocionais' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
-            title="Devocionais"
-          >
-            ⛪ <span className="hidden md:inline">Devocional</span>
-          </button>
-
-          {/* Ícone de Planos */}
-          <button 
-            onClick={() => { if(setAbaAtual) setAbaAtual('planos'); }}
-            className={`p-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${abaAtual === 'planos' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
-            title="Planos"
-          >
-            📅 <span className="hidden md:inline">Planos</span>
-          </button>
-
-          {/* Ícone de Comunidade */}
-          <button 
-            onClick={() => { if(setAbaAtual) setAbaAtual('comunidade'); }}
-            className={`p-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${abaAtual === 'comunidade' || !abaAtual ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
-            title="Comunidade"
-          >
-            🌐 <span className="hidden md:inline">Comunidade</span>
-          </button>
-
-          {/* Botão de Amigos */}
-          <button 
-            onClick={() => setAbaAmigosModalAberta(true)}
-            className={`p-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
-            title="Amigos"
-          >
-            👥 <span className="hidden md:inline">Amigos</span> {pedidosRecebidos.length > 0 && <span className="w-2 h-2 rounded-full bg-amber-500"></span>}
-          </button>
-
-          {/* Notificações (Apenas se o usuário estiver logado) */}
-          {usuarioLogado && (
-            <div className="relative">
-              <button 
-                onClick={async () => {
-                  setAbaNotificacoesAberta(!abaNotificacoesAberta);
-                  if (!abaNotificacoesAberta) {
-                    await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
-                    setNotificacoes(await BancoDeDados.getNotificacoes(usuarioLogado.username));
-                  }
-                }}
-                className={`p-2.5 rounded-xl border transition relative flex items-center justify-center ${darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-white' : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800'}`}
-                title="Notificações"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                {notificacoesNaoLidasCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full font-black flex items-center justify-center shadow-md animate-bounce">
-                    {notificacoesNaoLidasCount}
-                  </span>
-                )}
-              </button>
-
-              {abaNotificacoesAberta && (
-                <div className={`absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-3xl border shadow-2xl p-4 z-50 space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-                  <div className="flex justify-between items-center border-b pb-2 border-slate-700">
-                    <h4 className="font-extrabold text-xs uppercase tracking-wider">Notificações</h4>
-                    <button onClick={() => setAbaNotificacoesAberta(false)} className="text-xs font-bold opacity-60">✕</button>
-                  </div>
-
-                  {notificacoes.length === 0 ? (
-                    <p className="text-xs opacity-50 text-center py-6">Nenhuma notificação no momento.</p>
-                  ) : (
-                    notificacoes.map((n, idx) => {
-                      const matchUser = n.texto.match(/@([a-zA-Z0-9_]+)/);
-                      const usernameNotif = matchUser ? matchUser[1] : null;
-                      const perfilNotif = perfisReais.find(p => p.username === usernameNotif) || {};
-                      const fotoNotif = perfilNotif.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
-                      const temStoryNotif = storiesFiltradosAmigos.some(s => s.username === usernameNotif);
-
-                      return (
-                        <div key={idx} className={`p-3 rounded-2xl border text-xs flex items-center gap-3 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                          {usernameNotif ? (
-                            <div 
-                              onClick={() => clicarPerfilOuStory(usernameNotif)}
-                              className={`relative w-9 h-9 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${temStoryNotif ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-md' : ''}`}
-                            >
-                              <img src={fotoNotif} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-                            </div>
-                          ) : (
-                            <div className="w-9 h-9 rounded-full bg-blue-600/20 text-blue-500 flex items-center justify-center font-bold flex-shrink-0">🔔</div>
-                          )}
-
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold leading-snug">{n.texto}</p>
-                            <span className="text-[10px] opacity-50 block mt-0.5">{n.horario}</span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
+          <div className="relative">
+            <button 
+              onClick={async () => {
+                setAbaNotificacoesAberta(!abaNotificacoesAberta);
+                if (!abaNotificacoesAberta) {
+                  await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
+                  setNotificacoes(await BancoDeDados.getNotificacoes(usuarioLogado.username));
+                }
+              }}
+              className={`p-2.5 rounded-2xl border transition relative flex items-center justify-center ${darkMode ? 'bg-slate-900 border-slate-700 hover:bg-slate-800 text-white' : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800'}`}
+              title="Notificações"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {notificacoesNaoLidasCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full font-black flex items-center justify-center shadow-md animate-bounce">
+                  {notificacoesNaoLidasCount}
+                </span>
               )}
-            </div>
-          )}
+            </button>
 
-          {/* Avatar do Usuário logado */}
+            {abaNotificacoesAberta && (
+              <div className={`absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-3xl border shadow-2xl p-4 z-40 space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                <div className="flex justify-between items-center border-b pb-2 border-slate-700">
+                  <h4 className="font-extrabold text-xs uppercase tracking-wider">Notificações</h4>
+                  <button onClick={() => setAbaNotificacoesAberta(false)} className="text-xs font-bold opacity-60">✕</button>
+                </div>
+
+                {notificacoes.length === 0 ? (
+                  <p className="text-xs opacity-50 text-center py-6">Nenhuma notificação no momento.</p>
+                ) : (
+                  notificacoes.map((n, idx) => {
+                    const matchUser = n.texto.match(/@([a-zA-Z0-9_]+)/);
+                    const usernameNotif = matchUser ? matchUser[1] : null;
+                    const perfilNotif = perfisReais.find(p => p.username === usernameNotif) || {};
+                    const fotoNotif = perfilNotif.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+                    const temStoryNotif = storiesFiltradosAmigos.some(s => s.username === usernameNotif);
+
+                    return (
+                      <div key={idx} className={`p-3 rounded-2xl border text-xs flex items-center gap-3 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                        {usernameNotif ? (
+                          <div 
+                            onClick={() => clicarPerfilOuStory(usernameNotif)}
+                            className={`relative w-9 h-9 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${temStoryNotif ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-md' : ''}`}
+                          >
+                            <img src={fotoNotif} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
+                          </div>
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-blue-600/20 text-blue-500 flex items-center justify-center font-bold flex-shrink-0">🔔</div>
+                        )}
+
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold leading-snug">{n.texto}</p>
+                          <span className="text-[10px] opacity-50 block mt-0.5">{n.horario}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+
           <div 
             onClick={() => abrirPerfilPorUsername(usuarioLogado.username)}
-            className="relative w-9 h-9 rounded-full p-0.5 border-2 border-blue-500 cursor-pointer hover:scale-105 transition shadow-sm overflow-hidden flex-shrink-0 ml-1"
+            className="relative w-10 h-10 rounded-full p-0.5 border-2 border-blue-500 cursor-pointer hover:scale-105 transition shadow-sm overflow-hidden flex-shrink-0"
             title="Meu Perfil"
           >
             <img src={fotoPerfilOficial} alt="Meu Perfil" className="w-full h-full rounded-full object-cover" />
           </div>
-
         </div>
-      </header>
+      </div>
 
-      {/* CONTEÚDO PRINCIPAL EM GRID */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 pt-6 space-y-6">
+      {abaSolicitacoesAberta && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <div className="flex justify-between items-center border-b pb-3 border-slate-700">
+              <h3 className="font-extrabold text-sm">👥 Solicitações de Amizade Pendentes</h3>
+              <button onClick={() => setAbaSolicitacoesAberta(false)} className="text-sm font-bold">✕</button>
+            </div>
 
-        {/* Modal de Solicitações de Amizade */}
-        {abaAmigosModalAberta && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-            <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-              <div className="flex justify-between items-center border-b pb-3 border-slate-700">
-                <h3 className="font-extrabold text-sm">👥 Solicitações e Amigos</h3>
-                <button onClick={() => setAbaAmigosModalAberta(false)} className="text-sm font-bold">✕</button>
-              </div>
-
-              <div className="space-y-3 max-h-72 overflow-y-auto">
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Pedidos Pendentes</p>
-                {pedidosRecebidos.length === 0 ? (
-                  <p className="text-xs opacity-50 text-center py-2">Nenhuma solicitação pendente.</p>
-                ) : (
-                  pedidosRecebidos.map(remetenteusername => {
-                    const perfilRemetente = perfisReais.find(p => p.username === remetenteusername) || { nome: remetenteusername, username: remetenteusername };
-                    return (
-                      <div key={remetenteusername} className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                        <div className="flex items-center gap-2.5">
-                          <img src={perfilRemetente.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover" />
-                          <div>
-                            <p className="font-bold">{perfilRemetente.nome}</p>
-                            <p className="text-[10px] opacity-60">@{perfilRemetente.username}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={async () => {
-                              const perfisAtualizados = await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteusername);
-                              setPerfisReais(perfisAtualizados);
-                              mostrarToast(`Amizade com @${remetenteusername} aceita! 🎉`);
-                            }}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold"
-                          >
-                            Aceitar
-                          </button>
-                          <button 
-                            onClick={async () => {
-                              const perfisAtualizados = await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteusername);
-                              setPerfisReais(perfisAtualizados);
-                              mostrarToast('Solicitação recusada.');
-                            }}
-                            className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-xl font-bold"
-                          >
-                            Recusar
-                          </button>
+            <div className="space-y-3 max-h-72 overflow-y-auto">
+              {pedidosRecebidos.length === 0 ? (
+                <p className="text-xs opacity-50 text-center py-6">Nenhuma solicitação pendente.</p>
+              ) : (
+                pedidosRecebidos.map(remetenteusername => {
+                  const perfilRemetente = perfisReais.find(p => p.username === remetenteusername) || { nome: remetenteusername, username: remetenteusername };
+                  return (
+                    <div key={remetenteusername} className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="flex items-center gap-2.5">
+                        <img src={perfilRemetente.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover" />
+                        <div>
+                          <p className="font-bold">{perfilRemetente.nome}</p>
+                          <p className="text-[10px] opacity-60">@{perfilRemetente.username}</p>
                         </div>
                       </div>
-                    );
-                  })
-                )}
-              </div>
+
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={async () => {
+                            const perfisAtualizados = await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteusername);
+                            setPerfisReais(perfisAtualizados);
+                            mostrarToast(`Amizade com @${remetenteusername} aceita! 🎉`);
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold"
+                        >
+                          Aceitar
+                        </button>
+                        <button 
+                          onClick={async () => {
+                            const perfisAtualizados = await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteusername);
+                            setPerfisReais(perfisAtualizados);
+                            mostrarToast('Solicitação recusada.');
+                          }}
+                          className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-xl font-bold"
+                        >
+                          Recusar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Modal Criar Story */}
-        {modalCriarStoryAberto && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-            <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-              <div className="flex justify-between items-center">
-                <h3 className="font-extrabold text-base">✨ Criar Novo Story</h3>
-                <button onClick={() => setModalCriarStoryAberto(false)} className="text-sm font-bold opacity-70 hover:opacity-100">✕</button>
-              </div>
+      {modalCriarStoryAberto && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <div className="flex justify-between items-center">
+              <h3 className="font-extrabold text-base">✨ Criar Novo Story</h3>
+              <button onClick={() => setModalCriarStoryAberto(false)} className="text-sm font-bold opacity-70 hover:opacity-100">✕</button>
+            </div>
 
-              <div className="grid grid-cols-2 gap-2 bg-slate-800 p-1 rounded-xl">
-                <button onClick={() => setTipoStoryCriacao('texto')} className={`py-2 text-xs font-bold rounded-lg transition ${tipoStoryCriacao === 'texto' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>Story de Texto</button>
-                <button onClick={() => setTipoStoryCriacao('midia')} className={`py-2 text-xs font-bold rounded-lg transition ${tipoStoryCriacao === 'midia' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>Foto / Vídeo / Câmera</button>
-              </div>
+            <div className="grid grid-cols-2 gap-2 bg-slate-800 p-1 rounded-xl">
+              <button onClick={() => setTipoStoryCriacao('texto')} className={`py-2 text-xs font-bold rounded-lg transition ${tipoStoryCriacao === 'texto' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>Story de Texto</button>
+              <button onClick={() => setTipoStoryCriacao('midia')} className={`py-2 text-xs font-bold rounded-lg transition ${tipoStoryCriacao === 'midia' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>Foto / Vídeo / Câmera</button>
+            </div>
 
-              {tipoStoryCriacao === 'texto' ? (
-                <div className="space-y-4">
-                  <div 
-                    className="w-full h-56 rounded-2xl p-6 flex flex-col justify-center items-center text-center shadow-inner transition relative"
-                    style={{ backgroundColor: corFundoStory }}
-                  >
-                    <textarea 
-                      rows="4"
-                      placeholder="Digite sua mensagem. Digite @ para mencionar..."
-                      value={textoStory}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setTextoStory(val);
-                        const ultimoIndiceArroba = val.lastIndexOf('@');
-                        if (ultimoIndiceArroba !== -1 && (ultimoIndiceArroba === 0 || val[ultimoIndiceArroba - 1] === ' ')) {
-                          const termo = val.substring(ultimoIndiceArroba + 1);
-                          if (!termo.includes(' ')) {
-                            setTermoBuscaMencao(termo);
-                            setMenuSugestoesMencaoAberto(true);
-                          } else {
-                            setMenuSugestoesMencaoAberto(false);
-                          }
+            {tipoStoryCriacao === 'texto' ? (
+              <div className="space-y-4">
+                <div 
+                  className="w-full h-56 rounded-2xl p-6 flex flex-col justify-center items-center text-center shadow-inner transition relative"
+                  style={{ backgroundColor: corFundoStory }}
+                >
+                  <textarea 
+                    rows="4"
+                    placeholder="Digite sua mensagem. Digite @ para mencionar..."
+                    value={textoStory}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setTextoStory(val);
+                      const ultimoIndiceArroba = val.lastIndexOf('@');
+                      if (ultimoIndiceArroba !== -1 && (ultimoIndiceArroba === 0 || val[ultimoIndiceArroba - 1] === ' ')) {
+                        const termo = val.substring(ultimoIndiceArroba + 1);
+                        if (!termo.includes(' ')) {
+                          setTermoBuscaMencao(termo);
+                          setMenuSugestoesMencaoAberto(true);
                         } else {
                           setMenuSugestoesMencaoAberto(false);
                         }
-                      }}
-                      className="w-full bg-transparent text-white placeholder-white/70 text-lg font-bold text-center focus:outline-none resize-none"
-                    />
+                      } else {
+                        setMenuSugestoesMencaoAberto(false);
+                      }
+                    }}
+                    className="w-full bg-transparent text-white placeholder-white/70 text-lg font-bold text-center focus:outline-none resize-none"
+                  />
 
-                    {menuSugestoesMencaoAberto && (
-                      <div className="absolute bottom-2 left-4 right-4 max-h-36 overflow-y-auto bg-slate-900/95 border border-slate-700 rounded-2xl p-2 shadow-2xl z-20 space-y-1 text-left backdrop-blur-md">
-                        <p className="text-[10px] uppercase font-bold text-slate-400 px-2">Sugestões de Menção:</p>
-                        {perfisSugeridosMencao.length === 0 ? (
-                          <p className="text-xs text-slate-400 text-center py-2">Nenhum perfil encontrado.</p>
-                        ) : (
-                          perfisSugeridosMencao.map(p => (
-                            <div 
-                              key={p.username}
-                              onClick={() => {
-                                const ultimoIndiceArroba = textoStory.lastIndexOf('@');
-                                const textoBase = textoStory.substring(0, ultimoIndiceArroba);
-                                setTextoStory(`${textoBase}@${p.username} `);
-                                setMencaoStory(p.username);
-                                setMenuSugestoesMencaoAberto(false);
-                              }}
-                              className="flex items-center gap-2.5 p-2 rounded-xl cursor-pointer hover:bg-slate-800 transition"
-                            >
-                              <img src={p.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover border border-blue-500 shadow-sm" />
-                              <div>
-                                <p className="text-xs font-bold text-white leading-tight">{p.nome}</p>
-                                <p className="text-[10px] text-blue-400">@{p.username}</p>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold opacity-70 block mb-2">Escolha a cor de fundo:</label>
-                    <div className="flex gap-2">
-                      {['#2563eb', '#7c3aed', '#db2777', '#059669', '#d97706', '#1e293b'].map(cor => (
-                        <button 
-                          key={cor} 
-                          onClick={() => setCorFundoStory(cor)}
-                          className={`w-8 h-8 rounded-full border-2 transition ${corFundoStory === cor ? 'border-white scale-110 shadow-md' : 'border-transparent'}`}
-                          style={{ backgroundColor: cor }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={() => { if(textoStory.trim()) salvarStoryBanco('texto', textoStory, corFundoStory, mencaoStory); }}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow-md transition"
-                  >
-                    Publicar Story de Texto 🚀
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="border-2 border-dashed border-slate-700 rounded-2xl p-6 text-center space-y-3">
-                    {enviandoMidia ? (
-                      <p className="text-xs font-bold text-blue-500 animate-pulse py-8">Processando arquivo...</p>
-                    ) : midiaStoryUrl ? (
-                      tipoMidia === 'video' ? (
-                        <video src={midiaStoryUrl} controls className="w-full h-44 object-cover rounded-xl" />
+                  {menuSugestoesMencaoAberto && (
+                    <div className="absolute bottom-2 left-4 right-4 max-h-36 overflow-y-auto bg-slate-900/95 border border-slate-700 rounded-2xl p-2 shadow-2xl z-20 space-y-1 text-left backdrop-blur-md">
+                      <p className="text-[10px] uppercase font-bold text-slate-400 px-2">Sugestões de Menção:</p>
+                      {perfisSugeridosMencao.length === 0 ? (
+                        <p className="text-xs text-slate-400 text-center py-2">Nenhum perfil encontrado.</p>
                       ) : (
-                        <img src={midiaStoryUrl} alt="Preview" className="w-full h-44 object-cover rounded-xl" />
-                      )
-                    ) : (
-                      <div className="space-y-2">
-                        <p className="text-xs opacity-60">Selecione um arquivo ou grave direto da câmera:</p>
-                        <div className="flex flex-wrap gap-2 justify-center">
-                          <label className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer shadow-sm">
-                            📁 Enviar Arquivo (Foto/Vídeo)
-                            <input 
-                              type="file" 
-                              accept="image/*,video/*" 
-                              onChange={async (e) => {
-                                const file = e.target.files[0];
-                                if (file) {
-                                  setEnviandoMidia(true);
-                                  let urlPublica = '';
-                                  try {
-                                    if (typeof BancoDeDados.uploadMidiaStory === 'function') {
-                                      urlPublica = await BancoDeDados.uploadMidiaStory(file);
-                                    }
-                                  } catch (err) {}
-                                  if (!urlPublica) {
-                                    urlPublica = await processarArquivoParaUrl(file);
-                                  }
-                                  setEnviandoMidia(false);
-                                  if (urlPublica) {
-                                    setTipoMidia(file.type.startsWith('video') ? 'video' : 'imagem');
-                                    setMidiaStoryUrl(urlPublica);
-                                  }
-                                }
-                              }} 
-                              className="hidden" 
-                            />
-                          </label>
-
-                          <label className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer shadow-sm">
-                            📹 Gravar da Câmera
-                            <input 
-                              type="file" 
-                              accept="video/*" 
-                              capture="environment" 
-                              onChange={async (e) => {
-                                const file = e.target.files[0];
-                                if (file) {
-                                  setEnviandoMidia(true);
-                                  let urlPublica = '';
-                                  try {
-                                    if (typeof BancoDeDados.uploadMidiaStory === 'function') {
-                                      urlPublica = await BancoDeDados.uploadMidiaStory(file);
-                                    }
-                                  } catch (err) {}
-                                  if (!urlPublica) {
-                                    urlPublica = await processarArquivoParaUrl(file);
-                                  }
-                                  setEnviandoMidia(false);
-                                  if (urlPublica) {
-                                    setTipoMidia('video');
-                                    setMidiaStoryUrl(urlPublica);
-                                  }
-                                }
-                              }} 
-                              className="hidden" 
-                            />
-                          </label>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-1 relative">
-                    <label className="text-xs font-bold opacity-70 block">Mencionar amigo (@username):</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ex: joaosilva" 
-                      value={mencaoStory}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setMencaoStory(val);
-                        setTermoBuscaMencao(val);
-                        setMenuSugestoesMencaoAberto(val.length > 0);
-                      }}
-                      className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
-                    />
-                    
-                    {menuSugestoesMencaoAberto && (
-                      <div className={`absolute left-0 right-0 bottom-full mb-1 max-h-36 overflow-y-auto rounded-2xl border p-2 space-y-1 shadow-2xl z-20 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-300'}`}>
-                        {perfisSugeridosMencao.map(p => (
+                        perfisSugeridosMencao.map(p => (
                           <div 
                             key={p.username}
                             onClick={() => {
+                              const ultimoIndiceArroba = textoStory.lastIndexOf('@');
+                              const textoBase = textoStory.substring(0, ultimoIndiceArroba);
+                              setTextoStory(`${textoBase}@${p.username} `);
                               setMencaoStory(p.username);
                               setMenuSugestoesMencaoAberto(false);
                             }}
-                            className={`flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}
+                            className="flex items-center gap-2.5 p-2 rounded-xl cursor-pointer hover:bg-slate-800 transition"
                           >
-                            <img src={p.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-7 h-7 rounded-full object-cover" />
+                            <img src={p.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover border border-blue-500 shadow-sm" />
                             <div>
-                              <p className="text-xs font-bold leading-tight">{p.nome}</p>
-                              <p className="text-[10px] opacity-60">@{p.username}</p>
+                              <p className="text-xs font-bold text-white leading-tight">{p.nome}</p>
+                              <p className="text-[10px] text-blue-400">@{p.username}</p>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {midiaStoryUrl && (
-                    <button 
-                      onClick={() => salvarStoryBanco(tipoMidia, midiaStoryUrl, '#1e293b', mencaoStory)}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow-md transition"
-                    >
-                      Publicar Mídia nos Stories 🚀
-                    </button>
+                        ))
+                      )}
+                    </div>
                   )}
                 </div>
+
+                <div>
+                  <label className="text-xs font-bold opacity-70 block mb-2">Escolha a cor de fundo:</label>
+                  <div className="flex gap-2">
+                    {['#2563eb', '#7c3aed', '#db2777', '#059669', '#d97706', '#1e293b'].map(cor => (
+                      <button 
+                        key={cor} 
+                        onClick={() => setCorFundoStory(cor)}
+                        className={`w-8 h-8 rounded-full border-2 transition ${corFundoStory === cor ? 'border-white scale-110 shadow-md' : 'border-transparent'}`}
+                        style={{ backgroundColor: cor }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => { if(textoStory.trim()) salvarStoryBanco('texto', textoStory, corFundoStory, mencaoStory); }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow-md transition"
+                >
+                  Publicar Story de Texto 🚀
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-slate-700 rounded-2xl p-6 text-center space-y-3">
+                  {enviandoMidia ? (
+                    <p className="text-xs font-bold text-blue-500 animate-pulse py-8">Processando arquivo...</p>
+                  ) : midiaStoryUrl ? (
+                    tipoMidia === 'video' ? (
+                      <video src={midiaStoryUrl} controls className="w-full h-44 object-cover rounded-xl" />
+                    ) : (
+                      <img src={midiaStoryUrl} alt="Preview" className="w-full h-44 object-cover rounded-xl" />
+                    )
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs opacity-60">Selecione um arquivo ou grave direto da câmera:</p>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        <label className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer shadow-sm">
+                          📁 Enviar Arquivo (Foto/Vídeo)
+                          <input 
+                            type="file" 
+                            accept="image/*,video/*" 
+                            onChange={async (e) => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                setEnviandoMidia(true);
+                                let urlPublica = '';
+                                try {
+                                  if (typeof BancoDeDados.uploadMidiaStory === 'function') {
+                                    urlPublica = await BancoDeDados.uploadMidiaStory(file);
+                                  }
+                                } catch (err) {}
+                                if (!urlPublica) {
+                                  urlPublica = await processarArquivoParaUrl(file);
+                                }
+                                setEnviandoMidia(false);
+                                if (urlPublica) {
+                                  setTipoMidia(file.type.startsWith('video') ? 'video' : 'imagem');
+                                  setMidiaStoryUrl(urlPublica);
+                                }
+                              }
+                            }} 
+                            className="hidden" 
+                          />
+                        </label>
+
+                        <label className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer shadow-sm">
+                          📹 Gravar da Câmera
+                          <input 
+                            type="file" 
+                            accept="video/*" 
+                            capture="environment" 
+                            onChange={async (e) => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                setEnviandoMidia(true);
+                                let urlPublica = '';
+                                try {
+                                  if (typeof BancoDeDados.uploadMidiaStory === 'function') {
+                                    urlPublica = await BancoDeDados.uploadMidiaStory(file);
+                                  }
+                                } catch (err) {}
+                                if (!urlPublica) {
+                                  urlPublica = await processarArquivoParaUrl(file);
+                                }
+                                setEnviandoMidia(false);
+                                if (urlPublica) {
+                                  setTipoMidia('video');
+                                  setMidiaStoryUrl(urlPublica);
+                                }
+                              }
+                            }} 
+                            className="hidden" 
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1 relative">
+                  <label className="text-xs font-bold opacity-70 block">Mencionar amigo (@username):</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: joaosilva" 
+                    value={mencaoStory}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setMencaoStory(val);
+                      setTermoBuscaMencao(val);
+                      setMenuSugestoesMencaoAberto(val.length > 0);
+                    }}
+                    className={`w-full text-xs rounded-xl px-3 py-2 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
+                  />
+                  
+                  {menuSugestoesMencaoAberto && (
+                    <div className={`absolute left-0 right-0 bottom-full mb-1 max-h-36 overflow-y-auto rounded-2xl border p-2 space-y-1 shadow-2xl z-20 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-300'}`}>
+                      {perfisSugeridosMencao.map(p => (
+                        <div 
+                          key={p.username}
+                          onClick={() => {
+                            setMencaoStory(p.username);
+                            setMenuSugestoesMencaoAberto(false);
+                          }}
+                          className={`flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}
+                        >
+                          <img src={p.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-7 h-7 rounded-full object-cover" />
+                          <div>
+                            <p className="text-xs font-bold leading-tight">{p.nome}</p>
+                            <p className="text-[10px] opacity-60">@{p.username}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {midiaStoryUrl && (
+                  <button 
+                    onClick={() => salvarStoryBanco(tipoMidia, midiaStoryUrl, '#1e293b', mencaoStory)}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow-md transition"
+                  >
+                    Publicar Mídia nos Stories 🚀
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {usuarioStoryVisualizando && storyAtivoObj && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
+          <div className="relative max-w-md w-full h-[85vh] bg-slate-900 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-slate-800">
+            
+            <div className="absolute top-0 left-0 right-0 p-2 z-30 flex gap-1 bg-gradient-to-b from-black/80 to-transparent">
+              {listaStoriesDoAutorAtual.map((st, idx) => (
+                <div key={st.id} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-white transition-all duration-100 ease-linear"
+                    style={{
+                      width: idx < indiceStoryAtual ? '100%' : idx === indiceStoryAtual ? `${progressoStory}%` : '0%'
+                    }}
+                  ></div>
+                </div>
+              ))}
+            </div>
+
+            <div className="absolute top-5 left-4 right-4 z-20 flex items-center justify-between">
+              <div 
+                onClick={() => { setUsuarioStoryVisualizando(null); abrirPerfilPorUsername(storyAtivoObj.username); }}
+                className="flex items-center gap-2 cursor-pointer group"
+              >
+                <div className="relative">
+                  <img src={storyAtivoObj.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-white text-xs font-bold drop-shadow-md group-hover:underline">{storyAtivoObj.autor}</span>
+                    {perfisReais.find(p => p.username === storyAtivoObj.username)?.verificado && <SeloVerificado tamanho="w-3.5 h-3.5" />}
+                  </div>
+                  <span className="text-white/70 text-[10px]">
+                    {(() => {
+                      const agora = Date.now();
+                      const diffMs = agora - storyAtivoObj.id;
+                      const diffMins = Math.floor(diffMs / (1000 * 60));
+                      const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
+                      const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+                      if (diffMins < 1) return 'Agora mesmo';
+                      if (diffMins < 60) return `há ${diffMins}m atrás`;
+                      if (diffHoras < 24) return `há ${diffHoras}h atrás`;
+                      return `há ${diffDias}d atrás`;
+                    })()}
+                  </span>
+                </div>
+              </div>
+              <button onClick={() => setUsuarioStoryVisualizando(null)} className="bg-black/50 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm hover:bg-black">✕</button>
+            </div>
+
+            <div onClick={voltarStory} className="absolute left-0 top-16 bottom-20 w-1/2 z-20 cursor-pointer" title="Anterior"></div>
+            <div onClick={avancarStory} className="absolute right-0 top-16 bottom-20 w-1/2 z-20 cursor-pointer" title="Próximo"></div>
+
+            <div className="flex-1 flex items-center justify-center w-full h-full relative bg-black">
+              {storyAtivoObj.tipo === 'texto' ? (
+                <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center whitespace-pre-line" style={{ backgroundColor: storyAtivoObj.cor_fundo || '#1e293b' }}>
+                  <p className="text-white text-lg sm:text-xl font-extrabold leading-relaxed drop-shadow-md">{storyAtivoObj.conteudo}</p>
+                  {storyAtivoObj.mencao && (
+                    <span 
+                      onClick={() => { setUsuarioStoryVisualizando(null); abrirPerfilPorUsername(storyAtivoObj.mencao); }}
+                      className="mt-4 bg-black/40 hover:bg-black/60 text-white text-xs font-bold px-4 py-1.5 rounded-full cursor-pointer transition shadow-md"
+                    >
+                      Mencionou @{storyAtivoObj.mencao}
+                    </span>
+                  )}
+                </div>
+              ) : storyAtivoObj.tipo === 'video' ? (
+                <video src={storyAtivoObj.conteudo} autoPlay controls className="w-full h-full object-cover" />
+              ) : (
+                <img src={storyAtivoObj.conteudo} alt="Story" className="w-full h-full object-cover" />
               )}
             </div>
-          </div>
-        )}
 
-        {/* Visualizador de Story */}
-        {usuarioStoryVisualizando && storyAtivoObj && (
-          <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
-            <div className="relative max-w-md w-full h-[85vh] bg-slate-900 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-slate-800">
-              
-              <div className="absolute top-0 left-0 right-0 p-2 z-30 flex gap-1 bg-gradient-to-b from-black/80 to-transparent">
-                {listaStoriesDoAutorAtual.map((st, idx) => (
-                  <div key={st.id} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-white transition-all duration-100 ease-linear"
-                      style={{
-                        width: idx < indiceStoryAtual ? '100%' : idx === indiceStoryAtual ? `${progressoStory}%` : '0%'
-                      }}
-                    ></div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="absolute top-5 left-4 right-4 z-20 flex items-center justify-between">
-                <div 
-                  onClick={() => { setUsuarioStoryVisualizando(null); abrirPerfilPorUsername(storyAtivoObj.username); }}
-                  className="flex items-center gap-2 cursor-pointer group"
-                >
-                  <div className="relative">
-                    <img src={storyAtivoObj.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-9 h-9 rounded-full object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-white text-xs font-bold drop-shadow-md group-hover:underline">{storyAtivoObj.autor}</span>
-                      {perfisReais.find(p => p.username === storyAtivoObj.username)?.verificado && <SeloVerificado tamanho="w-3.5 h-3.5" />}
-                    </div>
-                    <span className="text-white/70 text-[10px]">
-                      {(() => {
-                        const agora = Date.now();
-                        const diffMs = agora - storyAtivoObj.id;
-                        const diffMins = Math.floor(diffMs / (1000 * 60));
-                        const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
-                        const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-                        if (diffMins < 1) return 'Agora mesmo';
-                        if (diffMins < 60) return `há ${diffMins}m atrás`;
-                        if (diffHoras < 24) return `há ${diffHoras}h atrás`;
-                        return `há ${diffDias}d atrás`;
-                      })()}
-                    </span>
-                  </div>
-                </div>
-                <button onClick={() => setUsuarioStoryVisualizando(null)} className="bg-black/50 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm hover:bg-black">✕</button>
-              </div>
-
-              <div onClick={voltarStory} className="absolute left-0 top-16 bottom-20 w-1/2 z-20 cursor-pointer" title="Anterior"></div>
-              <div onClick={avancarStory} className="absolute right-0 top-16 bottom-20 w-1/2 z-20 cursor-pointer" title="Próximo"></div>
-
-              <div className="flex-1 flex items-center justify-center w-full h-full relative bg-black">
-                {storyAtivoObj.tipo === 'texto' ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center whitespace-pre-line" style={{ backgroundColor: storyAtivoObj.cor_fundo || '#1e293b' }}>
-                    <p className="text-white text-lg sm:text-xl font-extrabold leading-relaxed drop-shadow-md">{storyAtivoObj.conteudo}</p>
-                    {storyAtivoObj.mencao && (
-                      <span 
-                        onClick={() => { setUsuarioStoryVisualizando(null); abrirPerfilPorUsername(storyAtivoObj.mencao); }}
-                        className="mt-4 bg-black/40 hover:bg-black/60 text-white text-xs font-bold px-4 py-1.5 rounded-full cursor-pointer transition shadow-md"
-                      >
-                        Mencionou @{storyAtivoObj.mencao}
-                      </span>
-                    )}
-                  </div>
-                ) : storyAtivoObj.tipo === 'video' ? (
-                  <video src={storyAtivoObj.conteudo} autoPlay controls className="w-full h-full object-cover" />
-                ) : (
-                  <img src={storyAtivoObj.conteudo} alt="Story" className="w-full h-full object-cover" />
-                )}
-              </div>
-
-              <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center z-30 gap-2">
-                {storyAtivoObj.username === usuarioLogado.username ? (
-                  <div className="flex items-center justify-between w-full gap-2">
-                    <button 
-                      onClick={() => setModalVisualizadoresAberto(true)}
-                      className="bg-black/60 hover:bg-black/80 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 border border-white/20 backdrop-blur-sm"
-                    >
-                      👁️ {(storyAtivoObj.visualizacoes || []).length} Visualizações
-                    </button>
-                    <button onClick={async () => { await BancoDeDados.excluirStory(storyAtivoObj.id); setStories(await BancoDeDados.getStories()); setUsuarioStoryVisualizando(null); mostrarToast('Story excluído.'); }} className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg hover:bg-red-700">Excluir</button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 w-full">
-                    <button onClick={() => repostarStory(storyAtivoObj)} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg flex-1 transition">
-                      ✨ Repostar
-                    </button>
-                   <button 
-                    onClick={curtirStoryAtual} 
-                    className={`p-3 rounded-2xl shadow-lg transition flex items-center justify-center backdrop-blur-sm border ${
-                      (storyAtivoObj.curtidas || []).includes(usuarioLogado.username) 
-                        ? 'bg-red-600/90 border-red-500 text-white' 
-                        : 'bg-black/60 border-white/20 text-white hover:bg-black/80'
-                    }`}
-                    title="Curtir story"
+            <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center z-30 gap-2">
+              {storyAtivoObj.username === usuarioLogado.username ? (
+                <div className="flex items-center justify-between w-full gap-2">
+                  <button 
+                    onClick={() => setModalVisualizadoresAberto(true)}
+                    className="bg-black/60 hover:bg-black/80 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 border border-white/20 backdrop-blur-sm"
                   >
-                    <svg 
-                      className="w-5 h-5" 
-                      fill={(storyAtivoObj.curtidas || []).includes(usuarioLogado.username) ? "currentColor" : "none"} 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
+                    👁️ {(storyAtivoObj.visualizacoes || []).length} Visualizações
                   </button>
-                  </div>
-                )}
-              </div>
-
-            </div>
-          </div>
-        )}
-
-        {/* Modal de Visualizadores do Story */}
-        {modalVisualizadoresAberto && storyAtivoObj && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-            <div className="max-w-sm w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-white space-y-4">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 className="font-extrabold text-sm flex items-center gap-2">👁️ Quem visualizou este story</h3>
-                <button onClick={() => setModalVisualizadoresAberto(false)} className="text-xs opacity-70 font-bold hover:opacity-100">✕</button>
-              </div>
-
-              <div className="max-h-64 overflow-y-auto space-y-2.5 pr-1">
-                {(!storyAtivoObj.visualizacoes || storyAtivoObj.visualizacoes.length === 0) ? (
-                  <p className="text-xs text-slate-400 text-center py-6">Nenhuma visualização registrada ainda.</p>
-                ) : (
-                  storyAtivoObj.visualizacoes.map((vis, i) => (
-                    <div key={i} className="flex items-center justify-between bg-slate-800/60 p-2.5 rounded-2xl border border-slate-700/50">
-                      <div 
-                        className="flex items-center gap-2.5 min-w-0 cursor-pointer"
-                        onClick={() => {
-                          setModalVisualizadoresAberto(false);
-                          setUsuarioStoryVisualizando(null);
-                          abrirPerfilPorUsername(vis.username);
-                        }}
-                      >
-                        <div className="relative">
-                          <img src={vis.foto} className="w-8 h-8 rounded-full object-cover border border-blue-500" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold truncate text-white hover:underline">{vis.nome}</p>
-                          <p className="text-[10px] text-blue-400 truncate">@{vis.username}</p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-semibold flex-shrink-0">{vis.horario}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* LAYOUT PRINCIPAL DE 3 COLUNAS */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* Coluna Esquerda: Perfil Resumido */}
-          <div className="lg:col-span-3 space-y-6">
-            <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div 
-                onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} 
-                className="cursor-pointer group inline-block relative"
-              >
-                <div className={`w-24 h-24 rounded-full p-1 mx-auto flex items-center justify-center transition ${temStoryAtivo ? (meusStoriesVistos ? 'border-2 border-slate-500/40 opacity-75' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-xl') : ''}`}>
-                  <img src={fotoPerfilOficial} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 shadow-md group-hover:opacity-90 transition" />
-                </div>
-                {temStoryAtivo && (
-                  <span className={`absolute -top-1 right-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md ${meusStoriesVistos ? 'bg-slate-600 text-slate-300' : 'bg-gradient-to-r from-rose-600 to-amber-500 text-white'}`}>Story</span>
-                )}
-              </div>
-
-              <div>
-                <div className="flex items-center justify-center gap-1">
-                  <h3 onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} className="font-extrabold text-sm cursor-pointer hover:text-blue-500 hover:underline transition">{nomePerfilOficial}</h3>
-                  {meuPerfilBanco.verificado && <SeloVerificado tamanho="w-4 h-4" />}
-                </div>
-                <p onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
-                <p className="text-xs opacity-75 mt-2">{meuPerfilBanco.biografia || usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.'}</p>
-              </div>
-              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
-                <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
-                  <span className="block font-extrabold text-blue-500 text-sm">{meusAmigos.length}</span>
-                  <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Amigos</span>
-                </div>
-                <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
-                  <span className="block font-extrabold text-indigo-500 text-sm">{publicacoes.filter(p => p.username === usuarioLogado.username).length}</span>
-                  <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Posts</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Coluna Central: Stories, Publicações e Feed */}
-          <div className="lg:col-span-6 space-y-6">
-
-            {/* Carrossel de Stories */}
-            <div className={`p-4 rounded-3xl border shadow-md flex gap-3 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div 
-                onClick={() => setModalCriarStoryAberto(true)}
-                className={`relative flex-shrink-0 w-28 h-44 rounded-2xl border flex flex-col justify-end items-center pb-3 cursor-pointer overflow-hidden transition hover:scale-105 shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}
-              >
-                <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${fotoPerfilOficial})` }}></div>
-                <div className="absolute top-3 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">+</div>
-                <span className="relative z-10 text-[11px] font-bold text-center px-1">Adicionar story</span>
-              </div>
-
-              {listaAutoresStories.map((autorItem) => {
-                const st = autorItem.primeiroStory;
-                const todosVistos = autorItem.todosVistos;
-
-                return (
-                  <div 
-                    key={autorItem.username} 
-                    onClick={() => clicarPerfilOuStory(autorItem.username)}
-                    className={`relative flex-shrink-0 w-28 h-44 rounded-2xl overflow-hidden cursor-pointer shadow-md transition hover:scale-105 border-2 bg-slate-900 flex flex-col justify-between p-2 ${todosVistos ? 'border-slate-500/40 opacity-70' : 'border-amber-500'}`}
-                  >
-                    {st.tipo === 'texto' ? (
-                      <div className="absolute inset-0 p-3 flex items-center justify-center text-center" style={{ backgroundColor: st.cor_fundo || '#1e293b' }}>
-                        <p className="text-white text-[11px] font-bold line-clamp-4">{st.conteudo}</p>
-                      </div>
-                    ) : st.tipo === 'video' ? (
-                      <video src={st.conteudo} className="absolute inset-0 w-full h-full object-cover" />
-                    ) : (
-                      <img src={st.conteudo} alt="Story" className="absolute inset-0 w-full h-full object-cover" />
-                    )}
-
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
-                    
-                    <div className={`relative z-10 w-8 h-8 rounded-full p-0.5 shadow-md ${todosVistos ? 'border border-slate-400 bg-slate-600' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400'}`}>
-                      <img src={autorItem.avatar} className="w-full h-full rounded-full object-cover border border-white" />
-                    </div>
-
-                    <div className="relative z-10 flex items-center gap-1">
-                      <span 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          abrirPerfilPorUsername(autorItem.username);
-                        }} 
-                        className="text-white text-[11px] font-bold truncate hover:underline"
-                      >
-                        {autorItem.autor}
-                      </span>
-                      {autorItem.verificado && <SeloVerificado tamanho="w-3 h-3" />}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Criar Publicação */}
-            <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-              <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Criar Publicação</h3>
-              <form onSubmit={publicarPost} className="space-y-3">
-                <input type="text" placeholder="Tema da publicação..." value={pubTema} onChange={(e) => setPubTema(e.target.value)} className={`w-full text-sm rounded-xl px-4 py-2.5 border font-bold ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
-                <textarea rows="3" placeholder="Compartilhe algo com a comunidade..." value={pubTexto} onChange={(e) => setPubTexto(e.target.value)} className={`w-full text-sm rounded-xl px-4 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
-                {pubImagem && <img src={pubImagem} alt="Preview" className="w-full h-48 object-cover rounded-2xl shadow-sm" />}
-                <div className="flex justify-between items-center">
-                  <label className={`text-xs px-4 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition font-semibold ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
-                    📷 Imagem
-                    <input type="file" accept="image/*" onChange={async (e) => { const f = e.target.files[0]; if(f) { const url = await processarArquivoParaUrl(f); setPubImagem(url); } }} className="hidden" />
-                  </label>
-                  <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-md">Publicar</button>
-                </div>
-              </form>
-            </div>
-
-            {/* Mural de Pedidos de Oração */}
-            <div className={`p-6 rounded-3xl border shadow-md space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-              <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração 🙏</h3>
-              <form onSubmit={criarPedidoOracaoHandler} className="flex gap-2">
-                <input 
-                  type="text" 
-                  placeholder="Compartilhe um pedido de oração..." 
-                  value={novoPedidoTexto} 
-                  onChange={(e) => setNovoPedidoTexto(e.target.value)} 
-                  className={`w-full text-xs rounded-xl px-4 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} 
-                />
-                <button type="submit" className="bg-blue-600 text-white text-xs px-5 py-2.5 rounded-xl font-bold transition hover:bg-blue-700 shadow-sm flex-shrink-0">Pedir Oração</button>
-              </form>
-
-              <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                {pedidosOracao.length === 0 ? (
-                  <p className="text-[11px] opacity-50 text-center py-4">Nenhum pedido de oração no momento.</p>
-                ) : (
-                  pedidosOracao.map(p => {
-                    const souDonoDoPedido = p.username === usuarioLogado.username;
-                    const apoiadores = p.apoiadores || [];
-                    const jaApoiou = apoiadores.includes(usuarioLogado.username);
-                    return (
-                      <div key={p.id} className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-                        <div className="flex-1 min-w-0 flex items-center gap-2">
-                          <span 
-                            onClick={() => abrirPerfilPorUsername(p.username)} 
-                            className="cursor-pointer font-bold text-blue-500 hover:underline"
-                          >
-                            @{p.username}:
-                          </span>
-                          <span className="break-words">{p.texto}</span>
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <button 
-                            onClick={async () => { 
-                              const atualizados = typeof BancoDeDados.apoiarPedidoOracao === 'function' ? await BancoDeDados.apoiarPedidoOracao(p.id, usuarioLogado.username) : []; 
-                              setPedidosOracao(atualizados || []); 
-                            }} 
-                            className={`px-3.5 py-1.5 rounded-xl font-bold transition ${jaApoiou ? 'bg-red-600 text-white' : 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white'}`}
-                          >
-                            ❤️ Apoiar ({p.apoios || 0})
-                          </button>
-                          {souDonoDoPedido && (
-                            <button onClick={async () => { if (window.confirm('Excluir pedido?')) { const atualizados = await BancoDeDados.excluirPedidoOracao(p.id); setPedidosOracao(atualizados || []); mostrarToast('Pedido excluído.'); }}} className="text-slate-400 hover:text-red-500 p-1.5 font-bold transition">✕</button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            {/* Feed Principal */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-md font-bold opacity-75">Feed da Comunidade</h3>
-                
-                <div className="flex items-center gap-1.5 overflow-x-auto">
-                  <button onClick={() => setFiltroFeed('todos')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'todos' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>🌐 Todos</button>
-                  <button onClick={() => setFiltroFeed('versiculos')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'versiculos' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>📖 Versículos</button>
-                  <button onClick={() => setFiltroFeed('oracao')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'oracao' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>🙏 Oração</button>
-                  <button onClick={() => setFiltroFeed('testemunhos')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'testemunhos' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>✨ Testemunhos</button>
-                </div>
-              </div>
-
-              {publicacoesFiltradas.length === 0 ? (
-                <div className={`p-8 text-center rounded-3xl border shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                  <p className="text-xs opacity-60">Nenhuma publicação encontrada para este filtro.</p>
+                  <button onClick={async () => { await BancoDeDados.excluirStory(storyAtivoObj.id); setStories(await BancoDeDados.getStories()); setUsuarioStoryVisualizando(null); mostrarToast('Story excluído.'); }} className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg hover:bg-red-700">Excluir</button>
                 </div>
               ) : (
-                publicacoesFiltradas.map((post) => renderizarCardPublicacao(post, false))
+                <div className="flex items-center gap-2 w-full">
+                  <button onClick={() => repostarStory(storyAtivoObj)} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg flex-1 transition">
+                    ✨ Repostar
+                  </button>
+                 <button 
+                  onClick={curtirStoryAtual} 
+                  className={`p-3 rounded-2xl shadow-lg transition flex items-center justify-center backdrop-blur-sm border ${
+                    (storyAtivoObj.curtidas || []).includes(usuarioLogado.username) 
+                      ? 'bg-red-600/90 border-red-500 text-white' 
+                      : 'bg-black/60 border-white/20 text-white hover:bg-black/80'
+                  }`}
+                  title="Curtir story"
+                >
+                  <svg 
+                    className="w-5 h-5" 
+                    fill={(storyAtivoObj.curtidas || []).includes(usuarioLogado.username) ? "currentColor" : "none"} 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                </button>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {modalVisualizadoresAberto && storyAtivoObj && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="max-w-sm w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-white space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 className="font-extrabold text-sm flex items-center gap-2">👁️ Quem visualizou este story</h3>
+              <button onClick={() => setModalVisualizadoresAberto(false)} className="text-xs opacity-70 font-bold hover:opacity-100">✕</button>
+            </div>
+
+            <div className="max-h-64 overflow-y-auto space-y-2.5 pr-1">
+              {(!storyAtivoObj.visualizacoes || storyAtivoObj.visualizacoes.length === 0) ? (
+                <p className="text-xs text-slate-400 text-center py-6">Nenhuma visualização registrada ainda.</p>
+              ) : (
+                storyAtivoObj.visualizacoes.map((vis, i) => (
+                  <div key={i} className="flex items-center justify-between bg-slate-800/60 p-2.5 rounded-2xl border border-slate-700/50">
+                    <div 
+                      className="flex items-center gap-2.5 min-w-0 cursor-pointer"
+                      onClick={() => {
+                        setModalVisualizadoresAberto(false);
+                        setUsuarioStoryVisualizando(null);
+                        abrirPerfilPorUsername(vis.username);
+                      }}
+                    >
+                      <div className="relative">
+                        <img src={vis.foto} className="w-8 h-8 rounded-full object-cover border border-blue-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold truncate text-white hover:underline">{vis.nome}</p>
+                        <p className="text-[10px] text-blue-400 truncate">@{vis.username}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-semibold flex-shrink-0">{vis.horario}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={`max-w-4xl mx-auto p-4 rounded-2xl border shadow-sm flex items-center gap-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+        <svg className="w-5 h-5 opacity-50 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input 
+          type="text" 
+          placeholder="Buscar publicações, versículos ou pessoas..." 
+          value={termoBuscaComunidade}
+          onChange={(e) => setTermoBuscaComunidade(e.target.value)}
+          className={`w-full text-xs sm:text-sm bg-transparent focus:outline-none ${darkMode ? 'text-white placeholder-slate-400' : 'text-slate-900 placeholder-slate-500'}`}
+        />
+        {termoBuscaComunidade && (
+          <button onClick={() => setTermoBuscaComunidade('')} className="text-xs opacity-60 hover:opacity-100 font-bold px-2">Limpar</button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <div className="lg:col-span-3 space-y-6">
+          <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div 
+              onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} 
+              className="cursor-pointer group inline-block relative"
+            >
+              <div className={`w-24 h-24 rounded-full p-1 mx-auto flex items-center justify-center transition ${temStoryAtivo ? (meusStoriesVistos ? 'border-2 border-slate-500/40 opacity-75' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-xl') : ''}`}>
+                <img src={fotoPerfilOficial} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 shadow-md group-hover:opacity-90 transition" />
+              </div>
+              {temStoryAtivo && (
+                <span className={`absolute -top-1 right-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md ${meusStoriesVistos ? 'bg-slate-600 text-slate-300' : 'bg-gradient-to-r from-rose-600 to-amber-500 text-white'}`}>Story</span>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-center gap-1">
+                <h3 onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} className="font-extrabold text-sm cursor-pointer hover:text-blue-500 hover:underline transition">{nomePerfilOficial}</h3>
+                {meuPerfilBanco.verificado && <SeloVerificado tamanho="w-4 h-4" />}
+              </div>
+              <p onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
+              <p className="text-xs opacity-75 mt-2">{meuPerfilBanco.biografia || usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.'}</p>
+            </div>
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
+              <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                <span className="block font-extrabold text-blue-500 text-sm">{meusAmigos.length}</span>
+                <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Amigos</span>
+              </div>
+              <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                <span className="block font-extrabold text-indigo-500 text-sm">{publicacoes.filter(p => p.username === usuarioLogado.username).length}</span>
+                <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Posts</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-6 space-y-6">
+
+          <div className={`p-4 rounded-3xl border shadow-md flex gap-3 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div 
+              onClick={() => setModalCriarStoryAberto(true)}
+              className={`relative flex-shrink-0 w-28 h-44 rounded-2xl border flex flex-col justify-end items-center pb-3 cursor-pointer overflow-hidden transition hover:scale-105 shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}
+            >
+              <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${fotoPerfilOficial})` }}></div>
+              <div className="absolute top-3 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">+</div>
+              <span className="relative z-10 text-[11px] font-bold text-center px-1">Adicionar story</span>
+            </div>
+
+            {listaAutoresStories.map((autorItem) => {
+              const st = autorItem.primeiroStory;
+              const todosVistos = autorItem.todosVistos;
+
+              return (
+                <div 
+                  key={autorItem.username} 
+                  onClick={() => clicarPerfilOuStory(autorItem.username)}
+                  className={`relative flex-shrink-0 w-28 h-44 rounded-2xl overflow-hidden cursor-pointer shadow-md transition hover:scale-105 border-2 bg-slate-900 flex flex-col justify-between p-2 ${todosVistos ? 'border-slate-500/40 opacity-70' : 'border-amber-500'}`}
+                >
+                  {st.tipo === 'texto' ? (
+                    <div className="absolute inset-0 p-3 flex items-center justify-center text-center" style={{ backgroundColor: st.cor_fundo || '#1e293b' }}>
+                      <p className="text-white text-[11px] font-bold line-clamp-4">{st.conteudo}</p>
+                    </div>
+                  ) : st.tipo === 'video' ? (
+                    <video src={st.conteudo} className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <img src={st.conteudo} alt="Story" className="absolute inset-0 w-full h-full object-cover" />
+                  )}
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+                  
+                  <div className={`relative z-10 w-8 h-8 rounded-full p-0.5 shadow-md ${todosVistos ? 'border border-slate-400 bg-slate-600' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400'}`}>
+                    <img src={autorItem.avatar} className="w-full h-full rounded-full object-cover border border-white" />
+                  </div>
+
+                  <div className="relative z-10 flex items-center gap-1">
+                    <span 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        abrirPerfilPorUsername(autorItem.username);
+                      }} 
+                      className="text-white text-[11px] font-bold truncate hover:underline"
+                    >
+                      {autorItem.autor}
+                    </span>
+                    {autorItem.verificado && <SeloVerificado tamanho="w-3 h-3" />}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Criar Publicação</h3>
+            <form onSubmit={publicarPost} className="space-y-3">
+              <input type="text" placeholder="Tema da publicação..." value={pubTema} onChange={(e) => setPubTema(e.target.value)} className={`w-full text-sm rounded-xl px-4 py-2.5 border font-bold ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
+              <textarea rows="3" placeholder="Compartilhe algo com a comunidade..." value={pubTexto} onChange={(e) => setPubTexto(e.target.value)} className={`w-full text-sm rounded-xl px-4 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
+              {pubImagem && <img src={pubImagem} alt="Preview" className="w-full h-48 object-cover rounded-2xl shadow-sm" />}
+              <div className="flex justify-between items-center">
+                <label className={`text-xs px-4 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition font-semibold ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
+                  📷 Imagem
+                  <input type="file" accept="image/*" onChange={async (e) => { const f = e.target.files[0]; if(f) { const url = await processarArquivoParaUrl(f); setPubImagem(url); } }} className="hidden" />
+                </label>
+                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-md">Publicar</button>
+              </div>
+            </form>
+          </div>
+
+          <div className={`p-6 rounded-3xl border shadow-md space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração 🙏</h3>
+            <form onSubmit={criarPedidoOracaoHandler} className="flex gap-2">
+              <input 
+                type="text" 
+                placeholder="Compartilhe um pedido de oração..." 
+                value={novoPedidoTexto} 
+                onChange={(e) => setNovoPedidoTexto(e.target.value)} 
+                className={`w-full text-xs rounded-xl px-4 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} 
+              />
+              <button type="submit" className="bg-blue-600 text-white text-xs px-5 py-2.5 rounded-xl font-bold transition hover:bg-blue-700 shadow-sm flex-shrink-0">Pedir Oração</button>
+            </form>
+
+            <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+              {pedidosOracao.length === 0 ? (
+                <p className="text-[11px] opacity-50 text-center py-4">Nenhum pedido de oração no momento.</p>
+              ) : (
+                pedidosOracao.map(p => {
+                  const souDonoDoPedido = p.username === usuarioLogado.username;
+                  const apoiadores = p.apoiadores || [];
+                  const jaApoiou = apoiadores.includes(usuarioLogado.username);
+                  return (
+                    <div key={p.id} className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                        <span 
+                          onClick={() => abrirPerfilPorUsername(p.username)} 
+                          className="cursor-pointer font-bold text-blue-500 hover:underline"
+                        >
+                          @{p.username}:
+                        </span>
+                        <span className="break-words">{p.texto}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button 
+                          onClick={async () => { 
+                            const atualizados = typeof BancoDeDados.apoiarPedidoOracao === 'function' ? await BancoDeDados.apoiarPedidoOracao(p.id, usuarioLogado.username) : []; 
+                            setPedidosOracao(atualizados || []); 
+                          }} 
+                          className={`px-3.5 py-1.5 rounded-xl font-bold transition ${jaApoiou ? 'bg-red-600 text-white' : 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white'}`}
+                        >
+                          ❤️ Apoiar ({p.apoios || 0})
+                        </button>
+                        {souDonoDoPedido && (
+                          <button onClick={async () => { if (window.confirm('Excluir pedido?')) { const atualizados = await BancoDeDados.excluirPedidoOracao(p.id); setPedidosOracao(atualizados || []); mostrarToast('Pedido excluído.'); }}} className="text-slate-400 hover:text-red-500 p-1.5 font-bold transition">✕</button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
 
-          {/* Coluna Direita: Chat & Membros */}
-          <div className="lg:col-span-3 space-y-6">
-            <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-              <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
-
-              <div className="space-y-3">
-                <p className="text-xs opacity-60">Selecione um amigo para conversar:</p>
-                {amigosLista.length === 0 ? (
-                  <p className="text-xs opacity-40 text-center py-6">Nenhum amigo conectado no chat ainda.</p>
-                ) : (
-                  amigosLista.map(amigo => {
-                    const naoLidasDoAmigo = notificacoes.filter(
-                      n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
-                    ).length;
-                    const amigoTemStory = storiesFiltradosAmigos.some(s => s.username === amigo.username);
-
-                    return (
-                      <div 
-                        key={amigo.username} 
-                        onClick={() => abrirChatComAmigo(amigo.username)} 
-                        className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              clicarPerfilOuStory(amigo.username);
-                            }}
-                            className={`relative w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${amigoTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
-                          >
-                            <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-                          </div>
-
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1 min-w-0">
-                              <p onClick={(e) => { e.stopPropagation(); abrirPerfilPorUsername(amigo.username); }} className="text-xs font-bold truncate hover:underline">{amigo.nome}</p>
-                              {amigo.verificado && <SeloVerificado tamanho="w-3 h-3" />}
-                            </div>
-                            <p className="text-[10px] opacity-50 truncate">@{amigo.username}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {naoLidasDoAmigo > 0 && (
-                            <span className="bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs animate-bounce">
-                              {naoLidasDoAmigo}
-                            </span>
-                          )}
-                          <button title="Abrir chat" className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-md font-bold opacity-75">Feed da Comunidade</h3>
+              
+              <div className="flex items-center gap-1.5 overflow-x-auto">
+                <button onClick={() => setFiltroFeed('todos')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'todos' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>🌐 Todos</button>
+                <button onClick={() => setFiltroFeed('versiculos')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'versiculos' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>📖 Versículos</button>
+                <button onClick={() => setFiltroFeed('oracao')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'oracao' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>🙏 Oração</button>
+                <button onClick={() => setFiltroFeed('testemunhos')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'testemunhos' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>✨ Testemunhos</button>
               </div>
             </div>
 
-            <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-              <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">👥 Membros da Comunidade</h4>
-              <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-                {membrosFiltrados.length === 0 ? (
-                  <p className="text-xs opacity-40 text-center py-4">Nenhum membro encontrado.</p>
-                ) : (
-                  membrosFiltrados.map(membro => {
-                    const enviei = meuPerfilBanco.pedidos_enviados?.includes(membro.username);
-                    const membroTemStory = storiesFiltradosAmigos.some(s => s.username === membro.username);
+            {publicacoesFiltradas.length === 0 ? (
+              <div className={`p-8 text-center rounded-3xl border shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <p className="text-xs opacity-60">Nenhuma publicação encontrada para este filtro.</p>
+              </div>
+            ) : (
+              publicacoesFiltradas.map((post) => renderizarCardPublicacao(post, false))
+            )}
+          </div>
+        </div>
 
-                    return (
-                      <div key={membro.username} className={`p-3 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+        <div className="lg:col-span-3 space-y-6">
+          <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
+
+            <div className="space-y-3">
+              <p className="text-xs opacity-60">Selecione um amigo para conversar:</p>
+              {amigosLista.length === 0 ? (
+                <p className="text-xs opacity-40 text-center py-6">Nenhum amigo conectado no chat ainda.</p>
+              ) : (
+                amigosLista.map(amigo => {
+                  const naoLidasDoAmigo = notificacoes.filter(
+                    n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
+                  ).length;
+                  const amigoTemStory = storiesFiltradosAmigos.some(s => s.username === amigo.username);
+
+                  return (
+                    <div 
+                      key={amigo.username} 
+                      onClick={() => abrirChatComAmigo(amigo.username)} 
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
                         <div 
-                          className="flex items-center gap-2.5 min-w-0 cursor-pointer" 
-                          onClick={() => clicarPerfilOuStory(membro.username)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clicarPerfilOuStory(amigo.username);
+                          }}
+                          className={`relative w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${amigoTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
                         >
-                          <div className={`relative w-8 h-8 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${membroTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-sm animate-pulse' : ''}`}>
-                            <img src={membro.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1 min-w-0">
-                              <p onClick={(e) => { e.stopPropagation(); abrirPerfilPorUsername(membro.username); }} className="font-bold truncate hover:underline">{membro.nome}</p>
-                              {membro.verificado && <SeloVerificado tamanho="w-3 h-3" />}
-                            </div>
-                            <p className="text-[10px] opacity-50 truncate">@{membro.username}</p>
-                          </div>
+                          <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
                         </div>
 
-                        <button 
-                          disabled={enviei}
-                          title={enviei ? 'Solicitação Pendente' : 'Seguir / Adicionar'}
-                          onClick={async () => {
-                            await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, membro.username);
-                            mostrarToast(`Pedido de amizade enviado para @${membro.username}!`);
-                          }}
-                          className={`p-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center flex-shrink-0 ${
-                            enviei 
-                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/35 cursor-not-allowed' 
-                              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
-                          }`}
-                        >
-                          {enviei ? (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                            </svg>
-                          )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <p onClick={(e) => { e.stopPropagation(); abrirPerfilPorUsername(amigo.username); }} className="text-xs font-bold truncate hover:underline">{amigo.nome}</p>
+                            {amigo.verificado && <SeloVerificado tamanho="w-3 h-3" />}
+                          </div>
+                          <p className="text-[10px] opacity-50 truncate">@{amigo.username}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {naoLidasDoAmigo > 0 && (
+                          <span className="bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs animate-bounce">
+                            {naoLidasDoAmigo}
+                          </span>
+                        )}
+                        <button title="Abrir chat" className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
                         </button>
                       </div>
-                    );
-                  })
-                )}
-              </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
+          <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">👥 Membros da Comunidade</h4>
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+              {membrosFiltrados.length === 0 ? (
+                <p className="text-xs opacity-40 text-center py-4">Nenhum membro encontrado.</p>
+              ) : (
+                membrosFiltrados.map(membro => {
+                  const enviei = meuPerfilBanco.pedidos_enviados?.includes(membro.username);
+                  const membroTemStory = storiesFiltradosAmigos.some(s => s.username === membro.username);
+
+                  return (
+                    <div key={membro.username} className={`p-3 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      <div 
+                        className="flex items-center gap-2.5 min-w-0 cursor-pointer" 
+                        onClick={() => clicarPerfilOuStory(membro.username)}
+                      >
+                        <div className={`relative w-8 h-8 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${membroTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-sm animate-pulse' : ''}`}>
+                          <img src={membro.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <p onClick={(e) => { e.stopPropagation(); abrirPerfilPorUsername(membro.username); }} className="font-bold truncate hover:underline">{membro.nome}</p>
+                            {membro.verificado && <SeloVerificado tamanho="w-3 h-3" />}
+                          </div>
+                          <p className="text-[10px] opacity-50 truncate">@{membro.username}</p>
+                        </div>
+                      </div>
+
+                      <button 
+                        disabled={enviei}
+                        title={enviei ? 'Solicitação Pendente' : 'Seguir / Adicionar'}
+                        onClick={async () => {
+                          await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, membro.username);
+                          mostrarToast(`Pedido de amizade enviado para @${membro.username}!`);
+                        }}
+                        className={`p-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center flex-shrink-0 ${
+                          enviei 
+                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/35 cursor-not-allowed' 
+                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
+                        }`}
+                      >
+                        {enviei ? (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
         </div>
 
       </div>
