@@ -345,10 +345,10 @@ export default function App() {
   const versiculosDoCapitulo = livroAtualObj.chapters && livroAtualObj.chapters[capituloAtual - 1] ? livroAtualObj.chapters[capituloAtual - 1] : [];
 
   return (
-    <div className={`flex flex-col h-screen font-sans overflow-hidden ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
+    <div className={`flex flex-col min-h-screen font-sans ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
 
       {/* HEADER SUPERIOR COM MENU HAMBÚRGUER MOBILE */}
-      <header className={`border-b px-4 lg:px-8 py-3 flex items-center justify-between gap-3 shadow-sm backdrop-blur-md z-40 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+      <header className={`border-b px-4 lg:px-8 py-3 flex items-center justify-between gap-3 shadow-sm backdrop-blur-md z-40 sticky top-0 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         
         {/* Lado Esquerdo: Botão Hambúrguer (Mobile) + Logo */}
         <div className="flex items-center gap-3">
@@ -369,21 +369,24 @@ export default function App() {
             {menuHamburguerAberto && (
               <div className={`absolute left-0 mt-3 w-64 rounded-2xl shadow-2xl border p-3 z-50 space-y-3 backdrop-blur-md ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                 
-                <div className="pb-2 border-b border-slate-700/50">
-                  <p className="text-[10px] uppercase tracking-wider font-extrabold opacity-60 mb-1">Versão da Bíblia</p>
-                  <select
-                    value={versaoSelecionada}
-                    onChange={(e) => {
-                      setVersaoSelecionada(e.target.value);
-                      setCapituloAtual(1);
-                    }}
-                    className={`w-full text-xs rounded-xl px-3 py-2 border font-bold cursor-pointer focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-800'}`}
-                  >
-                    {traducoesDisponiveis.map((t) => (
-                      <option key={t.id} value={t.id}>{t.nome}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Seletor de Versão mobile exibido APENAS na página da Bíblia */}
+                {abaPrincipal === 'biblia' && (
+                  <div className="pb-2 border-b border-slate-700/50">
+                    <p className="text-[10px] uppercase tracking-wider font-extrabold opacity-60 mb-1">Versão da Bíblia</p>
+                    <select
+                      value={versaoSelecionada}
+                      onChange={(e) => {
+                        setVersaoSelecionada(e.target.value);
+                        setCapituloAtual(1);
+                      }}
+                      className={`w-full text-xs rounded-xl px-3 py-2 border font-bold cursor-pointer focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-800'}`}
+                    >
+                      {traducoesDisponiveis.map((t) => (
+                        <option key={t.id} value={t.id}>{t.nome}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div className="space-y-1">
                   <p className="text-[10px] uppercase tracking-wider font-extrabold opacity-60 px-2 mb-1">Navegação</p>
@@ -451,18 +454,21 @@ export default function App() {
             BÍBLIA ONLINE
           </span>
 
-          <select
-            value={versaoSelecionada}
-            onChange={(e) => {
-              setVersaoSelecionada(e.target.value);
-              setCapituloAtual(1);
-            }}
-            className="hidden sm:block bg-slate-800 border border-slate-700 text-white text-xs rounded-lg px-2 py-1.5 focus:outline-none cursor-pointer"
-          >
-            {traducoesDisponiveis.map((t) => (
-              <option key={t.id} value={t.id}>{t.nome}</option>
-            ))}
-          </select>
+          {/* Seletor de Versão desktop exibido APENAS na página da Bíblia */}
+          {abaPrincipal === 'biblia' && (
+            <select
+              value={versaoSelecionada}
+              onChange={(e) => {
+                setVersaoSelecionada(e.target.value);
+                setCapituloAtual(1);
+              }}
+              className="hidden sm:block bg-slate-800 border border-slate-700 text-white text-xs rounded-lg px-2 py-1.5 focus:outline-none cursor-pointer"
+            >
+              {traducoesDisponiveis.map((t) => (
+                <option key={t.id} value={t.id}>{t.nome}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Navegação por Ícones para telas grandes (Desktop) */}
@@ -611,8 +617,9 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative w-full">
-        <section className="flex-1 overflow-y-auto p-4 sm:p-10 w-full pb-32">
+      {/* CONTEÚDO PRINCIPAL (flex-1 para expandir e empurrar o rodapé) */}
+      <main className="flex-1 flex flex-col relative w-full">
+        <section className="flex-1 p-4 sm:p-10 w-full pb-32">
           <div className="max-w-4xl mx-auto w-full">
 
             {abaPrincipal === 'biblia' && (
@@ -828,6 +835,45 @@ export default function App() {
         )}
 
       </main>
+
+      {/* RODAPÉ GLOBAL PROFISSIONAL */}
+      <footer className={`w-full py-8 px-4 sm:px-8 border-t mt-auto transition-colors duration-200 ${
+        darkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
+      }`}>
+        <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          
+          <div className="space-y-1">
+            <p className="text-xs font-medium">
+              Bíblia Online &copy; {new Date().getFullYear()} — Todos os direitos reservados.
+            </p>
+            <p className="text-[11px] opacity-75">
+              Espalhando a palavra, fé e comunhão por onde for.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            <span className="opacity-75">Desenvolvido com ❤️ por</span>
+            <a 
+              href="https://www.geolobo.dev" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-bold text-blue-500 hover:text-blue-600 hover:underline transition-all flex items-center gap-1 group"
+            >
+              Geovani Lobo
+              <svg 
+                className="w-3.5 h-3.5 transform transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2.5" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          </div>
+
+        </div>
+      </footer>
 
       <AuthModal
         isOpen={modalLoginAberto}

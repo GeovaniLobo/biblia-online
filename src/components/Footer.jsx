@@ -1,0 +1,47 @@
+import React from 'react';
+
+export default function Footer({ darkMode }) {
+  return (
+    <footer className={`w-full py-8 px-4 sm:px-8 border-t mt-auto transition-colors duration-200 ${
+      darkMode 
+        ? 'bg-slate-950 border-slate-800 text-slate-400' 
+        : 'bg-slate-50 border-slate-200 text-slate-600'
+    }`}>
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+        
+        {/* Direitos / Marca */}
+        <div className="space-y-1">
+          <p className="text-xs font-medium">
+            Luz do Mundo &copy; {new Date().getFullYear()} — Todos os direitos reservados.
+          </p>
+          <p className="text-[11px] opacity-75">
+            Espalhando a palavra, fé e comunhão por onde for.
+          </p>
+        </div>
+
+        {/* Créditos do Desenvolvedor */}
+        <div className="flex items-center gap-2 text-xs">
+          <span className="opacity-75">Desenvolvido com ❤️ por</span>
+          <a 
+            href="https://www.geolobo.dev" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="font-bold text-blue-500 hover:text-blue-600 hover:underline transition-all flex items-center gap-1 group"
+          >
+            Geovani Lobo
+            <svg 
+              className="w-3.5 h-3.5 transform transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2.5" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        </div>
+
+      </div>
+    </footer>
+  );
+}
