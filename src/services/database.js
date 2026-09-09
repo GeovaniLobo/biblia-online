@@ -527,4 +527,16 @@ export const BancoDeDados = {
       return [];
     }
   },
+  // --- ATUALIZAR TEMA DO USUÁRIO NO BANCO ---
+  atualizarTemaUsuario: async (username, darkMode) => {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${username}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ dark_mode: darkMode })
+      });
+    } catch (e) {
+      console.error("Erro ao atualizar tema no banco:", e);
+    }
+  },
 };
