@@ -861,7 +861,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
                 <button 
                   onClick={() => compartilharRedesSociais('facebook', post)}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2.5 text-blue-500 hover:text-white"
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2.5 text-blue-500"
                 >
                   <svg className="w-4 h-4 fill-current flex-shrink-0" viewBox="0 0 24 24">
                     <path d="M9 8H6v4h3v12h5V12h3.642L18 8h-4V6.333C14 5.378 14.5 5 15.5 5H18V0h-3.808C10.592 0 9 1.589 9 4.75V8z"/>

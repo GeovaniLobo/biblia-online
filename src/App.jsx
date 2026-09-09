@@ -525,7 +525,7 @@ export default function App() {
       </div>
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative w-full">
-        <section className={`flex-1 overflow-y-auto p-4 sm:p-6 w-full pb-32 ${abaPrincipal === 'comunidade' ? 'max-w-full px-4 sm:px-8' : 'max-w-4xl mx-auto lg:px-16'}`}>
+        <section className={`flex-1 overflow-y-auto p-4 sm:p-8 w-full pb-32 ${abaPrincipal === 'comunidade' ? 'max-w-full px-4 sm:px-8' : 'max-w-7xl mx-auto px-6 sm:px-12 lg:px-20'}`}>
 
           {abaPrincipal === 'biblia' && (
             carregando ? (
