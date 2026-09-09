@@ -65,7 +65,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [termoBuscaMencaoComentario, setTermoBuscaMencaoComentario] = useState('');
 
   const [termoBuscaComunidade, setTermoBuscaComunidade] = useState('');
-  const [filtroFeed, setFiltroFeed] = useState('todos'); 
   const [pubTexto, setPubTexto] = useState('');
   const [pubImagem, setPubImagem] = useState('');
   const [pubTema, setPubTema] = useState('');
@@ -669,15 +668,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
   const publicacoesFiltradas = publicacoes.filter(post => {
     const termo = termoBuscaComunidade.toLowerCase();
-    const matchBusca = !termoBuscaComunidade.trim() || (post.tema || '').toLowerCase().includes(termo) || (post.texto || '').toLowerCase().includes(termo);
-    
-    if (!matchBusca) return false;
-
-    if (filtroFeed === 'versiculos') return (post.tema || '').toLowerCase().includes('versículo') || (post.tema || '').toLowerCase().includes('📖');
-    if (filtroFeed === 'oracao') return (post.tema || '').toLowerCase().includes('oração') || (post.tema || '').toLowerCase().includes('pedindo');
-    if (filtroFeed === 'testemunhos') return (post.tema || '').toLowerCase().includes('testemunho') || (post.tema || '').toLowerCase().includes('milagre');
-
-    return true;
+    return !termoBuscaComunidade.trim() || (post.tema || '').toLowerCase().includes(termo) || (post.texto || '').toLowerCase().includes(termo);
   });
 
   const membrosFiltrados = outrosUsuarios.filter(membro => {
@@ -810,6 +801,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </button>
           </div>
 
+          {/* CAIXA DE COMPARTILHAMENTO POSICIONADA CORRETAMENTE PARA NÃO CORTAR NO MOBILE */}
           <div className="relative">
             <button 
               onClick={() => setMenuCompartilharAberto(menuCompartilharAberto === post.id ? null : post.id)}
@@ -822,7 +814,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </button>
 
             {menuCompartilharAberto === post.id && (
-              <div className={`absolute right-0 top-full mt-2 sm:bottom-full sm:mb-2 sm:top-auto w-56 rounded-2xl border shadow-2xl p-2 z-50 space-y-1 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+              <div className={`absolute right-0 bottom-full mb-2 w-56 rounded-2xl border shadow-2xl p-2 z-50 space-y-1 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                 <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 px-2 py-1">Opções de Partilha</p>
                 
                 <button 
@@ -1732,21 +1724,13 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
           </div>
 
+          {/* O MENU DE FILTROS DA COMUNIDADE FOI APAGADO DAQUI */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-md font-bold opacity-75">Feed da Comunidade</h3>
-              
-              <div className="flex items-center gap-1.5 overflow-x-auto">
-                <button onClick={() => setFiltroFeed('todos')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'todos' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>🌐 Todos</button>
-                <button onClick={() => setFiltroFeed('versiculos')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'versiculos' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>📖 Versículos</button>
-                <button onClick={() => setFiltroFeed('oracao')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'oracao' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>🙏 Oração</button>
-                <button onClick={() => setFiltroFeed('testemunhos')} className={`text-[10px] px-3 py-1.5 rounded-xl font-bold transition ${filtroFeed === 'testemunhos' ? 'bg-blue-600 text-white shadow-xs' : darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>✨ Testemunhos</button>
-              </div>
-            </div>
+            <h3 className="text-md font-bold opacity-75">Feed da Comunidade</h3>
 
             {publicacoesFiltradas.length === 0 ? (
               <div className={`p-8 text-center rounded-3xl border shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <p className="text-xs opacity-60">Nenhuma publicação encontrada para este filtro.</p>
+                <p className="text-xs opacity-60">Nenhuma publicação encontrada.</p>
               </div>
             ) : (
               publicacoesFiltradas.map((post) => renderizarCardPublicacao(post, false))
