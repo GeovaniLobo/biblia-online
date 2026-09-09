@@ -801,7 +801,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </button>
           </div>
 
-          {/* CAIXA DE COMPARTILHAMENTO POSICIONADA CORRETAMENTE PARA NÃO CORTAR NO MOBILE */}
+          {/* CAIXA DE COMPARTILHAMENTO POSICIONADA CORRETAMENTE */}
           <div className="relative">
             <button 
               onClick={() => setMenuCompartilharAberto(menuCompartilharAberto === post.id ? null : post.id)}
@@ -814,7 +814,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </button>
 
             {menuCompartilharAberto === post.id && (
-              <div className={`absolute right-0 bottom-full mb-3 w-56 rounded-2xl border shadow-2xl p-2 z-50 space-y-1 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+              <div className={`absolute left-0 sm:right-0 sm:left-auto bottom-full mb-3 w-48 sm:w-56 rounded-2xl border shadow-2xl p-2 z-50 space-y-1 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                 <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 px-2 py-1">Opções de Partilha</p>
                 
                 <button 
