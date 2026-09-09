@@ -19,7 +19,9 @@ export default function App() {
 
   const [modalLoginAberto, setModalLoginAberto] = useState(false);
   const [menuPerfilAberto, setMenuPerfilAberto] = useState(false);
+  const [menuHamburguerAberto, setMenuHamburguerAberto] = useState(false);
   const dropdownRef = useRef(null);
+  const hamburguerRef = useRef(null);
 
   useEffect(() => {
     async function carregarTemaDoBanco() {
@@ -57,6 +59,9 @@ export default function App() {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setMenuPerfilAberto(false);
+      }
+      if (hamburguerRef.current && !hamburguerRef.current.contains(event.target)) {
+        setMenuHamburguerAberto(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -197,6 +202,7 @@ export default function App() {
     setAbaPrincipal(aba);
     if (aba !== 'perfilUrl') setPerfilUrlAlvo(null);
     setMenuPerfilAberto(false);
+    setMenuHamburguerAberto(false);
   };
 
   useEffect(() => {
@@ -341,15 +347,105 @@ export default function App() {
   return (
     <div className={`flex flex-col h-screen font-sans overflow-hidden ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
 
-      {/* HEADER SUPERIOR UNIFICADO COM ÍCONES PROFISSIONAIS */}
-      <header className={`border-b px-4 lg:px-8 py-3 flex items-center justify-between gap-4 shadow-sm backdrop-blur-md z-40 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+      {/* HEADER SUPERIOR COM MENU HAMBÚRGUER MOBILE */}
+      <header className={`border-b px-4 lg:px-8 py-3 flex items-center justify-between gap-3 shadow-sm backdrop-blur-md z-40 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         
-        <div className="flex items-center gap-4">
+        {/* Lado Esquerdo: Botão Hambúrguer (Mobile) + Logo */}
+        <div className="flex items-center gap-3">
+          
+          {/* Botão Hambúrguer visível apenas em telas menores (Mobile/Tablet) */}
+          <div className="relative lg:hidden" ref={hamburguerRef}>
+            <button
+              onClick={() => setMenuHamburguerAberto(!menuHamburguerAberto)}
+              className={`p-2 rounded-xl border transition flex items-center justify-center cursor-pointer ${darkMode ? 'bg-slate-800 border-slate-700 text-white hover:bg-slate-700' : 'bg-slate-100 border-slate-300 text-slate-900 hover:bg-slate-200'}`}
+              title="Menu Principal"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            {/* Gaveta do Menu Hambúrguer (Mobile) */}
+            {menuHamburguerAberto && (
+              <div className={`absolute left-0 mt-3 w-64 rounded-2xl shadow-2xl border p-3 z-50 space-y-3 backdrop-blur-md ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                
+                <div className="pb-2 border-b border-slate-700/50">
+                  <p className="text-[10px] uppercase tracking-wider font-extrabold opacity-60 mb-1">Versão da Bíblia</p>
+                  <select
+                    value={versaoSelecionada}
+                    onChange={(e) => {
+                      setVersaoSelecionada(e.target.value);
+                      setCapituloAtual(1);
+                    }}
+                    className={`w-full text-xs rounded-xl px-3 py-2 border font-bold cursor-pointer focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-800'}`}
+                  >
+                    {traducoesDisponiveis.map((t) => (
+                      <option key={t.id} value={t.id}>{t.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase tracking-wider font-extrabold opacity-60 px-2 mb-1">Navegação</p>
+                  
+                  <button
+                    onClick={() => navegarPara('/', 'biblia')}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2.5 cursor-pointer ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-blue-500/10'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                    Bíblia
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!usuarioLogado) setModalLoginAberto(true);
+                      else navegarPara('/devocional', 'devocional');
+                    }}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2.5 cursor-pointer ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-blue-500/10'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                    Devocional
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!usuarioLogado) setModalLoginAberto(true);
+                      else navegarPara('/planos', 'planos');
+                    }}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2.5 cursor-pointer ${abaPrincipal === 'planos' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-blue-500/10'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    Planos
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!usuarioLogado) setModalLoginAberto(true);
+                      else navegarPara('/comunidade', 'comunidade');
+                    }}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-blue-500/10'}`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                      Comunidade
+                    </div>
+                    {totalNaoLidas > 0 && (
+                      <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                        {totalNaoLidas}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+              </div>
+            )}
+          </div>
+
           <span 
             onClick={() => navegarPara('/', 'biblia')}
-            className="text-base sm:text-lg font-black tracking-wider flex items-center gap-2 cursor-pointer"
+            className="text-sm sm:text-lg font-black tracking-wider flex items-center gap-2 cursor-pointer"
           >
-            <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-blue-500 hidden sm:block" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
             BÍBLIA ONLINE
@@ -369,7 +465,7 @@ export default function App() {
           </select>
         </div>
 
-        {/* Navegação por Ícones */}
+        {/* Navegação por Ícones para telas grandes (Desktop) */}
         <div className="hidden lg:flex items-center gap-2">
           <button
             onClick={() => navegarPara('/', 'biblia')}
@@ -416,11 +512,11 @@ export default function App() {
         </div>
 
         {/* Input de Pesquisa Global */}
-        <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border w-48 lg:w-60 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}>
+        <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border w-40 lg:w-60 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}>
           <svg className="w-4 h-4 opacity-50" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           <input
             type="text"
-            placeholder="Pesquisar versículo..."
+            placeholder="Pesquisar..."
             value={termoBusca}
             onChange={handleBuscar}
             className="w-full text-xs bg-transparent focus:outline-none"
@@ -449,7 +545,7 @@ export default function App() {
                 if (!usuarioLogado) setModalLoginAberto(true);
                 else setMenuPerfilAberto(!menuPerfilAberto);
               }}
-              className="relative w-10 h-10 rounded-full p-0.5 border-2 border-blue-500 cursor-pointer hover:scale-105 transition shadow-sm overflow-hidden flex-shrink-0"
+              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full p-0.5 border-2 border-blue-500 cursor-pointer hover:scale-105 transition shadow-sm overflow-hidden flex-shrink-0"
             >
               <img 
                 src={usuarioLogado?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
@@ -515,16 +611,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Sub-barra mobile */}
-      <div className={`flex lg:hidden overflow-x-auto px-4 py-2 border-b gap-2 text-xs font-bold ${darkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200'}`}>
-        <button onClick={() => navegarPara('/', 'biblia')} className={`px-3 py-1 rounded-lg ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white' : 'opacity-70'}`}>Bíblia</button>
-        <button onClick={() => { if(!usuarioLogado) setModalLoginAberto(true); else navegarPara('/devocional', 'devocional'); }} className={`px-3 py-1 rounded-lg ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white' : 'opacity-70'}`}>Devocional</button>
-        <button onClick={() => { if(!usuarioLogado) setModalLoginAberto(true); else navegarPara('/planos', 'planos'); }} className={`px-3 py-1 rounded-lg ${abaPrincipal === 'planos' ? 'bg-blue-600 text-white' : 'opacity-70'}`}>Planos</button>
-        <button onClick={() => { if(!usuarioLogado) setModalLoginAberto(true); else navegarPara('/comunidade', 'comunidade'); }} className={`px-3 py-1 rounded-lg ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white' : 'opacity-70'}`}>Comunidade</button>
-      </div>
-
       <main className="flex-1 flex flex-col h-full overflow-hidden relative w-full">
-        {/* Scroll agora fixo na borda extrema da direita da tela inteira */}
         <section className="flex-1 overflow-y-auto p-4 sm:p-10 w-full pb-32">
           <div className="max-w-4xl mx-auto w-full">
 
