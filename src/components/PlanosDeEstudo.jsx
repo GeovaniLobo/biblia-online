@@ -30,7 +30,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
   // Função unificada para carregar dados de forma global e compartilhada
   const carregarDadosCompartilhados = () => {
-    // 1. Planos de Estudo
     const planosLocal = localStorage.getItem('rede_planos_estudo_global');
     let planosSalvos = planosLocal ? JSON.parse(planosLocal) : [];
 
@@ -55,19 +54,40 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       ];
       localStorage.setItem('rede_planos_estudo_global', JSON.stringify(planosSalvos));
     }
-    setPlanos(planosSalvos);
 
-    // 2. Comentários Públicos Compartilhados
+    // Carrega progresso individual dos participantes se houver
+    const progressoLocal = localStorage.getItem(`progresso_planos_${usuarioLogado?.username}`);
+    const progressoUsuarios = progressoLocal ? JSON.parse(progressoLocal) : {};
+
+    // Aplica o estado de concluído pessoal de cada usuário nos planos
+    const planosMapeados = planosSalvos.map(plano => {
+      const progressoPlano = progressoUsuarios[plano.id];
+      if (progressoPlano) {
+        const diasAtualizados = plano.dias.map(d => ({
+          ...d,
+          concluido: !!progressoPlano[d.dia]
+        }));
+        return { ...plano, dias: diasAtualizados };
+      }
+      return plano;
+    });
+
+    setPlanos(planosMapeados);
+
+    // Se houver um plano selecionado, sincroniza com o estado atualizado
+    if (planoSelecionado) {
+      const atual = planosMapeados.find(p => p.id === planoSelecionado.id);
+      if (atual) setPlanoSelecionado(atual);
+    }
+
     const comentariosLocal = localStorage.getItem('rede_comentarios_planos_global');
     if (comentariosLocal) {
       setComentariosDias(JSON.parse(comentariosLocal));
     }
 
-    // 3. Perfis e Avatares Cadastrados na Comunidade
     const perfisLocal = localStorage.getItem('perfis_cadastrados_comunidade');
     const perfisArr = perfisLocal ? JSON.parse(perfisLocal) : [];
     
-    // Garante que o usuário logado atual também tenha seu perfil mapeado com a foto correta
     const mapa = {};
     perfisArr.forEach(p => {
       mapa[p.username] = p.foto;
@@ -81,9 +101,8 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   useEffect(() => {
     carregarDadosCompartilhados();
 
-    // Sincronização automática em tempo real entre abas / contas no mesmo navegador
     const aoMudarStorage = (e) => {
-      if (e.key === 'rede_comentarios_planos_global' || e.key === 'rede_planos_estudo_global') {
+      if (e.key === 'rede_comentarios_planos_global' || e.key === 'rede_planos_estudo_global' || e.key?.startsWith('progresso_planos_')) {
         carregarDadosCompartilhados();
       }
     };
@@ -147,6 +166,45 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     setModalCriarAberto(false);
   };
 
+  // Função para excluir plano (Criador apaga para todos / Participante apaga só para si)
+  const apagarPlano = (planoId) => {
+    const planoAlvo = planos.find(p => p.id === planoId);
+    if (!planoAlvo) return;
+
+    const souCriador = planoAlvo.criador === usuarioLogado.username;
+
+    if (souCriador) {
+      if (window.confirm('Tem certeza que deseja apagar este plano permanentemente para todos os participantes?')) {
+        const novosPlanos = planos.filter(p => p.id !== planoId);
+        salvarPlanosGlobais(novosPlanos);
+        setPlanoSelecionado(null);
+        alert('Plano excluído com sucesso.');
+      }
+    } else {
+      if (window.confirm('Deseja desistir/remover este plano do seu perfil? Seu progresso será resetado, mas você poderá acessá-lo novamente depois.')) {
+        // Remove apenas o progresso pessoal salvo do usuário para este plano
+        const progressoKey = `progresso_planos_${usuarioLogado.username}`;
+        const progressoSalvo = JSON.parse(localStorage.getItem(progressoKey) || '{}');
+        delete progressoSalvo[planoId];
+        localStorage.setItem(progressoKey, JSON.stringify(progressoSalvo));
+
+        // Reseta localmente para não concluído
+        const planosAtualizados = planos.map(p => {
+          if (p.id === planoId) {
+            return {
+              ...p,
+              dias: p.dias.map(d => ({ ...d, concluido: false }))
+            };
+          }
+          return p;
+        });
+        setPlanos(planosAtualizados);
+        setPlanoSelecionado(null);
+        alert('Você removeu este plano do seu painel.');
+      }
+    }
+  };
+
   const aplicarFormatacao = (comando, valor = null) => {
     document.execCommand(comando, false, valor);
     if (editorRef.current) {
@@ -200,6 +258,16 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
     setPlanosSelecionadoComAtualizacao(planoAtualizado);
 
+    // Salva o progresso individual separadamente por usuário
+    const progressoKey = `progresso_planos_${usuarioLogado.username}`;
+    const progressoSalvo = JSON.parse(localStorage.getItem(progressoKey) || '{}');
+    const statusDiasObj = {};
+    planoAtualizado.dias.forEach(d => {
+      if (d.concluido) statusDiasObj[d.dia] = true;
+    });
+    progressoSalvo[planoSelecionado.id] = statusDiasObj;
+    localStorage.setItem(progressoKey, JSON.stringify(progressoSalvo));
+
     if (progressoAntigo < 100 && progressoNovo === 100) {
       setMostrarModalConquista(true);
     }
@@ -212,7 +280,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     const chave = `${planoId}_dia_${diaNum}`;
     const listaAtual = comentariosDias[chave] || [];
     
-    // Pega a foto atualizada do usuário logado diretamente
     const avatarAtual = usuarioLogado?.foto || perfisUsuarios[usuarioLogado.username] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80';
 
     const novoComentarioObj = {
@@ -242,7 +309,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const souOCriador = planoSelecionado && planoSelecionado.criador === usuarioLogado.username;
 
   return (
-    <div className={`w-full max-w-4xl mx-auto px-4 py-8 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+    <div className={`w-full max-w-4xl mx-auto px-4 py-8 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
       {mostrarModalConquista && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-300">
@@ -256,7 +323,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
             </p>
             <button 
               onClick={() => setMostrarModalConquista(false)}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-3 rounded-xl shadow-lg transition"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-3 rounded-xl shadow-lg transition cursor-pointer"
             >
               Continuar Caminhada 🚀
             </button>
@@ -275,7 +342,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
           <button 
             onClick={() => setModalCriarAberto(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md transition flex items-center gap-2"
+            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md transition flex items-center gap-2 cursor-pointer"
           >
             ✨ Criar Novo Plano
           </button>
@@ -286,13 +353,13 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         <div className="flex gap-2 bg-slate-900/10 p-1.5 rounded-2xl border border-slate-800/20 w-fit">
           <button 
             onClick={() => setAbaAtivaFiltro('todos')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${abaAtivaFiltro === 'todos' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${abaAtivaFiltro === 'todos' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
           >
             🌟 Sugestões
           </button>
           <button 
             onClick={() => setAbaAtivaFiltro('meus')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${abaAtivaFiltro === 'meus' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${abaAtivaFiltro === 'meus' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
           >
             👤 Meus Planos
           </button>
@@ -304,7 +371,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
           <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <div className="flex justify-between items-center border-b pb-3 border-slate-700">
               <h3 className="font-extrabold text-sm">Criar Novo Plano de Estudo</h3>
-              <button onClick={() => setModalCriarAberto(false)} className="text-sm font-bold opacity-70">✕</button>
+              <button onClick={() => setModalCriarAberto(false)} className="text-sm font-bold opacity-70 cursor-pointer">✕</button>
             </div>
 
             <form onSubmit={criarPlanoEstudo} className="space-y-4">
@@ -358,7 +425,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                 </select>
               </div>
 
-              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow-md transition">
+              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow-md transition cursor-pointer">
                 Publicar Plano 🚀
               </button>
             </form>
@@ -368,9 +435,19 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
       {planoSelecionado && !modoLeitura && (
         <div className="space-y-6">
-          <button onClick={() => setPlanoSelecionado(null)} className="text-xs font-bold text-blue-500 hover:underline inline-block">
-            ← Voltar para todos os planos
-          </button>
+          <div className="flex justify-between items-center">
+            <button onClick={() => setPlanoSelecionado(null)} className="text-xs font-bold text-blue-500 hover:underline inline-block cursor-pointer">
+              ← Voltar para todos os planos
+            </button>
+
+            {/* Botão de Excluir / Desistir do Plano */}
+            <button 
+              onClick={() => apagarPlano(planoSelecionado.id)}
+              className="text-xs font-bold text-rose-500 hover:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+            >
+              🗑️ {souOCriador ? 'Apagar Plano Definitivamente' : 'Desistir / Remover Plano'}
+            </button>
+          </div>
 
           <div className="space-y-4">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{planoSelecionado.titulo}</h1>
@@ -401,7 +478,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
               <button 
                 onClick={() => setModoLeitura(true)}
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-6 py-3 rounded-xl shadow-lg transition"
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-6 py-3 rounded-xl shadow-lg transition cursor-pointer"
               >
                 {calcularProgresso(planoSelecionado.dias) > 0 ? 'Continuar Leitura 📖' : 'Começar este Plano 🚀'}
               </button>
@@ -418,7 +495,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       {planoSelecionado && modoLeitura && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <button onClick={() => setModoLeitura(false)} className="text-xs font-bold text-blue-500 hover:underline">
+            <button onClick={() => setModoLeitura(false)} className="text-xs font-bold text-blue-500 hover:underline cursor-pointer">
               ← Visão Geral do Plano
             </button>
             <span className="text-xs font-bold text-slate-400">
@@ -439,7 +516,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                   setMidiaDiaUrl(d.midia || '');
                   setTipoMidiaDia(d.tipoMidia || 'imagem');
                 }}
-                className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 flex-shrink-0 transition border ${
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 flex-shrink-0 transition border cursor-pointer ${
                   diaAtivoIndex === index 
                     ? 'bg-blue-600 text-white border-blue-500 shadow-md' 
                     : d.concluido 
@@ -468,7 +545,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
                   <button 
                     onClick={() => alternarConclusaoDia(diaAtual.dia)}
-                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm ${
+                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer ${
                       diaAtual.concluido 
                         ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
                         : 'bg-slate-800/30 text-slate-300 hover:bg-slate-700 border border-slate-700/40'
@@ -484,20 +561,25 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                       <label className="text-xs font-bold text-blue-400 block">Editor de Conteúdo Profissional:</label>
                       
                       <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-slate-900/40 border border-slate-800/60">
-                        <button type="button" onClick={() => aplicarFormatacao('bold')} className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 rounded text-white" title="Negrito"><b>B</b></button>
-                        <button type="button" onClick={() => aplicarFormatacao('italic')} className="px-2.5 py-1 text-xs italic bg-slate-800 hover:bg-slate-700 rounded text-white" title="Itálico"><i>I</i></button>
-                        <button type="button" onClick={() => aplicarFormatacao('underline')} className="px-2.5 py-1 text-xs underline bg-slate-800 hover:bg-slate-700 rounded text-white" title="Sublinhado"><u>U</u></button>
+                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacao('bold')} className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Negrito"><b>B</b></button>
+                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacao('italic')} className="px-2.5 py-1 text-xs italic bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Itálico"><i>I</i></button>
+                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacao('underline')} className="px-2.5 py-1 text-xs underline bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Sublinhado"><u>U</u></button>
                         <span className="w-px h-5 bg-slate-700 self-center mx-1"></span>
-                        <button type="button" onClick={() => aplicarFormatacao('fontSize', '4')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white" title="Título">Título</button>
-                        <button type="button" onClick={() => aplicarFormatacao('fontSize', '3')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white" title="Normal">Normal</button>
+                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacao('fontSize', '4')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Título">Título</button>
+                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacao('fontSize', '3')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Normal">Normal</button>
                       </div>
 
                       <div 
                         ref={editorRef}
                         contentEditable={true}
                         suppressContentEditableWarning={true}
+                        onClick={() => {
+                          if (editorRef.current && document.activeElement !== editorRef.current) {
+                            editorRef.current.focus();
+                          }
+                        }}
                         onInput={(e) => setTextoEstudoDia(e.currentTarget.innerHTML)}
-                        className="w-full min-h-[200px] text-sm sm:text-base rounded-2xl p-4 border border-slate-800/50 bg-transparent focus:outline-none focus:border-blue-500 leading-relaxed"
+                        className="w-full min-h-[200px] text-sm sm:text-base rounded-2xl p-4 border border-slate-800/50 bg-transparent focus:outline-none focus:border-blue-500 leading-relaxed cursor-text"
                         dangerouslySetInnerHTML={{ __html: diaAtual.conteudoEstudo || '' }}
                       ></div>
 
@@ -514,7 +596,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
                       <button 
                         onClick={salvarEdicaoDiaAtual}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-md"
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-md cursor-pointer"
                       >
                         Salvar Alterações Oficiais 💾
                       </button>
@@ -567,7 +649,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     </div>
                   )}
 
-                  {/* SEÇÃO DE COMENTÁRIOS PÚBLICOS DA COMUNIDADE COM FOTO DE PERFIL CORRIGIDA */}
+                  {/* SEÇÃO DE COMENTÁRIOS PÚBLICOS DA COMUNIDADE */}
                   <div className="pt-6 border-t border-slate-800/40 space-y-4">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
                       💬 Reflexões e Comentários da Comunidade ({listaComentarios.length})
@@ -581,7 +663,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                         onChange={(e) => setNovoComentarioDia(e.target.value)}
                         className="w-full text-xs rounded-xl px-3.5 py-2.5 border border-slate-800/60 bg-transparent text-inherit focus:outline-none focus:border-blue-500"
                       />
-                      <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm flex-shrink-0">
+                      <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm flex-shrink-0 cursor-pointer">
                         Comentar
                       </button>
                     </form>

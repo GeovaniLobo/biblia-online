@@ -5,7 +5,7 @@ import PerfilPublico from './PerfilPublico';
 export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   if (!usuarioLogado) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
         <p className="text-xs opacity-60">Carregando dados do usuário...</p>
       </div>
     );
