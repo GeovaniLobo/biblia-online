@@ -1,522 +1,899 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BancoDeDados } from '../services/database';
+import { BancoDeDados } from './services/database';
+import AuthModal from './components/AuthModal';
+import Comunidade from './components/Comunidade';
+import Devocionais from './components/Devocionais';
+import PlanosDeEstudo from './components/PlanosDeEstudo';
+import PerfilPublico from './components/PerfilPublico';
+import EditarPerfil from './components/EditarPerfil';
 
-export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
-  const [posts, setPosts] = useState([]);
-  const [stories, setStories] = useState([]);
-  const [perfis, setPerfis] = useState([]);
-  const [notificacoes, setNotificacoes] = useState([]);
-  const [pedidosOracao, setPedidosOracao] = useState([]);
-  
-  // Estados de modais e abas
-  const [modalPublicarAberto, setModalPublicarAberto] = useState(false);
-  const [modalStoryAberto, setModalStoryAberto] = useState(false);
-  const [modalOracaoAberto, setModalOracaoAberto] = useState(false);
-  const [modalNotifAberto, setModalNotifAberto] = useState(false);
-  const [abaSolicitacoesAberta, setAbaSolicitacoesAberta] = useState(false);
-  
-  // Visualização de Story / Chat
-  const [storyVisualizando, setStoryVisualizando] = useState(null);
-  const [chatAbertoCom, setChatAbertoCom] = useState(null);
-  const [mensagensChat, setMensagensChat] = useState([]);
-  const [textoChat, setTextoChat] = useState('');
-  
-  // Criar publicação / Story
-  const [textoPublicacao, setTextoPublicacao] = useState('');
-  const [temaPublicacao, setTemaPublicacao] = useState('Reflexão');
-  const [arquivoStory, setArquivoStory] = useState(null);
-  const [textoOracao, setTextoOracao] = useState('');
-  const [comentariosInputs, setComentariosInputs] = useState({});
-  const [toastMensagem, setToastMensagem] = useState(null);
+export default function App() {
+  const [versaoSelecionada, setVersaoSelecionada] = useState('acf');
+  const [bibliaCompleta, setBibliaCompleta] = useState([]);
+  const [livroIndex, setLivroIndex] = useState(0);
+  const [capituloAtual, setCapituloAtual] = useState(1);
+  const [carregando, setCarregando] = useState(true);
 
-  const chatFimRef = useRef(null);
+  const [usuarioLogado, setUsuarioLogado] = useState(BancoDeDados.getUsuarioLogado());
+  const [darkMode, setDarkMode] = useState(false);
 
-  // Lista de reações atualizadas
-  const listaReacoesOpcoes = [
-    { tipo: 'amei', emoji: '❤️', label: 'Amei' },
-    { tipo: 'amem', emoji: '🙏', label: 'Amém' },
-    { tipo: 'gloria', emoji: '🙌', label: 'Glória' },
-    { tipo: 'parabens', emoji: '👏', label: 'Parabéns' },
-    { tipo: 'felicidades', emoji: '✨', label: 'Felicidades' },
-  ];
+  const [modalLoginAberto, setModalLoginAberto] = useState(false);
+  const [menuPerfilAberto, setMenuPerfilAberto] = useState(false);
+  const [menuHamburguerAberto, setMenuHamburguerAberto] = useState(false);
+  const dropdownRef = useRef(null);
+  const hamburguerRef = useRef(null);
 
-  const mostrarToast = (msg) => {
-    setToastMensagem(msg);
-    setTimeout(() => setToastMensagem(null), 3000);
-  };
+  useEffect(() => {
+    async function carregarTemaDoBanco() {
+      if (usuarioLogado && usuarioLogado.username) {
+        try {
+          const perfis = await BancoDeDados.getPerfisCadastrados();
+          const meuPerfilBanco = perfis?.find(p => p.username === usuarioLogado.username);
+          if (meuPerfilBanco && typeof meuPerfilBanco.dark_mode === 'boolean') {
+            setDarkMode(meuPerfilBanco.dark_mode);
+          }
+        } catch (e) {
+          console.error("Erro ao carregar tema do banco:", e);
+        }
+      }
+    }
+    carregarTemaDoBanco();
+  }, [usuarioLogado]);
 
-  const carregarDados = async () => {
-    const [p, s, pe, n, po] = await Promise.all([
-      BancoDeDados.getPublicacoes(),
-      BancoDeDados.getStories(),
-      BancoDeDados.getPerfisCadastrados(),
-      usuarioLogado ? BancoDeDados.getNotificacoes(usuarioLogado.username) : Promise.resolve([]),
-      BancoDeDados.getPedidosOracao()
-    ]);
-    setPosts(p || []);
-    setStories(s || []);
-    setPerfis(pe || []);
-    setNotificacoes(n || []);
-    setPedidosOracao(po || []);
+  const alternarTemaBanco = async () => {
+    const novoTema = !darkMode;
+    setDarkMode(novoTema);
+
+    if (usuarioLogado && usuarioLogado.username) {
+      try {
+        if (typeof BancoDeDados.atualizarTemaUsuario === 'function') {
+          await BancoDeDados.atualizarTemaUsuario(usuarioLogado.username, novoTema);
+        }
+      } catch (e) {
+        console.error("Erro ao salvar tema no banco de dados:", e);
+      }
+    }
   };
 
   useEffect(() => {
-    carregarDados();
-    const intervalo = setInterval(carregarDados, 5000);
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setMenuPerfilAberto(false);
+      }
+      if (hamburguerRef.current && !hamburguerRef.current.contains(event.target)) {
+        setMenuHamburguerAberto(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const initialPath = decodeURIComponent(window.location.pathname.replace('/', '').trim());
+  const isSystemRoute = ['', 'biblia', 'comunidade', 'devocional', 'planos', 'editarPerfil'].includes(initialPath);
+
+  const [abaPrincipal, setAbaPrincipal] = useState(isSystemRoute ? (initialPath || 'biblia') : 'perfilUrl'); 
+  const [perfilUrlAlvo, setPerfilUrlAlvo] = useState(() => {
+    if (isSystemRoute) return null;
+    return { 
+      username: initialPath, 
+      nome: initialPath, 
+      foto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80', 
+      biografia: 'Carregando perfil...',
+      amigos: [],
+      verificado: false
+    };
+  });
+
+  const [totalNaoLidas, setTotalNaoLidas] = useState(0);
+
+  const [favoritos, setFavoritos] = useState(() => {
+    const salvos = localStorage.getItem('favoritos_biblia');
+    return salvos ? JSON.parse(salvos) : [];
+  });
+  const [marcacoes, setMarcacoes] = useState(() => {
+    const salvos = localStorage.getItem('marcacoes_biblia');
+    return salvos ? JSON.parse(salvos) : {};
+  });
+  const [versiculosSelecionados, setVersiculosSelecionados] = useState([]);
+  const [copiadoFeedback, setCopiadoFeedback] = useState(false);
+
+  const [termoBusca, setTermoBusca] = useState('');
+  const [resultadosBusca, setResultadosBusca] = useState([]);
+  const [tamanhoFonte, setTamanhoFonte] = useState('text-base sm:text-lg');
+  const [notaVersiculoAtiva, setNotaVersiculoAtiva] = useState(null);
+  const [textoNota, setTextoNota] = useState('');
+  const [notasPessoais, setNotasPessoais] = useState(() => {
+    const s = localStorage.getItem('notas_versiculos_biblia');
+    return s ? JSON.parse(s) : {};
+  });
+
+  const versiculosDoDia = [
+    { texto: "Lâmpada para os meus pés é a tua palavra, e luz para o meu caminho.", referencia: "Salmos 119:105" },
+    { texto: "O Senhor é o meu pastor; de nada faltará.", referencia: "Salmos 23:1" },
+    { texto: "Confia no Senhor de todo o teu coração e não te estribes no teu próprio entendimento.", referencia: "Provérbios 3:5" },
+    { texto: "Tudo posso naquele que me fortalece.", referencia: "Filipenses 4:13" },
+    { texto: "O Senhor é a minha luz e a minha salvação; a quem temerei?", referencia: "Salmos 27:1" },
+    { texto: "Entrega o teu caminho ao Senhor; confia nele, e ele o fará.", referencia: "Salmos 37:5" },
+    { texto: "Porque sou eu que conheço os planos que tenho para vocês, diz o Senhor, planos de fazê-los prosperar e não de causar dano.", referencia: "Jeremias 29:11" },
+    { texto: "Busquem, primeiro, o Reino de Deus e a sua justiça, e todas essas coisas lhes serão acrescentadas.", referencia: "Mateus 6:33" }
+  ];
+
+  const getVersiculoDoDiaAutomatico = () => {
+    const agora = new Date();
+    const inicioAno = new Date(agora.getFullYear(), 0, 0);
+    const diff = agora - inicioAno;
+    const umDia = 1000 * 60 * 60 * 24;
+    const diaDoAno = Math.floor(diff / umDia);
+    const indice = diaDoAno % versiculosDoDia.length;
+    return versiculosDoDia[indice];
+  };
+
+  const palavraAtual = getVersiculoDoDiaAutomatico();
+
+  const traducoesDisponiveis = [
+    { id: 'acf', nome: 'Almeida Corrigida Fiel (ACF)' },
+    { id: 'nvi', nome: 'Nova Versão Internacional (NVI)' },
+    { id: 'ra', nome: 'Almeida Revista e Atualizada (RA)' },
+    { id: 'ntlh', nome: 'Nova Tradução na Linguagem de Hoje (NTLH)' }
+  ];
+
+  useEffect(() => {
+    if (!usuarioLogado) return;
+    async function checarNotificacoes() {
+      const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+      const naoLidas = notifs.filter(n => !n.lida).length;
+      setTotalNaoLidas(naoLidas);
+    }
+    checarNotificacoes();
+    const intervalo = setInterval(checarNotificacoes, 4000);
     return () => clearInterval(intervalo);
   }, [usuarioLogado]);
 
   useEffect(() => {
-    if (chatAbertoCom) {
-      const carregarChat = async () => {
-        const msgs = await BancoDeDados.getMensagensChat(usuarioLogado.username, chatAbertoCom.username);
-        setMensagensChat(msgs);
-        chatFimRef.current?.scrollIntoView({ behavior: 'smooth' });
-      };
-      carregarChat();
-      const intervaloChat = setInterval(carregarChat, 3000);
-      return () => clearInterval(intervaloChat);
-    }
-  }, [chatAbertoCom, usuarioLogado]);
+    const tratarRotaUrl = async () => {
+      const rawPath = window.location.pathname.replace('/', '').trim();
+      const path = decodeURIComponent(rawPath);
+      
+      if (!path || path === 'biblia') {
+        setAbaPrincipal('biblia');
+        setPerfilUrlAlvo(null);
+      } else if (path === 'comunidade') {
+        setAbaPrincipal('comunidade');
+        setPerfilUrlAlvo(null);
+      } else if (path === 'devocional') {
+        setAbaPrincipal('devocional');
+        setPerfilUrlAlvo(null);
+      } else if (path === 'planos') {
+        setAbaPrincipal('planos');
+        setPerfilUrlAlvo(null);
+      } else if (path === 'editarPerfil') {
+        setAbaPrincipal('editarPerfil');
+        setPerfilUrlAlvo(null);
+      } else {
+        setAbaPrincipal('perfilUrl');
+        let perfis = [];
+        try {
+          perfis = await BancoDeDados.getPerfisCadastrados();
+        } catch (e) {}
 
-  // Publicar post
-  const handleCriarPublicacao = async (e) => {
-    e.preventDefault();
-    if (!textoPublicacao.trim()) return;
-
-    const novaPub = {
-      id: Date.now(),
-      username: usuarioLogado.username,
-      autor: usuarioLogado.nome,
-      avatar: usuarioLogado.foto,
-      tema: temaPublicacao,
-      texto: textoPublicacao,
-      curtidas: 0,
-      reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] },
-      comentarios: []
+        const encontrado = perfis?.find(p => p.username?.toLowerCase() === path.toLowerCase());
+        
+        if (encontrado) {
+          setPerfilUrlAlvo(encontrado);
+        } else {
+          setPerfilUrlAlvo({
+            username: path,
+            nome: path,
+            foto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+            biografia: 'Praticando a fé e o amor ao próximo.',
+            amigos: [],
+            verificado: false
+          });
+        }
+      }
     };
+    tratarRotaUrl();
+    window.addEventListener('popstate', tratarRotaUrl);
+    return () => window.removeEventListener('popstate', tratarRotaUrl);
+  }, []);
 
-    const atualizados = await BancoDeDados.salvarPublicacao(novaPub);
-    setPosts(atualizados);
-    setTextoPublicacao('');
-    setModalPublicarAberto(false);
-    mostrarToast('Publicação compartilhada com sucesso!');
+  const navegarPara = (rota, aba) => {
+    window.history.pushState({}, '', rota);
+    setAbaPrincipal(aba);
+    if (aba !== 'perfilUrl') setPerfilUrlAlvo(null);
+    setMenuPerfilAberto(false);
+    setMenuHamburguerAberto(false);
   };
 
-  const reagir = async (postId, tipoReacao) => {
-    const atualizados = await BancoDeDados.reagirPublicacao(postId, tipoReacao, usuarioLogado.username);
-    setPosts(atualizados);
+  useEffect(() => {
+    setCarregando(true);
+    fetch(`https://raw.githubusercontent.com/thiagobodruk/biblia/master/json/${versaoSelecionada}.json`)
+      .then((resposta) => resposta.json())
+      .then((dados) => {
+        setBibliaCompleta(dados);
+        setCarregando(false);
+      })
+      .catch(() => setCarregando(false));
+  }, [versaoSelecionada]);
+
+  useEffect(() => {
+    localStorage.setItem('favoritos_biblia', JSON.stringify(favoritos));
+    localStorage.setItem('marcacoes_biblia', JSON.stringify(marcacoes));
+    localStorage.setItem('notas_versiculos_biblia', JSON.stringify(notasPessoais));
+  }, [favoritos, marcacoes, notasPessoais]);
+
+  const salvarNotaVersiculo = (chave) => {
+    setNotasPessoais({ ...notasPessoais, [chave]: textoNota });
+    setNotaVersiculoAtiva(null);
+    setTextoNota('');
   };
 
-  const comentar = async (postId) => {
-    const texto = comentariosInputs[postId];
-    if (!texto || !texto.trim()) return;
-
-    const novoComentario = {
-      id: Date.now(),
-      username: usuarioLogado.username,
-      autor: usuarioLogado.nome,
-      avatar: usuarioLogado.foto,
-      texto,
-      reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] }
-    };
-
-    const atualizados = await BancoDeDados.adicionarComentarioPub(postId, novoComentario);
-    setPosts(atualizados);
-    setComentariosInputs({ ...comentariosInputs, [postId]: '' });
-  };
-
-  // Enviar Story
-  const handleEnviarStory = async (e) => {
-    e.preventDefault();
-    if (!arquivoStory) return;
-
-    const urlMidia = await BancoDeDados.uploadMidiaStory(arquivoStory);
-    if (!urlMidia) {
-      mostrarToast('Erro ao enviar mídia do story.');
+  const toggleFavorito = (livroNome, capitulo, numeroVersiculo, texto) => {
+    if (!usuarioLogado) {
+      setModalLoginAberto(true);
       return;
     }
+    const versiculoObj = { livro: livroNome, capitulo, numero: numeroVersiculo, texto };
+    const existe = favoritos.some(
+      (f) => f.livro === livroNome && f.capitulo === capitulo && f.numero === numeroVersiculo
+    );
+    if (existe) {
+      setFavoritos(favoritos.filter(f => !(f.livro === livroNome && f.capitulo === capitulo && f.numero === numeroVersiculo)));
+    } else {
+      setFavoritos([...favoritos, versiculoObj]);
+      BancoDeDados.salvarPublicacao({
+        id: Date.now(),
+        autor: usuarioLogado.nome,
+        username: usuarioLogado.username,
+        avatar: usuarioLogado.foto,
+        tema: `Versículo Favoritado: ${livroNome} ${capitulo}:${numeroVersiculo}`,
+        texto: `"${texto}"`,
+        imagem: '',
+        curtidas: 0,
+        comentarios: []
+      });
+    }
+  };
 
-    const novoStory = {
+  const destacarVersiculosSelecionados = (corClasse) => {
+    if (!usuarioLogado) {
+      setModalLoginAberto(true);
+      return;
+    }
+    if (versiculosSelecionados.length === 0) return;
+
+    const novasMarcacoes = { ...marcacoes };
+    const textosFormatados = [];
+
+    versiculosSelecionados.forEach(v => {
+      const chave = `${livroAtualObj.name}_${capituloAtual}_${v.numero}`;
+      novasMarcacoes[chave] = corClasse;
+      textosFormatados.push(`[${v.numero}] ${v.texto}`);
+    });
+
+    setMarcacoes(novasMarcacoes);
+
+    const primeiroNum = versiculosSelecionados[0].numero;
+    const ultimoNum = versiculosSelecionados[versiculosSelecionados.length - 1].numero;
+    const reference = versiculosSelecionados.length > 1 
+      ? `${livroAtualObj.name} ${capituloAtual}:${primeiroNum}-${ultimoNum}`
+      : `${livroAtualObj.name} ${capituloAtual}:${primeiroNum}`;
+
+    BancoDeDados.salvarPublicacao({
       id: Date.now(),
-      username: usuarioLogado.username,
       autor: usuarioLogado.nome,
+      username: usuarioLogado.username,
       avatar: usuarioLogado.foto,
-      midia: urlMidia,
-      tipo_midia: arquivoStory.type.startsWith('video') ? 'video' : 'imagem'
-    };
+      tema: `${reference}`,
+      texto: textosFormatados.join(' '),
+      imagem: '',
+      curtidas: 0,
+      comentarios: []
+    });
 
-    const atualizados = await BancoDeDados.salvarStory(novoStory);
-    setStories(atualizados);
-    setArquivoStory(null);
-    setModalStoryAberto(false);
-    mostrarToast('Story publicado!');
+    setVersiculosSelecionados([]);
   };
 
-  // Enviar Mensagem de Chat
-  const enviarMensagem = async (e) => {
-    e.preventDefault();
-    if (!textoChat.trim() || !chatAbertoCom) return;
-
-    const novaMsg = {
-      id: Date.now(),
-      remetente: usuarioLogado.username,
-      destinatario: chatAbertoCom.username,
-      texto: textoChat,
-      horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    await BancoDeDados.enviarMensagemChat(novaMsg);
-    setTextoChat('');
-    const msgs = await BancoDeDados.getMensagensChat(usuarioLogado.username, chatAbertoCom.username);
-    setMensagensChat(msgs);
+  const toggleSelecaoVersiculo = (numero, texto) => {
+    const existe = versiculosSelecionados.find(v => v.numero === numero);
+    if (existe) {
+      setVersiculosSelecionados(versiculosSelecionados.filter(v => v.numero !== numero));
+    } else {
+      setVersiculosSelecionados([...versiculosSelecionados, { numero, texto }].sort((a, b) => a.numero - b.numero));
+    }
   };
 
-  const meuPerfilBanco = perfis.find(p => p.username === usuarioLogado?.username) || usuarioLogado;
-  const pedidosRecebidos = meuPerfilBanco?.pedidos_recebidos || [];
+  const copiarVersiculosSelecionados = () => {
+    const livroAtualObj = bibliaCompleta[livroIndex];
+    const textoFormatado = versiculosSelecionados
+      .map(v => `${v.numero}. ${v.texto}`)
+      .join('\n') + `\n\n(${livroAtualObj.name} ${capituloAtual} - ${versaoSelecionada.toUpperCase()})`;
+
+    navigator.clipboard.writeText(textoFormatado);
+    setCopiadoFeedback(true);
+    setTimeout(() => setCopiadoFeedback(false), 2500);
+  };
+
+  const handleBuscar = (e) => {
+    const termo = e.target.value;
+    setTermoBusca(termo);
+    if (termo.trim().length < 3) {
+      setResultadosBusca([]);
+      return;
+    }
+    const resultados = [];
+    bibliaCompleta.forEach((livro, lIndex) => {
+      livro.chapters.forEach((capitulo, cIndex) => {
+        capitulo.forEach((texto, vIndex) => {
+          if (texto.toLowerCase().includes(termo.toLowerCase())) {
+            resultados.push({
+              livroNome: livro.name,
+              livroIndex: lIndex,
+              capitulo: cIndex + 1,
+              numero: vIndex + 1,
+              texto
+            });
+          }
+        });
+      });
+    });
+    setResultadosBusca(resultados.slice(0, 50));
+  };
+
+  const livroAtualObj = bibliaCompleta[livroIndex] || { name: "Carregando...", chapters: [[]] };
+  const totalCapitulosDoLivro = livroAtualObj.chapters ? livroAtualObj.chapters.length : 1;
+  const versiculosDoCapitulo = livroAtualObj.chapters && livroAtualObj.chapters[capituloAtual - 1] ? livroAtualObj.chapters[capituloAtual - 1] : [];
 
   return (
-    <div className={`w-screen relative left-1/2 -translate-x-1/2 px-4 sm:px-8 lg:px-12 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
-      
-      {/* Toast de Notificação flutuante */}
-      {toastMensagem && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
-          <div className="bg-slate-900 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-2.5 backdrop-blur-md">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>{toastMensagem}</span>
-          </div>
-        </div>
-      )}
+    <div className={`flex flex-col min-h-screen font-sans ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
 
-      {/* CABEÇALHO DA COMUNIDADE LIMPO (Sem duplicações) */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 relative">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
-            Luz do Mundo <span className="text-blue-500">✨</span>
-          </h2>
-        </div>
-
+      {/* HEADER SUPERIOR COM MENU HAMBÚRGUER MOBILE */}
+      <header className={`border-b px-4 lg:px-8 py-3 flex items-center justify-between gap-3 shadow-sm backdrop-blur-md z-40 sticky top-0 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+        
+        {/* Lado Esquerdo: Botão Hambúrguer (Mobile) + Logo */}
         <div className="flex items-center gap-3">
-          {pedidosRecebidos.length > 0 && (
-            <button 
-              onClick={() => setAbaSolicitacoesAberta(true)}
-              className="px-3 py-1.5 rounded-xl bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm animate-bounce cursor-pointer"
+          
+          {/* Botão Hambúrguer visível apenas em telas menores (Mobile/Tablet) */}
+          <div className="relative lg:hidden" ref={hamburguerRef}>
+            <button
+              onClick={() => setMenuHamburguerAberto(!menuHamburguerAberto)}
+              className={`p-2 rounded-xl border transition flex items-center justify-center cursor-pointer ${darkMode ? 'bg-slate-800 border-slate-700 text-white hover:bg-slate-700' : 'bg-slate-100 border-slate-300 text-slate-900 hover:bg-slate-200'}`}
+              title="Menu Principal"
             >
-              👥 Solicitações ({pedidosRecebidos.length})
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            {/* Gaveta do Menu Hambúrguer (Mobile) */}
+            {menuHamburguerAberto && (
+              <div className={`absolute left-0 mt-3 w-64 rounded-2xl shadow-2xl border p-3 z-50 space-y-3 backdrop-blur-md ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                
+                {/* Seletor de Versão mobile exibido APENAS na página da Bíblia */}
+                {abaPrincipal === 'biblia' && (
+                  <div className="pb-2 border-b border-slate-700/50">
+                    <p className="text-[10px] uppercase tracking-wider font-extrabold opacity-60 mb-1">Versão da Bíblia</p>
+                    <select
+                      value={versaoSelecionada}
+                      onChange={(e) => {
+                        setVersaoSelecionada(e.target.value);
+                        setCapituloAtual(1);
+                      }}
+                      className={`w-full text-xs rounded-xl px-3 py-2 border font-bold cursor-pointer focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-800'}`}
+                    >
+                      {traducoesDisponiveis.map((t) => (
+                        <option key={t.id} value={t.id}>{t.nome}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase tracking-wider font-extrabold opacity-60 px-2 mb-1">Navegação</p>
+                  
+                  <button
+                    onClick={() => navegarPara('/', 'biblia')}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2.5 cursor-pointer ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-blue-500/10'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                    Bíblia
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!usuarioLogado) setModalLoginAberto(true);
+                      else navegarPara('/devocional', 'devocional');
+                    }}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2.5 cursor-pointer ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-blue-500/10'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                    Devocional
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!usuarioLogado) setModalLoginAberto(true);
+                      else navegarPara('/planos', 'planos');
+                    }}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2.5 cursor-pointer ${abaPrincipal === 'planos' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-blue-500/10'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    Planos
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!usuarioLogado) setModalLoginAberto(true);
+                      else navegarPara('/comunidade', 'comunidade');
+                    }}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-blue-500/10'}`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                      Comunidade
+                    </div>
+                    {totalNaoLidas > 0 && (
+                      <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                        {totalNaoLidas}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+              </div>
+            )}
+          </div>
+
+          <span 
+            onClick={() => navegarPara('/', 'biblia')}
+            className="text-sm sm:text-lg font-black tracking-wider flex items-center gap-2 cursor-pointer"
+          >
+            <svg className="w-5 h-5 text-blue-500 hidden sm:block" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            BÍBLIA ONLINE
+          </span>
+
+          {/* Seletor de Versão desktop exibido APENAS na página da Bíblia */}
+          {abaPrincipal === 'biblia' && (
+            <select
+              value={versaoSelecionada}
+              onChange={(e) => {
+                setVersaoSelecionada(e.target.value);
+                setCapituloAtual(1);
+              }}
+              className="hidden sm:block bg-slate-800 border border-slate-700 text-white text-xs rounded-lg px-2 py-1.5 focus:outline-none cursor-pointer"
+            >
+              {traducoesDisponiveis.map((t) => (
+                <option key={t.id} value={t.id}>{t.nome}</option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {/* Navegação por Ícones para telas grandes (Desktop) */}
+        <div className="hidden lg:flex items-center gap-2">
+          <button
+            onClick={() => navegarPara('/', 'biblia')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+            Bíblia
+          </button>
+          <button
+            onClick={() => {
+              if (!usuarioLogado) setModalLoginAberto(true);
+              else navegarPara('/devocional', 'devocional');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+            Devocional
+          </button>
+          <button
+            onClick={() => {
+              if (!usuarioLogado) setModalLoginAberto(true);
+              else navegarPara('/planos', 'planos');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${abaPrincipal === 'planos' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            Planos
+          </button>
+          <button
+            onClick={() => {
+              if (!usuarioLogado) setModalLoginAberto(true);
+              else navegarPara('/comunidade', 'comunidade');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition relative flex items-center gap-1.5 cursor-pointer ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            Comunidade
+            {totalNaoLidas > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-md animate-bounce">
+                {totalNaoLidas}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Input de Pesquisa Global */}
+        <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border w-40 lg:w-60 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}>
+          <svg className="w-4 h-4 opacity-50" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <input
+            type="text"
+            placeholder="Pesquisar..."
+            value={termoBusca}
+            onChange={handleBuscar}
+            className="w-full text-xs bg-transparent focus:outline-none"
+          />
+        </div>
+
+        {/* Lado Direito: Ações (Tema + Notificações condicional + Perfil) */}
+        <div className="flex items-center gap-3">
+          
+          <button
+            onClick={alternarTemaBanco}
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs transition flex items-center justify-center cursor-pointer shadow-sm"
+            title="Alternar Tema"
+          >
+            {darkMode ? (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+            )}
+          </button>
+
+          {/* BOTÃO DE NOTIFICAÇÕES (Exibido apenas se o usuário estiver logado) */}
+          {usuarioLogado && (
+            <button
+              onClick={() => navegarPara('/comunidade', 'comunidade')}
+              className={`p-2.5 rounded-xl border transition relative flex items-center justify-center cursor-pointer ${darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-white' : 'bg-slate-100 border-slate-300 hover:bg-slate-200 text-slate-800'}`}
+              title="Notificações"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {totalNaoLidas > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full font-black flex items-center justify-center shadow-md animate-bounce">
+                  {totalNaoLidas}
+                </span>
+              )}
             </button>
           )}
 
-          <button
-            onClick={() => setModalPublicarAberto(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md transition cursor-pointer flex items-center gap-2"
-          >
-            <span>✏️</span> Escrever Publicação
-          </button>
-        </div>
-      </div>
-
-      {/* STORIES */}
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-        {/* Criar Story */}
-        <div 
-          onClick={() => setModalStoryAberto(true)}
-          className={`flex-shrink-0 w-20 h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition ${darkMode ? 'border-slate-700 bg-slate-900/40 text-slate-400' : 'border-slate-300 bg-white text-slate-600'}`}
-        >
-          <span className="text-2xl mb-1">➕</span>
-          <span className="text-[10px] font-bold">Meu Story</span>
-        </div>
-
-        {stories.map((s) => (
-          <div 
-            key={s.id}
-            onClick={() => setStoryVisualizando(s)}
-            className={`flex-shrink-0 w-20 h-32 rounded-2xl relative overflow-hidden cursor-pointer border-2 border-blue-500 shadow-md hover:scale-105 transition`}
-          >
-            {s.tipo_midia === 'video' ? (
-              <video src={s.midia} className="w-full h-full object-cover" />
-            ) : (
-              <img src={s.midia} alt="Story" className="w-full h-full object-cover" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2">
-              <p className="text-[10px] text-white font-bold truncate">@{s.username}</p>
+          {/* Balão de Perfil */}
+          <div className="relative" ref={dropdownRef}>
+            <div
+              onClick={() => {
+                if (!usuarioLogado) setModalLoginAberto(true);
+                else setMenuPerfilAberto(!menuPerfilAberto);
+              }}
+              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full p-0.5 border-2 border-blue-500 cursor-pointer hover:scale-105 transition shadow-sm overflow-hidden flex-shrink-0"
+            >
+              <img 
+                src={usuarioLogado?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
+                alt="Perfil" 
+                className="w-full h-full rounded-full object-cover" 
+              />
             </div>
-          </div>
-        ))}
-      </div>
 
-      {/* GRID PRINCIPAL */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* COLUNA ESQUERDA/CENTRAL: PUBLICAÇÕES */}
-        <div className="lg:col-span-2 space-y-4">
-          <h3 className="text-xs font-extrabold uppercase tracking-wider opacity-60">Feed da Comunidade</h3>
-          
-          {posts.length === 0 ? (
-            <div className={`p-8 text-center rounded-3xl border ${darkMode ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>
-              <p className="text-sm">Nenhuma publicação por enquanto. Seja o primeiro a compartilhar!</p>
-            </div>
-          ) : (
-            posts.map((post) => {
-              const reacoesPost = post.reacoes || {};
-              const totalReacoesGeral = Object.values(reacoesPost).reduce((acc, lista) => acc + (lista ? lista.length : 0), 0);
-
-              return (
-                <div key={post.id} className={`p-5 rounded-3xl border shadow-xs space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                  
-                  {/* Cabeçalho do Post */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => onVerPerfil(post.username)}>
-                      <img src={post.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-blue-500" />
-                      <div>
-                        <h4 className="text-xs font-bold">{post.autor}</h4>
-                        <p className="text-[10px] text-blue-400">@{post.username} • <span className="opacity-75">{post.tema}</span></p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Conteúdo */}
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.texto}</p>
-
-                  {/* Contador de Reações */}
-                  {totalReacoesGeral > 0 && (
-                    <div className="flex items-center gap-1 text-xs opacity-75 pt-1">
-                      <span>❤️ 🙏 🙌</span>
-                      <span className="font-bold">{totalReacoesGeral} reações</span>
-                    </div>
-                  )}
-
-                  {/* Ações / Reações Estilo Facebook com Ponte de Hover Corrigida */}
-                  <div className="flex items-center gap-4 pt-2 border-t border-slate-700/30">
-                    
-                    <div className="relative group/reacoes inline-block py-2 -my-2">
-                      {(() => {
-                        let minhaReacaoTipo = null;
-                        for (const tipo of Object.keys(reacoesPost)) {
-                          if ((reacoesPost[tipo] || []).includes(usuarioLogado.username)) {
-                            minhaReacaoTipo = tipo;
-                            break;
-                          }
-                        }
-                        const dadosReacaoAtual = listaReacoesOpcoes.find(r => r.tipo === minhaReacaoTipo);
-
-                        return (
-                          <div className="relative">
-                            <button 
-                              onClick={() => reagir(post.id, minhaReacaoTipo ? minhaReacaoTipo : 'amei')}
-                              className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 cursor-pointer ${
-                                minhaReacaoTipo 
-                                  ? 'bg-blue-600 text-white border-blue-500 shadow-sm' 
-                                  : darkMode ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'
-                              }`}
-                            >
-                              <span className="text-sm">{dadosReacaoAtual ? dadosReacaoAtual.emoji : '❤️'}</span>
-                              <span>{dadosReacaoAtual ? dadosReacaoAtual.label : 'Amei'}</span>
-                            </button>
-
-                            {/* Menu Flutuante com Padding de aproximação para não sumir */}
-                            <div className="absolute bottom-full left-0 pb-2 hidden group-hover/reacoes:flex z-50">
-                              <div className="flex items-center gap-2 bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-full shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
-                                {listaReacoesOpcoes.map((r) => (
-                                  <button
-                                    key={r.tipo}
-                                    onClick={() => reagir(post.id, r.tipo)}
-                                    className="w-9 h-9 rounded-full flex items-center justify-center text-xl hover:scale-125 transition-transform duration-200 cursor-pointer"
-                                    title={r.label}
-                                  >
-                                    {r.emoji}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                  </div>
-
-                  {/* Seção de Comentários */}
-                  <div className="space-y-3 pt-2">
-                    {(post.comentarios || []).map((com) => (
-                      <div key={com.id} className={`p-3 rounded-2xl text-xs space-y-1 ${darkMode ? 'bg-slate-800/60' : 'bg-slate-100'}`}>
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-blue-400">@{com.username}</span>
-                        </div>
-                        <p className="leading-relaxed">{com.texto}</p>
-                      </div>
-                    ))}
-
-                    <div className="flex gap-2 pt-1">
-                      <input 
-                        type="text" 
-                        placeholder="Escreva um comentário edificante..." 
-                        value={comentariosInputs[post.id] || ''}
-                        onChange={(e) => setComentariosInputs({ ...comentariosInputs, [post.id]: e.target.value })}
-                        className={`flex-1 text-xs px-3 py-2 rounded-xl border focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
-                      />
-                      <button 
-                        onClick={() => comentar(post.id)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-xl font-bold transition cursor-pointer"
-                      >
-                        Enviar
-                      </button>
-                    </div>
-                  </div>
-
+            {menuPerfilAberto && usuarioLogado && (
+              <div className={`absolute right-0 mt-3 w-56 rounded-2xl shadow-2xl border p-2 z-50 space-y-1 backdrop-blur-md ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                <div className="px-3 py-2 border-b border-slate-700/50 mb-1">
+                  <p className="text-xs font-extrabold truncate">{usuarioLogado.nome}</p>
+                  <p className="text-[10px] text-blue-400 font-bold truncate">@{usuarioLogado.username}</p>
                 </div>
-              );
-            })
-          )}
-        </div>
 
-        {/* COLUNA DIREITA: MEMBROS / AMIGOS / PEDIDOS DE ORAÇÃO */}
-        <div className="space-y-6">
-          
-          {/* Pedidos de Oração */}
-          <div className={`p-5 rounded-3xl border shadow-xs space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-extrabold uppercase tracking-wider text-amber-500">🙏 Mural de Orações</h3>
-              <button onClick={() => setModalOracaoAberto(true)} className="text-xs text-blue-400 hover:underline cursor-pointer font-bold">+ Pedir Oração</button>
-            </div>
-            
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {pedidosOracao.map((po) => (
-                <div key={po.id} className={`p-3 rounded-2xl text-xs space-y-1 ${darkMode ? 'bg-slate-800/50' : 'bg-slate-50'}`}>
-                  <p className="font-bold text-blue-400">@{(po.username || po.autor)}</p>
-                  <p className="italic">"{po.texto}"</p>
-                </div>
-              ))}
-            </div>
-          </div>
+                <button
+                  onClick={() => navegarPara(`/${usuarioLogado.username}`, 'perfilUrl')}
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  Entrar no Perfil
+                </button>
 
-          {/* Membros Cadastrados / Chat */}
-          <div className={`p-5 rounded-3xl border shadow-xs space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider opacity-60">Irmãos na Fé</h3>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {perfis.filter(p => p.username !== usuarioLogado.username).map((p) => (
-                <div key={p.id || p.username} className="flex items-center justify-between py-1.5">
-                  <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => onVerPerfil(p.username)}>
-                    <img src={p.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
-                    <div>
-                      <p className="text-xs font-bold">{p.nome}</p>
-                      <p className="text-[10px] text-blue-400">@{p.username}</p>
-                    </div>
-                  </div>
-                  
-                  <button 
-                    onClick={() => setChatAbertoCom(p)}
-                    className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl font-bold transition cursor-pointer"
+                <button
+                  onClick={() => navegarPara('/editarPerfil', 'editarPerfil')}
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  Editar Perfil
+                </button>
+
+                <button
+                  onClick={() => {
+                    const link = `${window.location.origin}/${usuarioLogado.username}`;
+                    navigator.clipboard.writeText(link);
+                    alert(`Link copiado: ${link}`);
+                    setMenuPerfilAberto(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                  Copiar Link de Perfil
+                </button>
+
+                <div className="border-t border-slate-700/50 pt-1 mt-1">
+                  <button
+                    onClick={() => {
+                      BancoDeDados.fazerLogout();
+                      setUsuarioLogado(null);
+                      setMenuPerfilAberto(false);
+                      navegarPara('/', 'biblia');
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-400 hover:bg-red-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
                   >
-                    💬 Chat
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    Sair
                   </button>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
 
         </div>
+      </header>
 
-      </div>
+      {/* CONTEÚDO PRINCIPAL */}
+      <main className="flex-1 flex flex-col relative w-full">
+        <section className="flex-1 p-4 sm:p-10 w-full pb-32">
+          <div className="max-w-4xl mx-auto w-full">
 
-      {/* MODAL CRIAR PUBLICAÇÃO */}
-      {modalPublicarAberto && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className={`w-full max-w-lg p-6 rounded-3xl border shadow-2xl space-y-4 ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            <h3 className="text-sm font-black uppercase tracking-wider">Escrever Publicação</h3>
-            
-            <form onSubmit={handleCriarPublicacao} className="space-y-4">
-              <select 
-                value={temaPublicacao} 
-                onChange={(e) => setTemaPublicacao(e.target.value)}
-                className={`w-full text-xs font-bold px-3 py-2.5 rounded-xl border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300'}`}
-              >
-                <option value="Reflexão">Reflexão</option>
-                <option value="Testemunho">Testemunho</option>
-                <option value="Louvor">Louvor</option>
-                <option value="Versículo">Versículo</option>
-              </select>
-
-              <textarea 
-                rows="4" 
-                placeholder="Compartilhe o que Deus falou ao seu coração..." 
-                value={textoPublicacao} 
-                onChange={(e) => setTextoPublicacao(e.target.value)}
-                className={`w-full text-xs p-3 rounded-xl border focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300'}`}
-              />
-
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setModalPublicarAberto(false)} className="text-xs px-4 py-2 opacity-70 cursor-pointer">Cancelar</button>
-                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-5 py-2 rounded-xl font-bold cursor-pointer">Publicar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CRIAR STORY */}
-      {modalStoryAberto && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className={`w-full max-w-sm p-6 rounded-3xl border shadow-2xl space-y-4 ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            <h3 className="text-sm font-black uppercase tracking-wider">Publicar Story</h3>
-            
-            <form onSubmit={handleEnviarStory} className="space-y-4">
-              <input 
-                type="file" 
-                accept="image/*,video/*"
-                onChange={(e) => setArquivoStory(e.target.files[0])}
-                className={`w-full text-xs p-2 rounded-xl border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300'}`}
-              />
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setModalStoryAberto(false)} className="text-xs px-4 py-2 opacity-70 cursor-pointer">Cancelar</button>
-                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-5 py-2 rounded-xl font-bold cursor-pointer">Enviar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CHAT */}
-      {chatAbertoCom && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className={`w-full max-w-md h-[500px] flex flex-col rounded-3xl border shadow-2xl overflow-hidden ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            
-            <div className="p-4 border-b border-slate-700/50 flex items-center justify-between bg-slate-800/50">
-              <div className="flex items-center gap-2">
-                <img src={chatAbertoCom.foto} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
-                <span className="text-xs font-bold">{chatAbertoCom.nome}</span>
-              </div>
-              <button onClick={() => setChatAbertoCom(null)} className="text-xs font-bold px-2 py-1 cursor-pointer">✕</button>
-            </div>
-
-            <div className="flex-1 p-4 overflow-y-auto space-y-3">
-              {mensagensChat.map((m) => {
-                const meu = m.remetente === usuarioLogado.username;
-                return (
-                  <div key={m.id} className={`flex flex-col ${meu ? 'items-end' : 'items-start'}`}>
-                    <div className={`max-w-[75%] p-3 rounded-2xl text-xs ${meu ? 'bg-blue-600 text-white' : darkMode ? 'bg-slate-800 text-slate-100' : 'bg-slate-200 text-slate-900'}`}>
-                      <p>{m.texto}</p>
-                      <span className="text-[9px] opacity-75 mt-1 block text-right">{m.horario}</span>
+            {abaPrincipal === 'biblia' && (
+              carregando ? (
+                <p className="text-slate-400 text-center mt-10 text-sm">Carregando conteúdo...</p>
+              ) : termoBusca.trim().length >= 3 ? (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-bold opacity-70 mb-3">Resultados para: "{termoBusca}" ({resultadosBusca.length})</h3>
+                  {resultadosBusca.map((res, i) => (
+                    <div key={i} className={`p-4 rounded-2xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'}`}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[11px] font-bold text-blue-500">{res.livroNome} {res.capitulo}:{res.numero}</span>
+                        <button
+                          onClick={() => {
+                            const idx = bibliaCompleta.findIndex(l => l.name === res.livroNome);
+                            if (idx !== -1) {
+                              setLivroIndex(idx);
+                              setCapituloAtual(res.capitulo);
+                              setTermoBusca('');
+                            }
+                          }}
+                          className="text-[11px] text-blue-400 hover:underline cursor-pointer"
+                        >
+                          Ir para o capítulo →
+                        </button>
+                      </div>
+                      <p className="text-sm leading-relaxed">{res.texto}</p>
                     </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className={`p-5 rounded-3xl border shadow-xs ${darkMode ? 'bg-slate-900/80 border-slate-800 text-blue-200' : 'bg-blue-50/70 border-blue-100 text-blue-900'}`}>
+                    <h4 className="text-[11px] font-extrabold uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      Palavra do Dia
+                    </h4>
+                    <p className="text-sm italic leading-relaxed">"{palavraAtual.texto}" — <span className="font-semibold">{palavraAtual.referencia}</span></p>
                   </div>
-                );
-              })}
-              <div ref={chatFimRef} />
-            </div>
 
-            <form onSubmit={enviarMensagem} className="p-3 border-t border-slate-700/50 flex gap-2 bg-slate-800/30">
-              <input 
-                type="text" 
-                placeholder="Escreva sua mensagem..." 
-                value={textoChat}
-                onChange={(e) => setTextoChat(e.target.value)}
-                className={`flex-1 text-xs px-3 py-2 rounded-xl border focus:outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300'}`}
+                  <div className={`flex flex-wrap gap-3 items-center justify-between p-4 rounded-2xl border ${darkMode ? 'bg-slate-900/50 border-slate-800/80' : 'bg-white border-slate-200 shadow-2xs'}`}>
+                    <select
+                      value={livroIndex}
+                      onChange={(e) => {
+                        setLivroIndex(Number(e.target.value));
+                        setCapituloAtual(1);
+                        setVersiculosSelecionados([]);
+                      }}
+                      className={`text-xs font-bold rounded-xl px-4 py-2.5 border cursor-pointer focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-800'}`}
+                    >
+                      {bibliaCompleta.map((l, idx) => (
+                        <option key={l.abbrev} value={idx}>{l.name}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={capituloAtual}
+                      onChange={(e) => {
+                        setCapituloAtual(Number(e.target.value));
+                        setVersiculosSelecionados([]);
+                      }}
+                      className={`text-xs font-bold rounded-xl px-4 py-2.5 border cursor-pointer focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-blue-400' : 'bg-slate-50 border-slate-300 text-blue-600'}`}
+                    >
+                      {Array.from({ length: totalCapitulosDoLivro }, (_, i) => i + 1).map((numCap) => (
+                        <option key={numCap} value={numCap}>Capítulo {numCap}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={`space-y-4 ${tamanhoFonte} leading-loose`}>
+                    {versiculosDoCapitulo.map((textoVersiculo, index) => {
+                      const numeroV = index + 1;
+                      const chaveMarcacao = `${livroAtualObj.name}_${capituloAtual}_${numeroV}`;
+                      const corDestaqueAtual = marcacoes[chaveMarcacao];
+                      const isFavorito = favoritos.some(
+                        (f) => f.livro === livroAtualObj.name && f.capitulo === capituloAtual && f.numero === numeroV
+                      );
+                      const isSelecionado = versiculosSelecionados.some(v => v.numero === numeroV);
+                      const notaPessoal = notasPessoais[chaveMarcacao];
+
+                      return (
+                        <div 
+                          key={index} 
+                          onClick={() => toggleSelecaoVersiculo(numeroV, textoVersiculo)}
+                          className={`group flex flex-col gap-2 py-2.5 px-4 rounded-2xl transition border cursor-pointer select-none ${
+                            isSelecionado 
+                              ? 'bg-blue-600/20 border-blue-500/60 shadow-sm' 
+                              : 'border-transparent hover:bg-blue-500/5'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="flex-1 leading-relaxed">
+                              <span className="text-xs font-extrabold text-blue-500 mr-3 align-super bg-blue-500/10 px-2 py-0.5 rounded-md">{numeroV}</span>
+                              <span className={corDestaqueAtual ? `${corDestaqueAtual} text-slate-900 font-semibold px-1 rounded` : (darkMode ? 'text-slate-100' : 'text-slate-900')}>
+                                {textoVersiculo}
+                              </span>
+                            </p>
+
+                            <div className="flex items-center justify-end gap-2 pt-1 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => setNotaVersiculoAtiva(chaveMarcacao)} className="text-xs bg-slate-700/20 hover:bg-slate-700/40 p-1.5 rounded-lg cursor-pointer" title="Adicionar Nota">📝</button>
+
+                              <button
+                                onClick={() => toggleFavorito(livroAtualObj.name, capituloAtual, numeroV, textoVersiculo)}
+                                className={`text-sm p-1 rounded-lg cursor-pointer ${isFavorito ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
+                                title="Favoritar"
+                              >
+                                {isFavorito ? '❤️' : '🤍'}
+                              </button>
+                            </div>
+                          </div>
+
+                          {notaPessoal && (
+                            <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl text-xs text-amber-600 dark:text-amber-300 italic" onClick={(e) => e.stopPropagation()}>
+                              <b>Nota Pessoal:</b> {notaPessoal}
+                            </div>
+                          )}
+
+                          {notaVersiculoAtiva === chaveMarcacao && (
+                            <div className="p-3.5 bg-slate-800 rounded-2xl space-y-2.5 mt-2 shadow-lg" onClick={(e) => e.stopPropagation()}>
+                              <input 
+                                type="text" 
+                                placeholder="Escreva sua anotação pessoal..." 
+                                value={textoNota} 
+                                onChange={(e) => setTextoNota(e.target.value)} 
+                                className="w-full text-xs p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none"
+                              />
+                              <div className="flex justify-end gap-2">
+                                <button onClick={() => setNotaVersiculoAtiva(null)} className="text-xs px-3 py-1.5 opacity-70 cursor-pointer">Cancelar</button>
+                                <button onClick={() => salvarNotaVersiculo(chaveMarcacao)} className="bg-blue-600 text-white text-xs px-4 py-1.5 rounded-xl font-bold cursor-pointer">Salvar Nota</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )
+            )}
+
+            {abaPrincipal === 'devocional' && usuarioLogado && (
+              <Devocionais usuarioLogado={usuarioLogado} darkMode={darkMode} />
+            )}
+
+            {abaPrincipal === 'planos' && usuarioLogado && (
+              <PlanosDeEstudo usuarioLogado={usuarioLogado} darkMode={darkMode} />
+            )}
+
+            {abaPrincipal === 'comunidade' && usuarioLogado && (
+              <Comunidade 
+                usuarioLogado={usuarioLogado} 
+                darkMode={darkMode} 
+                onVerPerfil={(username) => navegarPara(`/${username}`, 'perfilUrl')}
+                abaAtual={abaPrincipal}
+                setAbaAtual={(novaAba) => navegarPara(novaAba === 'biblia' ? '/' : `/${novaAba}`, novaAba)}
               />
-              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-xl font-bold cursor-pointer">Enviar</button>
-            </form>
+            )}
+
+            {abaPrincipal === 'perfilUrl' && (
+              <PerfilPublico
+                perfilAlvo={perfilUrlAlvo || { username: initialPath, nome: initialPath, amigos: [] }}
+                usuarioLogado={usuarioLogado}
+                onVoltar={() => navegarPara(usuarioLogado ? '/comunidade' : '/', usuarioLogado ? 'comunidade' : 'biblia')}
+                darkMode={darkMode}
+                onToggleDarkMode={alternarTemaBanco}
+              />
+            )}
+
+            {abaPrincipal === 'editarPerfil' && usuarioLogado && (
+              <EditarPerfil
+                usuarioLogado={usuarioLogado}
+                onSalvo={(usuarioAtualizado) => {
+                  setUsuarioLogado(usuarioAtualizado);
+                  navegarPara('/comunidade', 'comunidade');
+                }}
+                onVoltar={() => navegarPara('/comunidade', 'comunidade')}
+                darkMode={darkMode}
+              />
+            )}
 
           </div>
+        </section>
+
+        {abaPrincipal === 'biblia' && versiculosSelecionados.length > 0 && (
+          <div className="absolute bottom-6 left-4 right-4 sm:left-1/2 sm:transform sm:-translate-x-1/2 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between sm:justify-center gap-3 border border-slate-700 z-50">
+            <span className="text-xs font-semibold bg-blue-600 px-2 py-1 rounded-lg">
+              {versiculosSelecionados.length} sel.
+            </span>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] opacity-75">Destacar:</span>
+              <button onClick={() => destacarVersiculosSelecionados('bg-amber-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-amber-400 shadow cursor-pointer" title="Amarelo"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-emerald-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-emerald-500 shadow cursor-pointer" title="Verde"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-blue-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-blue-500 shadow cursor-pointer" title="Azul"></button>
+              <button onClick={() => destacarVersiculosSelecionados('bg-pink-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-pink-500 shadow cursor-pointer" title="Rosa"></button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={copiarVersiculosSelecionados}
+                className="bg-slate-800 text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-slate-700 transition cursor-pointer"
+              >
+                Copiar
+              </button>
+              <button
+                onClick={() => setVersiculosSelecionados([])}
+                className="text-xs text-slate-400 px-2 py-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* RODAPÉ GLOBAL PROFISSIONAL */}
+      <footer className={`w-full py-8 px-4 sm:px-8 border-t mt-auto transition-colors duration-200 ${
+        darkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
+      }`}>
+        <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          
+          <div className="space-y-1">
+            <p className="text-xs font-medium">
+              Bíblia Online &copy; {new Date().getFullYear()} — Todos os direitos reservados.
+            </p>
+            <p className="text-[11px] opacity-75">
+              Espalhando a palavra, fé e comunhão por onde for.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            <span className="opacity-75">Desenvolvido por</span>
+            <a 
+              href="https://www.geolobo.dev" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-bold text-blue-500 hover:text-blue-600 hover:underline transition-all flex items-center gap-1 group"
+            >
+              Geovani Lobo
+            </a>
+          </div>
+
         </div>
-      )}
+      </footer>
+
+      <AuthModal
+        isOpen={modalLoginAberto}
+        onClose={() => setModalLoginAberto(false)}
+        onLoginSucesso={(perfil) => {
+          setUsuarioLogado(perfil);
+          setModalLoginAberto(false);
+          navegarPara('/comunidade', 'comunidade');
+        }}
+        darkMode={darkMode}
+      />
 
     </div>
   );
