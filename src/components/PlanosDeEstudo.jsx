@@ -175,15 +175,14 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
     if (souCriador) {
       if (window.confirm('Tem certeza que deseja apagar este plano permanentemente para todos os participantes?')) {
-        // Remove de vez do banco global
-        const novosPlanos = planosAtuais.filter(p => p.id !== planoId);
-        localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanos));
-        
-        // Fecha a tela de detalhes instantaneamente e atualiza a listagem
+        // 1. Remove do array global
+        const novosPlanosGlobal = planosAtuais.filter(p => p.id !== planoId);
+        localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanosGlobal));
+
+        // 2. Atualiza imediatamente o estado visual do React
+        setPlanos(prev => prev.filter(p => p.id !== planoId));
         setPlanoSelecionado(null);
         setModoLeitura(false);
-        carregarDadosCompartilhados();
-        alert('Plano excluído definitivamente.');
       }
     } else {
       if (window.confirm('Deseja remover este plano do seu painel? Você poderá acessá-lo e iniciá-lo novamente depois na aba de sugestões.')) {
@@ -194,11 +193,10 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         progressoSalvo[planoId] = { ...(progressoSalvo[planoId] || {}), removidoPeloUsuario: true };
         localStorage.setItem(progressoKey, JSON.stringify(progressoSalvo));
 
-        // Fecha a tela de detalhes instantaneamente e atualiza a listagem
+        // Atualiza imediatamente o estado visual do React
+        setPlanos(prev => prev.filter(p => p.id !== planoId));
         setPlanoSelecionado(null);
         setModoLeitura(false);
-        carregarDadosCompartilhados();
-        alert('Plano removido do seu painel.');
       }
     }
   };
@@ -238,7 +236,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanos));
     setPlanoSelecionado(planoAtualizado);
     carregarDadosCompartilhados();
-    alert('Alterações salvas com sucesso! 🚀');
+    alert('Alterações salvas com sucesso!');
   };
 
   const alternarConclusaoDia = (diaNum) => {
@@ -345,7 +343,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
             onClick={() => setModalCriarAberto(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md transition flex items-center gap-2 cursor-pointer"
           >
-            ✨ Criar Novo Plano
+            Criar Novo Plano
           </button>
         </div>
       )}
@@ -356,13 +354,13 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
             onClick={() => setAbaAtivaFiltro('todos')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${abaAtivaFiltro === 'todos' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
           >
-            🌟 Sugestões
+            Sugestões
           </button>
           <button 
             onClick={() => setAbaAtivaFiltro('meus')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${abaAtivaFiltro === 'meus' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
           >
-            👤 Meus Planos
+            Meus Planos
           </button>
         </div>
       )}
@@ -427,7 +425,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
               </div>
 
               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow-md transition cursor-pointer">
-                Publicar Plano 🚀
+                Publicar Plano
               </button>
             </form>
           </div>
@@ -481,7 +479,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                 onClick={() => setModoLeitura(true)}
                 className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-6 py-3 rounded-xl shadow-lg transition cursor-pointer"
               >
-                {calcularProgresso(planoSelecionado.dias) > 0 ? 'Continuar Leitura 📖' : 'Começar este Plano 🚀'}
+                {calcularProgresso(planoSelecionado.dias) > 0 ? 'Continuar Leitura 📖' : 'Começar este Plano'}
               </button>
             </div>
 
@@ -599,7 +597,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                         onClick={salvarEdicaoDiaAtual}
                         className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-md cursor-pointer"
                       >
-                        Salvar Alterações Oficiais 💾
+                        Salvar Alterações Oficiais 
                       </button>
                     </div>
                   ) : (
@@ -611,7 +609,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
                       {diaAtual.perguntaPratica && (
                         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-1">
-                          <h5 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">🎯 Pratique Hoje</h5>
+                          <h5 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">Pratique Hoje</h5>
                           <p className="text-xs sm:text-sm">{diaAtual.perguntaPratica}</p>
                         </div>
                       )}
@@ -653,7 +651,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                   {/* SEÇÃO DE COMENTÁRIOS PÚBLICOS DA COMUNIDADE */}
                   <div className="pt-6 border-t border-slate-800/40 space-y-4">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
-                      💬 Reflexões e Comentários da Comunidade ({listaComentarios.length})
+                       Reflexões e Comentários da Comunidade ({listaComentarios.length})
                     </h4>
 
                     <form onSubmit={(e) => adicionarComentarioDia(e, planoSelecionado.id, diaAtual.dia)} className="flex gap-2">
