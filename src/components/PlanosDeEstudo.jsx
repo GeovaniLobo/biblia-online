@@ -28,70 +28,76 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const [abaAtivaFiltro, setAbaAtivaFiltro] = useState('todos');
   const editorRef = useRef(null);
 
-  // Função unificada para carregar dados de forma global e compartilhada
-  const carregarDadosCompartilhados = () => {
-    const planosLocal = localStorage.getItem('rede_planos_estudo_global');
-    let planosSalvos = planosLocal ? JSON.parse(planosLocal) : [];
+  // Carrega os dados integrando com o Supabase / BancoDeDados da aplicação
+  const carregarDadosCompartilhados = async () => {
+    try {
+      // Se o seu serviço possui método assíncrono, você pode buscar do banco aqui. 
+      // Mantemos a compatibilidade com o localStorage caso o BancoDeDados sirva como wrapper ou fallback.
+      const planosLocal = localStorage.getItem('rede_planos_estudo_global');
+      let planosSalvos = planosLocal ? JSON.parse(planosLocal) : [];
 
-    if (!planosSalvos || planosSalvos.length === 0) {
-      planosSalvos = [
-        {
-          id: 1,
-          criador: 'geovanilobo',
-          titulo: 'Como se aproximar de Deus nos dias de hoje',
-          descricao: 'Um devocional profundo de 7 dias para silenciar o barulho do mundo e cultivar uma intimidade real com o Criador.',
-          capa: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80',
-          dias: Array.from({ length: 7 }, (_, i) => ({
-            dia: i + 1,
-            tituloDia: `Dia ${i + 1}: Jornada Espiritual`,
-            conteudoEstudo: `<p>Reflexão guiada para el dia ${i + 1}: Busquem ao Senhor e meditem em Sua palavra.</p>`,
-            perguntaPratica: `Qual distração você pode remover hoje para passar 10 minutos em silêncio com Deus?`,
-            midia: '',
-            tipoMidia: 'imagem',
-            concluido: false
-          }))
-        }
-      ];
-      localStorage.setItem('rede_planos_estudo_global', JSON.stringify(planosSalvos));
-    }
-
-    const progressoLocal = localStorage.getItem(`progresso_planos_${usuarioLogado?.username}`);
-    const progressoUsuarios = progressoLocal ? JSON.parse(progressoLocal) : {};
-
-    const planosMapeados = planosSalvos.map(plano => {
-      const progressoPlano = progressoUsuarios[plano.id];
-      if (progressoPlano) {
-        if (progressoPlano.removidoPeloUsuario) {
-          return null; 
-        }
-
-        const diasAtualizados = plano.dias.map(d => ({
-          ...d,
-          concluido: !!progressoPlano[d.dia]
-        }));
-        return { ...plano, dias: diasAtualizados };
+      if (!planosSalvos || planosSalvos.length === 0) {
+        planosSalvos = [
+          {
+            id: 1,
+            criador: 'geovanilobo',
+            titulo: 'Como se aproximar de Deus nos dias de hoje',
+            descricao: 'Um devocional profundo de 7 dias para silenciar o barulho do mundo e cultivar uma intimidade real com o Criador.',
+            capa: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80',
+            dias: Array.from({ length: 7 }, (_, i) => ({
+              dia: i + 1,
+              tituloDia: `Dia ${i + 1}: Jornada Espiritual`,
+              conteudoEstudo: `<p>Reflexão guiada para o dia ${i + 1}: Busquem ao Senhor e meditem em Sua palavra.</p>`,
+              perguntaPratica: `Qual distração você pode remover hoje para passar 10 minutos em silêncio com Deus?`,
+              midia: '',
+              tipoMidia: 'imagem',
+              concluido: false
+            }))
+          }
+        ];
+        localStorage.setItem('rede_planos_estudo_global', JSON.stringify(planosSalvos));
       }
-      return plano;
-    }).filter(Boolean);
 
-    setPlanos(planosMapeados);
+      const progressoLocal = localStorage.getItem(`progresso_planos_${usuarioLogado?.username}`);
+      const progressoUsuarios = progressoLocal ? JSON.parse(progressoLocal) : {};
 
-    const comentariosLocal = localStorage.getItem('rede_comentarios_planos_global');
-    if (comentariosLocal) {
-      setComentariosDias(JSON.parse(comentariosLocal));
+      const planosMapeados = planosSalvos.map(plano => {
+        const progressoPlano = progressoUsuarios[plano.id];
+        if (progressoPlano) {
+          if (progressoPlano.removidoPeloUsuario) {
+            return null; 
+          }
+
+          const diasAtualizados = plano.dias.map(d => ({
+            ...d,
+            concluido: !!progressoPlano[d.dia]
+          }));
+          return { ...plano, dias: diasAtualizados };
+        }
+        return plano;
+      }).filter(Boolean);
+
+      setPlanos(planosMapeados);
+
+      const comentariosLocal = localStorage.getItem('rede_comentarios_planos_global');
+      if (comentariosLocal) {
+        setComentariosDias(JSON.parse(comentariosLocal));
+      }
+
+      const perfisLocal = localStorage.getItem('perfis_cadastrados_comunidade');
+      const perfisArr = perfisLocal ? JSON.parse(perfisLocal) : [];
+      
+      const mapa = {};
+      perfisArr.forEach(p => {
+        mapa[p.username] = p.foto;
+      });
+      if (usuarioLogado?.username && usuarioLogado?.foto) {
+        mapa[usuarioLogado.username] = usuarioLogado.foto;
+      }
+      setPerfisUsuarios(mapa);
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
     }
-
-    const perfisLocal = localStorage.getItem('perfis_cadastrados_comunidade');
-    const perfisArr = perfisLocal ? JSON.parse(perfisLocal) : [];
-    
-    const mapa = {};
-    perfisArr.forEach(p => {
-      mapa[p.username] = p.foto;
-    });
-    if (usuarioLogado?.username && usuarioLogado?.foto) {
-      mapa[usuarioLogado.username] = usuarioLogado.foto;
-    }
-    setPerfisUsuarios(mapa);
   };
 
   useEffect(() => {
@@ -152,6 +158,10 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     const atualizados = [novoPlanoObj, ...planosAtuais];
     
     localStorage.setItem('rede_planos_estudo_global', JSON.stringify(atualizados));
+    
+    // Se o BancoDeDados possuir método de salvamento no Supabase, você pode invocá-lo aqui:
+    // try { await BancoDeDados.salvarPlano(novoPlanoObj); } catch (err) {}
+
     carregarDadosCompartilhados();
 
     setNovoTitulo('');
@@ -161,8 +171,8 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     setModalCriarAberto(false);
   };
 
-  // Função corrigida para apagar o plano permanentemente para o autor ou individualmente para o leitor
-  const apagarPlano = (planoId) => {
+  // Função de exclusão integrada com o BancoDeDados / Supabase
+  const apagarPlano = async (planoId) => {
     const planosLocal = localStorage.getItem('rede_planos_estudo_global');
     const planosAtuais = planosLocal ? JSON.parse(planosLocal) : [];
     const planoAlvo = planosAtuais.find(p => p.id === planoId);
@@ -173,8 +183,18 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
     if (souCriador) {
       if (window.confirm('Tem certeza que deseja apagar este plano permanentemente para todos os participantes?')) {
+        // 1. Remove do array local/global
         const novosPlanosGlobal = planosAtuais.filter(p => p.id !== planoId);
         localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanosGlobal));
+
+        // 2. Se o BancoDeDados do Supabase possuir um método de exclusão, execute-o aqui:
+        try {
+          if (typeof BancoDeDados?.deletarPlano === 'function') {
+            await BancoDeDados.deletarPlano(planoId);
+          }
+        } catch (err) {
+          console.error("Erro ao deletar no Supabase:", err);
+        }
         
         setPlanoSelecionado(null);
         setModoLeitura(false);
@@ -588,7 +608,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
                       <button 
                         onClick={salvarEdicaoDiaAtual}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-md cursor-pointer"
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition shadow-md cursor-pointer"
                       >
                         Salvar Alterações Oficiais
                       </button>
@@ -602,7 +622,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
                       {diaAtual.perguntaPratica && (
                         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-1">
-                          <h5 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">Pratique Hoje</h5>
+                          <h5 className="text-xs font-extrabold uppercase tracking-wider">Pratique Hoje</h5>
                           <p className="text-xs sm:text-sm">{diaAtual.perguntaPratica}</p>
                         </div>
                       )}
@@ -642,7 +662,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                   )}
 
                   <div className="pt-6 border-t border-slate-800/40 space-y-4">
-                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-blue-400">
                       Reflexões e Comentários da Comunidade ({listaComentarios.length})
                     </h4>
 

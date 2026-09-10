@@ -541,4 +541,40 @@ export const BancoDeDados = {
       console.error("Erro ao atualizar tema no banco:", e);
     }
   },
+  // --- PLANOS DE ESTUDO ---
+  buscarPlanos: async () => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/planos_estudo?select=*&order=created_at.desc`, { method: 'GET', headers });
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data || [];
+    } catch (err) {
+      return [];
+    }
+  },
+
+  criarPlano: async (planoObj) => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/planos_estudo`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(planoObj)
+      });
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (err) {
+      return null;
+    }
+  },
+
+  deletarPlano: async (planoId) => {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/planos_estudo?id=eq.${planoId}`, {
+        method: 'DELETE',
+        headers
+      });
+    } catch (err) {
+      console.error("Erro ao deletar plano:", err);
+    }
+  },
 };
