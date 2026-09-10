@@ -26,9 +26,8 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
   const [mostrarModalConquista, setMostrarModalConquista] = useState(false);
   const [abaAtivaFiltro, setAbaAtivaFiltro] = useState('todos');
-  const editorRef = useRef(null);
+  const textareaRef = useRef(null);
 
-  // Carrega os dados integrando com o Supabase / BancoDeDados da aplicação
   const carregarDadosCompartilhados = async () => {
     try {
       let planosSalvos = [];
@@ -192,11 +191,23 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     }
   };
 
-  const aplicarFormatacao = (comando, valor = null) => {
-    document.execCommand(comando, false, valor);
-    if (editorRef.current) {
-      setTextoEstudoDia(editorRef.current.innerHTML);
-    }
+  // Inserir tags HTML de formatação de forma limpa no Textarea
+  const inserirFormatacao = (tagInicio, tagFim) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const textoAtual = textoEstudoDia;
+    const selecao = textoAtual.substring(start, end);
+
+    const novoTexto = textoAtual.substring(0, start) + tagInicio + selecao + tagFim + textoAtual.substring(end);
+    setTextoEstudoDia(novoTexto);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + tagInicio.length, end + tagInicio.length);
+    }, 0);
   };
 
   const salvarEdicaoDiaAtual = () => {
@@ -207,12 +218,10 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       return;
     }
 
-    const conteudoFinal = editorRef.current ? editorRef.current.innerHTML : textoEstudoDia;
-
     const diasAtualizados = [...planoSelecionado.dias];
     diasAtualizados[diaAtivoIndex] = {
       ...diasAtualizados[diaAtivoIndex],
-      conteudoEstudo: conteudoFinal,
+      conteudoEstudo: textoEstudoDia,
       perguntaPratica: perguntaPratica,
       midia: midiaDiaUrl,
       tipoMidia: tipoMidiaDia
@@ -220,7 +229,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
     const planoAtualizado = { ...planoSelecionado, dias: diasAtualizados };
     
-    // Atualiza diretamente no Supabase criando ou atualizando o registro
     try {
       if (typeof BancoDeDados?.criarPlano === 'function') {
         BancoDeDados.criarPlano(planoAtualizado);
@@ -500,9 +508,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                 key={d.dia}
                 onClick={() => {
                   setDiaAtivoIndex(index);
-                  const conteudo = d.conteudoEstudo || '';
-                  setTextoEstudoDia(conteudo);
-                  if (editorRef.current) editorRef.current.innerHTML = conteudo;
+                  setTextoEstudoDia(d.conteudoEstudo || '');
                   setPerguntaPratica(d.perguntaPratica || '');
                   setMidiaDiaUrl(d.midia || '');
                   setTipoMidiaDia(d.tipoMidia || 'imagem');
@@ -549,31 +555,25 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                 <div className="space-y-6">
                   {souOCriador ? (
                     <div className="space-y-4">
-                      <label className="text-xs font-bold text-blue-400 block">Editor de Conteúdo Profissional:</label>
+                      <label className="text-xs font-bold text-blue-400 block">Editor de Conteúdo (Textarea Perfeito):</label>
                       
                       <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-slate-900/40 border border-slate-800/60">
-                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacao('bold')} className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Negrito"><b>B</b></button>
-                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacao('italic')} className="px-2.5 py-1 text-xs italic bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Itálico"><i>I</i></button>
-                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacao('underline')} className="px-2.5 py-1 text-xs underline bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Sublinhado"><u>U</u></button>
+                        <button type="button" onClick={() => inserirFormatacao('<b>', '</b>')} className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Negrito"><b>B</b></button>
+                        <button type="button" onClick={() => inserirFormatacao('<i>', '</i>')} className="px-2.5 py-1 text-xs italic bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Itálico"><i>I</i></button>
+                        <button type="button" onClick={() => inserirFormatacao('<u>', '</u>')} className="px-2.5 py-1 text-xs underline bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Sublinhado"><u>U</u></button>
                         <span className="w-px h-5 bg-slate-700 self-center mx-1"></span>
-                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacao('fontSize', '4')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Título">Título</button>
-                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacao('fontSize', '3')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Normal">Normal</button>
+                        <button type="button" onClick={() => inserirFormatacao('<p>', '</p>')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Parágrafo">&lt;p&gt;</button>
                       </div>
 
-                      {/* Editor corrigido sem re-renderizacoes que travam a digitacao */}
-                      <div 
-                        ref={editorRef}
-                        contentEditable={true}
-                        suppressContentEditableWarning={true}
-                        onInput={(e) => setTextoEstudoDia(e.currentTarget.innerHTML)}
-                        onClick={() => {
-                          if (editorRef.current && document.activeElement !== editorRef.current) {
-                            editorRef.current.focus();
-                          }
-                        }}
-                        dangerouslySetInnerHTML={{ __html: diaAtual.conteudoEstudo || '' }}
-                        className="w-full min-h-[200px] text-sm sm:text-base rounded-2xl p-4 border border-slate-800/50 bg-transparent focus:outline-none focus:border-blue-500 leading-relaxed cursor-text"
-                      ></div>
+                      {/* Textarea nativa substituindo o contentEditable para acabar com qualquer travamento */}
+                      <textarea 
+                        ref={textareaRef}
+                        rows="8"
+                        value={textoEstudoDia}
+                        onChange={(e) => setTextoEstudoDia(e.target.value)}
+                        placeholder="Escreva o conteúdo do estudo aqui..."
+                        className="w-full text-sm sm:text-base rounded-2xl p-4 border border-slate-800/50 bg-transparent text-inherit focus:outline-none focus:border-blue-500 leading-relaxed resize-y"
+                      ></textarea>
 
                       <div className="space-y-1">
                         <label className="text-xs font-bold text-amber-400 block">Desafio ou Pergunta Prática ("Pratique Hoje"):</label>
