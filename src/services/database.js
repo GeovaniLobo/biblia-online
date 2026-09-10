@@ -1,583 +1,726 @@
-const SUPABASE_URL = 'https://apodufxahgxlghmlzagq.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_vDRu0b_QIKsCCqt7ZgPwdg_G0QTJ8Eo';
+import React, { useState, useEffect, useRef } from 'react';
+import { BancoDeDados } from '../services/database';
 
-const headers = {
-  'apikey': SUPABASE_ANON_KEY,
-  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-  'Content-Type': 'application/json',
-  'Prefer': 'return=representation'
-};
+export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
+  const [planos, setPlanos] = useState([]);
+  const [modalCriarAberto, setModalCriarAberto] = useState(false);
+  
+  const [novoTitulo, setNovoTitulo] = useState('');
+  const [novaDescricao, setNovaDescricao] = useState('');
+  const [novaCapaUrl, setNovaCapaUrl] = useState('');
+  const [totalDias, setTotalDias] = useState(7);
 
-export const BancoDeDados = {
-  getUsuarioLogado: () => {
-    const salvo = localStorage.getItem('usuario_logado_supa');
-    return salvo ? JSON.parse(salvo) : null;
-  },
+  const [planoSelecionado, setPlanoSelecionado] = useState(null);
+  const [modoLeitura, setModoLeitura] = useState(false);
+  const [diaAtivoIndex, setDiaAtivoIndex] = useState(0);
 
-  fazerLogin: (usuario) => {
-    localStorage.setItem('usuario_logado_supa', JSON.stringify(usuario));
-  },
+  const [textoEstudoDia, setTextoEstudoDia] = useState('');
+  const [perguntaPratica, setPerguntaPratica] = useState('');
+  const [midiaDiaUrl, setMidiaDiaUrl] = useState('');
+  const [tipoMidiaDia, setTipoMidiaDia] = useState('imagem');
+  const [enviandoMidia, setEnviandoMidia] = useState(false);
 
-  fazerLogout: () => {
-    localStorage.removeItem('usuario_logado_supa');
-  },
+  const [novoComentarioDia, setNovoComentarioDia] = useState('');
+  const [comentariosDias, setComentariosDias] = useState({});
+  const [perfisUsuarios, setPerfisUsuarios] = useState({});
 
-  getPerfisCadastrados: async () => {
+  const [mostrarModalConquista, setMostrarModalConquista] = useState(false);
+  const [abaAtivaFiltro, setAbaAtivaFiltro] = useState('todos');
+  const textareaRef = useRef(null);
+
+  const carregarDadosCompartilhados = async () => {
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/perfis?select=*`, { method: 'GET', headers });
-      if (!response.ok) return [];
-      const data = await response.json();
-      return data || [];
-    } catch (err) { return []; }
-  },
-
-  cadastrarPerfil: async (novoPerfil) => {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/perfis`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(novoPerfil)
-    });
-    if (!response.ok) throw new Error('Erro ao cadastrar perfil.');
-    return await response.json();
-  },
-
-  salvarNovoPerfilNaRede: async (perfil) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/perfis`, {
-        method: 'POST',
-        headers: { ...headers, 'Prefer': 'resolution=merge-duplicates' },
-        body: JSON.stringify(perfil)
-      });
-    } catch (e) {}
-  },
-
-  atualizarPerfil: async (username, novosDados) => {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${username}`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify(novosDados)
-    });
-    if (!response.ok) throw new Error('Erro ao atualizar perfil.');
-    return await response.json();
-  },
-
-  // --- STATUS ONLINE REAL (Heartbeat) ---
-  atualizarUltimoAcesso: async (username) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${username}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ ultimo_acesso: Date.now() })
-      });
-    } catch (e) {}
-  },
-
-  // --- UPLOAD DE MÍDIA PARA O SUPABASE STORAGE ---
-  uploadMidiaStory: async (file) => {
-    try {
-      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      const response = await fetch(`${SUPABASE_URL}/storage/v1/object/stories-midia/${fileName}`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': file.type || 'application/octet-stream',
-          'X-Upsert': 'true'
-        },
-        body: file
-      });
-
-      if (!response.ok) {
-        throw new Error('Falha ao enviar arquivo para o Storage.');
+      let planosSalvos = [];
+      
+      if (typeof BancoDeDados?.buscarPlanos === 'function') {
+        planosSalvos = await BancoDeDados.buscarPlanos();
       }
 
-      return `${SUPABASE_URL}/storage/v1/object/public/stories-midia/${fileName}`;
-    } catch (err) {
-      console.error("Erro no upload:", err);
-      return null;
-    }
-  },
+      if (!planosSalvos) {
+        planosSalvos = [];
+      }
 
-  // --- STORIES (Com filtro de 24 horas) ---
-  getStories: async () => {
-    try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/stories?select=*&order=id.desc`, { method: 'GET', headers });
-      if (!response.ok) return [];
-      const data = await response.json();
-      
-      if (!data) return [];
+      const progressoLocal = localStorage.getItem(`progresso_planos_${usuarioLogado?.username}`);
+      const progressoUsuarios = progressoLocal ? JSON.parse(progressoLocal) : {};
 
-      const agora = Date.now();
-      const limite24h = 24 * 60 * 60 * 1000;
+      const planosMapeados = planosSalvos.map(plano => {
+        const progressoPlano = progressoUsuarios[plano.id];
+        if (progressoPlano) {
+          if (progressoPlano.removidoPeloUsuario) {
+            return null; 
+          }
+
+          const diasAtualizados = plano.dias.map(d => ({
+            ...d,
+            concluido: !!progressoPlano[d.dia]
+          }));
+          return { ...plano, dias: diasAtualizados };
+        }
+        return plano;
+      }).filter(Boolean);
+
+      setPlanos(planosMapeados);
+
+      const comentariosLocal = localStorage.getItem('rede_comentarios_planos_global');
+      if (comentariosLocal) {
+        setComentariosDias(JSON.parse(comentariosLocal));
+      }
+
+      const perfisLocal = localStorage.getItem('perfis_cadastrados_comunidade');
+      const perfisArr = perfisLocal ? JSON.parse(perfisLocal) : [];
       
-      const storiesValidos = data.filter(s => {
-        if (!s.id) return false;
-        return (agora - Number(s.id)) <= limite24h;
+      const mapa = {};
+      perfisArr.forEach(p => {
+        mapa[p.username] = p.foto;
       });
-
-      return storiesValidos;
-    } catch (err) { 
-      return []; 
+      if (usuarioLogado?.username && usuarioLogado?.foto) {
+        mapa[usuarioLogado.username] = usuarioLogado.foto;
+      }
+      setPerfisUsuarios(mapa);
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
     }
-  },
+  };
 
-  salvarStory: async (story) => {
-    try {
-      const novoStoryComVisualizacoes = { ...story, visualizacoes: [], curtidas: [] };
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/stories`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(novoStoryComVisualizacoes)
-      });
-      if (!response.ok) return await BancoDeDados.getStories();
-      return await BancoDeDados.getStories();
-    } catch (err) { return []; }
-  },
+  useEffect(() => {
+    carregarDadosCompartilhados();
 
-  registrarVisualizacaoStory: async (storyId, dadosVisualizador) => {
+    const aoMudarStorage = (e) => {
+      if (e.key === 'rede_comentarios_planos_global' || e.key === 'rede_planos_estudo_global' || e.key?.startsWith('progresso_planos_')) {
+        carregarDadosCompartilhados();
+      }
+    };
+    window.addEventListener('storage', aoMudarStorage);
+    return () => window.removeEventListener('storage', aoMudarStorage);
+  }, [usuarioLogado]);
+
+  const salvarComentariosGlobais = (novosComentarios) => {
+    setComentariosDias(novosComentarios);
+    localStorage.setItem('rede_comentarios_planos_global', JSON.stringify(novosComentarios));
+  };
+
+  const processarArquivo = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const criarPlanoEstudo = async (e) => {
+    e.preventDefault();
+    if (!novoTitulo.trim() || !novaDescricao.trim()) return;
+
+    let capaFinal = novaCapaUrl.trim();
+    if (!capaFinal) {
+      capaFinal = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80';
+    }
+
+    // Dias criados totalmente limpos, sem textos automáticos incômodos
+    const diasArray = Array.from({ length: Number(totalDias) }, (_, i) => ({
+      dia: i + 1,
+      tituloDia: `Dia ${i + 1}`,
+      conteudoEstudo: '',
+      perguntaPratica: '',
+      midia: '',
+      tipoMidia: 'imagem',
+      concluido: false
+    }));
+
+    const novoPlanoObj = {
+      id: Date.now(),
+      criador: usuarioLogado.username,
+      titulo: novoTitulo.trim(),
+      descricao: novaDescricao.trim(),
+      capa: capaFinal,
+      dias: diasArray
+    };
+
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${storyId}&select=visualizacoes`, { method: 'GET', headers });
-      if (!res.ok) return await BancoDeDados.getStories();
-      
-      const data = await res.json();
-      let vistas = (data && data[0] && data[0].visualizacoes) || [];
-      
-      const jaViu = vistas.some(v => v.username === dadosVisualizador.username);
-      
-      if (!jaViu) {
-        vistas.push(dadosVisualizador);
+      if (typeof BancoDeDados?.criarPlano === 'function') {
+        await BancoDeDados.criarPlano(novoPlanoObj);
+      }
+
+      await carregarDadosCompartilhados();
+
+      setNovoTitulo('');
+      setNovaDescricao('');
+      setNovaCapaUrl('');
+      setTotalDias(7);
+      setModalCriarAberto(false);
+    } catch (error) {
+      console.error("Erro ao criar o plano:", error);
+      alert("Erro ao criar o plano. Verifique a conexão com o banco de dados.");
+    }
+  };
+
+  const apagarPlano = async (planoId) => {
+    const planosLocal = localStorage.getItem('rede_planos_estudo_global');
+    const planosAtuais = planosLocal ? JSON.parse(planosLocal) : [];
+    const planoAlvo = planos.find(p => p.id === planoId) || planosAtuais.find(p => p.id === planoId);
+    
+    if (!planoAlvo) return;
+
+    const souCriador = planoAlvo.criador === usuarioLogado.username;
+
+    if (souCriador) {
+      if (window.confirm('Tem certeza que deseja apagar este plano permanentemente para todos os participantes?')) {
+        try {
+          if (typeof BancoDeDados?.deletarPlano === 'function') {
+            await BancoDeDados.deletarPlano(planoId);
+          }
+        } catch (err) {
+          console.error("Erro ao deletar no Supabase:", err);
+        }
         
-        await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${Number(storyId)}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ visualizacoes: vistas })
-        });
+        setPlanoSelecionado(null);
+        setModoLeitura(false);
+        await carregarDadosCompartilhados();
       }
-      return await BancoDeDados.getStories();
-    } catch (err) {
-      console.error("Erro ao registrar visualização:", err);
-      return await BancoDeDados.getStories();
+    } else {
+      if (window.confirm('Deseja remover este plano do seu painel? Você poderá acessá-lo e iniciá-lo novamente depois na aba de sugestões.')) {
+        const progressoKey = `progresso_planos_${usuarioLogado.username}`;
+        const progressoSalvo = JSON.parse(localStorage.getItem(progressoKey) || '{}');
+        
+        progressoSalvo[planoId] = { ...(progressoSalvo[planoId] || {}), removidoPeloUsuario: true };
+        localStorage.setItem(progressoKey, JSON.stringify(progressoSalvo));
+
+        setPlanoSelecionado(null);
+        setModoLeitura(false);
+        await carregarDadosCompartilhados();
+      }
     }
-  },
+  };
 
-  curtirStory: async (storyId, usernameUsuario) => {
+  const salvarEdicaoDiaAtual = async () => {
+    if (!planoSelecionado) return;
+
+    if (planoSelecionado.criador !== usuarioLogado.username) {
+      alert('Apenas o criador deste plano pode alterar o conteúdo oficial.');
+      return;
+    }
+
+    const diasAtualizados = [...planoSelecionado.dias];
+    diasAtualizados[diaAtivoIndex] = {
+      ...diasAtualizados[diaAtivoIndex],
+      conteudoEstudo: textoEstudoDia,
+      perguntaPratica: perguntaPratica,
+      midia: midiaDiaUrl,
+      tipoMidia: tipoMidiaDia
+    };
+
+    const planoAtualizado = { ...planoSelecionado, dias: diasAtualizados };
+    
     try {
-      const stories = await BancoDeDados.getStories();
-      const s = stories.find(x => x.id === storyId);
-      if (s) {
-        let curtidas = s.curtidas || [];
-        if (!Array.isArray(curtidas)) curtidas = [];
+      if (typeof BancoDeDados?.criarPlano === 'function') {
+        await BancoDeDados.criarPlano(planoAtualizado);
+      }
+    } catch(e) {}
 
-        const jaCurtiu = curtidas.includes(usernameUsuario);
+    setPlanoSelecionado(planoAtualizado);
+    await carregarDadosCompartilhados();
+    alert('Alterações salvas e sincronizadas com sucesso!');
+  };
 
-        if (jaCurtiu) {
-          curtidas = curtidas.filter(u => u !== usernameUsuario);
-        } else {
-          curtidas.push(usernameUsuario);
-          
-          if (s.username !== usernameUsuario) {
-            await BancoDeDados.adicionarNotificacao(
-              s.username,
-              `@${usernameUsuario} curtiu seu story! ❤️`,
-              'curtida'
+  const alternarConclusaoDia = (diaNum) => {
+    if (!planoSelecionado) return;
+
+    const diasAtualizados = planoSelecionado.dias.map(d => {
+      if (d.dia === diaNum) {
+        return { ...d, concluido: !d.concluido };
+      }
+      return d;
+    });
+
+    const progressoAntigo = calcularProgresso(planoSelecionado.dias);
+    const planoAtualizado = { ...planoSelecionado, dias: diasAtualizados };
+    const progressoNovo = calcularProgresso(planoAtualizado.dias);
+
+    setPlanoSelecionado(planoAtualizado);
+
+    const progressoKey = `progresso_planos_${usuarioLogado.username}`;
+    const progressoSalvo = JSON.parse(localStorage.getItem(progressoKey) || '{}');
+    const statusDiasObj = progressoSalvo[planoSelecionado.id] || {};
+    
+    statusDiasObj[diaNum] = diasAtualizados.find(d => d.dia === diaNum).concluido;
+    statusDiasObj.removidoPeloUsuario = false; 
+
+    progressoSalvo[planoSelecionado.id] = statusDiasObj;
+    localStorage.setItem(progressoKey, JSON.stringify(progressoSalvo));
+
+    carregarDadosCompartilhados();
+
+    if (progressoAntigo < 100 && progressoNovo === 100) {
+      setMostrarModalConquista(true);
+    }
+  };
+
+  const adicionarComentarioDia = (e, planoId, diaNum) => {
+    e.preventDefault();
+    if (!novoComentarioDia.trim()) return;
+
+    const chave = `${planoId}_dia_${diaNum}`;
+    const listaAtual = comentariosDias[chave] || [];
+    
+    const avatarAtual = usuarioLogado?.foto || perfisUsuarios[usuarioLogado.username] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80';
+
+    const novoComentarioObj = {
+      id: Date.now(),
+      username: usuarioLogado.username,
+      avatar: avatarAtual,
+      texto: novoComentarioDia.trim(),
+      horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    const atualizados = { ...comentariosDias, [chave]: [...listaAtual, novoComentarioObj] };
+    salvarComentariosGlobais(atualizados);
+    setNovoComentarioDia('');
+  };
+
+  const calcularProgresso = (dias) => {
+    if (!dias || dias.length === 0) return 0;
+    const concluidos = dias.filter(d => d.concluido).length;
+    return Math.round((concluidos / dias.length) * 100);
+  };
+
+  const planosFiltrados = planos.filter(p => {
+    if (abaAtivaFiltro === 'meus') return p.criador === usuarioLogado.username;
+    return true;
+  });
+
+  const souOCriador = planoSelecionado && planoSelecionado.criador === usuarioLogado.username;
+
+  return (
+    <div className={`w-full max-w-4xl mx-auto px-4 py-8 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+      
+      {mostrarModalConquista && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-300">
+          <div className="max-w-md w-full bg-slate-900 border border-emerald-500/50 rounded-3xl p-8 shadow-2xl text-white text-center space-y-4">
+            <div className="w-20 h-20 bg-emerald-500/20 border-2 border-emerald-500 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
+              OK
+            </div>
+            <h3 className="text-xl font-black text-emerald-400">Jornada Concluída!</h3>
+            <p className="text-xs opacity-80 leading-relaxed">
+              Parabéns, @{usuarioLogado.username}! Você concluiu 100% do plano de estudo com dedicação e constância na Palavra.
+            </p>
+            <button 
+              onClick={() => setMostrarModalConquista(false)}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-3 rounded-xl shadow-lg transition cursor-pointer"
+            >
+              Continuar Caminhada
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!planoSelecionado && (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-700/20">
+          <div>
+            <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
+              Planos de Estudo
+            </h2>
+            <p className="text-xs opacity-70 mt-1">Jornadas devocionais para fortalecer sua caminhada diária.</p>
+          </div>
+
+          <button 
+            onClick={() => setModalCriarAberto(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md transition flex items-center gap-2 cursor-pointer"
+          >
+            Criar Novo Plano
+          </button>
+        </div>
+      )}
+
+      {!planoSelecionado && (
+        <div className="flex gap-2 bg-slate-900/10 p-1.5 rounded-2xl border border-slate-800/20 w-fit">
+          <button 
+            onClick={() => setAbaAtivaFiltro('todos')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${abaAtivaFiltro === 'todos' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            Sugestões
+          </button>
+          <button 
+            onClick={() => setAbaAtivaFiltro('meus')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${abaAtivaFiltro === 'meus' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            Meus Planos
+          </button>
+        </div>
+      )}
+
+      {modalCriarAberto && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <div className="flex justify-between items-center border-b pb-3 border-slate-700">
+              <h3 className="font-extrabold text-sm">Criar Novo Plano de Estudo</h3>
+              <button onClick={() => setModalCriarAberto(false)} className="text-sm font-bold opacity-70 cursor-pointer">X</button>
+            </div>
+
+            <form onSubmit={criarPlanoEstudo} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold opacity-70 block mb-1">Título do Plano:</label>
+                <input 
+                  type="text" 
+                  placeholder="Ex: Relacionamento Blindado com Deus" 
+                  value={novoTitulo}
+                  onChange={(e) => setNovoTitulo(e.target.value)}
+                  required
+                  className={`w-full text-xs rounded-xl px-3.5 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold opacity-70 block mb-1">Descrição / Introdução:</label>
+                <textarea 
+                  rows="3"
+                  placeholder="Sobre o que é este plano..." 
+                  value={novaDescricao}
+                  onChange={(e) => setNovaDescricao(e.target.value)}
+                  required
+                  className={`w-full text-xs rounded-xl px-3.5 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
+                ></textarea>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold opacity-70 block mb-1">URL da Imagem de Capa (Opcional):</label>
+                <input 
+                  type="url" 
+                  placeholder="https://exemplo.com/imagem.jpg" 
+                  value={novaCapaUrl}
+                  onChange={(e) => setNovaCapaUrl(e.target.value)}
+                  className={`w-full text-xs rounded-xl px-3.5 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold opacity-70 block mb-1">Duração:</label>
+                <select 
+                  value={totalDias}
+                  onChange={(e) => setTotalDias(e.target.value)}
+                  className={`w-full text-xs rounded-xl px-3.5 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
+                >
+                  <option value={3}>3 Dias</option>
+                  <option value={7}>7 Dias (1 Semana)</option>
+                  <option value={14}>14 Dias (2 Semanas)</option>
+                  <option value={21}>21 Dias</option>
+                  <option value={30}>30 Dias (1 Mês)</option>
+                </select>
+              </div>
+
+              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow-md transition cursor-pointer">
+                Publicar Plano
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {planoSelecionado && !modoLeitura && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <button onClick={() => setPlanoSelecionado(null)} className="text-xs font-bold text-blue-500 hover:underline inline-block cursor-pointer">
+              &larr; Voltar para todos os planos
+            </button>
+
+            <button 
+              onClick={() => apagarPlano(planoSelecionado.id)}
+              className="text-xs font-bold text-rose-500 hover:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+            >
+              {souOCriador ? 'Apagar Plano Definitivamente' : 'Desistir / Remover Plano'}
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{planoSelecionado.titulo}</h1>
+            
+            <div className="w-full h-64 sm:h-80 rounded-3xl overflow-hidden shadow-xl border border-slate-800/40 relative">
+              <img src={planoSelecionado.capa} alt={planoSelecionado.titulo} className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-6">
+                <div className="flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/10">
+                  <img 
+                    src={perfisUsuarios[planoSelecionado.criador] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'} 
+                    alt="Criador" 
+                    className="w-5 h-5 rounded-full object-cover" 
+                  />
+                  <span className="text-xs text-white font-bold">Criado por @{planoSelecionado.criador}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-transparent border border-slate-800/40">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold bg-slate-800/20 text-slate-300 px-3 py-1.5 rounded-xl">
+                  {planoSelecionado.dias.length} Dias
+                </span>
+                <span className="text-xs font-bold text-emerald-400">
+                  Progresso: {calcularProgresso(planoSelecionado.dias)}%
+                </span>
+              </div>
+
+              <button 
+                onClick={() => setModoLeitura(true)}
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-6 py-3 rounded-xl shadow-lg transition cursor-pointer"
+              >
+                {calcularProgresso(planoSelecionado.dias) > 0 ? 'Continuar Leitura' : 'Começar este Plano'}
+              </button>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-transparent border border-slate-800/30 space-y-4 leading-relaxed text-sm opacity-90">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">Sobre o Plano</h3>
+              <p>{planoSelecionado.descricao}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {planoSelecionado && modoLeitura && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <button onClick={() => setModoLeitura(false)} className="text-xs font-bold text-blue-500 hover:underline cursor-pointer">
+              &larr; Visão Geral do Plano
+            </button>
+            <span className="text-xs font-bold text-slate-400">
+              Progresso: {calcularProgresso(planoSelecionado.dias)}%
+            </span>
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {planoSelecionado.dias.map((d, index) => (
+              <button
+                key={d.dia}
+                onClick={() => {
+                  setDiaAtivoIndex(index);
+                  setTextoEstudoDia(d.conteudoEstudo || '');
+                  setPerguntaPratica(d.perguntaPratica || '');
+                  setMidiaDiaUrl(d.midia || '');
+                  setTipoMidiaDia(d.tipoMidia || 'imagem');
+                }}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 flex-shrink-0 transition border cursor-pointer ${
+                  diaAtivoIndex === index 
+                    ? 'bg-blue-600 text-white border-blue-500 shadow-md' 
+                    : d.concluido 
+                      ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400' 
+                      : 'bg-transparent border-slate-800/50 text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>Dia {d.dia}</span>
+                {d.concluido && <span className="w-2 h-2 rounded-full bg-emerald-500"></span>}
+              </button>
+            ))}
+          </div>
+
+          {(() => {
+            const diaAtual = planoSelecionado.dias[diaAtivoIndex];
+            const chaveComentario = `${planoSelecionado.id}_dia_${diaAtual.dia}`;
+            const listaComentarios = comentariosDias[chaveComentario] || [];
+
+            return (
+              <div className="p-2 space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4 border-slate-800/30">
+                  <div>
+                    <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Dia {diaAtual.dia} de {planoSelecionado.dias.length}</span>
+                    <h3 className="text-xl font-black mt-1">{planoSelecionado.titulo}</h3>
+                  </div>
+
+                  <button 
+                    onClick={() => alternarConclusaoDia(diaAtual.dia)}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer ${
+                      diaAtual.concluido 
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                        : 'bg-slate-800/30 text-slate-300 hover:bg-slate-700 border border-slate-700/40'
+                    }`}
+                  >
+                    {diaAtual.concluido ? 'Dia Concluído' : 'Marcar como Concluído'}
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {souOCriador ? (
+                    <div className="space-y-4">
+                      <label className="text-xs font-bold text-blue-400 block">Editor de Conteúdo do Dia:</label>
+                      
+                      {/* Textarea limpa, sem tags visíveis irritantes */}
+                      <textarea 
+                        ref={textareaRef}
+                        rows="8"
+                        value={textoEstudoDia}
+                        onChange={(e) => setTextoEstudoDia(e.target.value)}
+                        placeholder="Escreva o conteúdo do estudo aqui..."
+                        className="w-full text-sm sm:text-base rounded-2xl p-4 border border-slate-800/50 bg-transparent text-inherit focus:outline-none focus:border-blue-500 leading-relaxed resize-y"
+                      ></textarea>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-amber-400 block">Desafio ou Pergunta Prática ("Pratique Hoje"):</label>
+                        <input 
+                          type="text"
+                          value={perguntaPratica}
+                          onChange={(e) => setPerguntaPratica(e.target.value)}
+                          placeholder="Digite o desafio prático de hoje..."
+                          className="w-full text-xs rounded-xl px-3 py-2 border border-slate-800 bg-transparent text-inherit focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <button 
+                        onClick={salvarEdicaoDiaAtual}
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition shadow-md cursor-pointer"
+                      >
+                        Salvar Alterações Oficiais
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="text-sm sm:text-base leading-relaxed opacity-95 whitespace-pre-wrap">
+                        {diaAtual.conteudoEstudo || "Nenhum conteúdo publicado para este dia ainda."}
+                      </div>
+
+                      {diaAtual.perguntaPratica && (
+                        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-1">
+                          <h5 className="text-xs font-extrabold uppercase tracking-wider">Pratique Hoje</h5>
+                          <p className="text-xs sm:text-sm">{diaAtual.perguntaPratica}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {midiaDiaUrl && (
+                    <div className="pt-4">
+                      {tipoMidiaDia === 'video' ? (
+                        <video src={midiaDiaUrl} controls className="w-full max-h-96 object-contain rounded-2xl border border-slate-800/40" />
+                      ) : (
+                        <img src={midiaDiaUrl} alt="Mídia do Estudo" className="w-full max-h-96 object-contain rounded-2xl border border-slate-800/40" />
+                      )}
+                    </div>
+                  )}
+
+                  {souOCriador && (
+                    <div className="pt-4 border-t border-slate-800/30 space-y-2">
+                      <label className="text-xs font-bold text-blue-400 block">Anexar Imagem ou Vídeo (Upload Direto):</label>
+                      <input 
+                        type="file" 
+                        accept="image/*,video/*" 
+                        onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            setEnviandoMidia(true);
+                            const url = await processarArquivo(file);
+                            setEnviandoMidia(false);
+                            setTipoMidiaDia(file.type.startsWith('video') ? 'video' : 'imagem');
+                            setMidiaDiaUrl(url);
+                          }
+                        }} 
+                        className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+                      />
+                      {enviandoMidia && <p className="text-xs text-blue-400 animate-pulse">Carregando arquivo...</p>}
+                    </div>
+                  )}
+
+                  <div className="pt-6 border-t border-slate-800/40 space-y-4">
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-blue-400">
+                      Reflexões e Comentários da Comunidade ({listaComentarios.length})
+                    </h4>
+
+                    <form onSubmit={(e) => adicionarComentarioDia(e, planoSelecionado.id, diaAtual.dia)} className="flex gap-2">
+                      <input 
+                        type="text"
+                        placeholder="Deixe sua reflexão ou encorajamento neste dia..."
+                        value={novoComentarioDia}
+                        onChange={(e) => setNovoComentarioDia(e.target.value)}
+                        className="w-full text-xs rounded-xl px-3.5 py-2.5 border border-slate-800/60 bg-transparent text-inherit focus:outline-none focus:border-blue-500"
+                      />
+                      <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm flex-shrink-0 cursor-pointer">
+                        Comentar
+                      </button>
+                    </form>
+
+                    <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                      {listaComentarios.length === 0 ? (
+                        <p className="text-xs opacity-50 text-center py-4">Nenhum comentário neste dia ainda. Seja o primeiro a compartilhar!</p>
+                      ) : (
+                        listaComentarios.map((c) => (
+                          <div 
+                            key={c.id} 
+                            className="p-3 rounded-2xl bg-transparent border border-slate-800/30 text-xs space-y-2 shadow-xs"
+                          >
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <img 
+                                  src={c.avatar || perfisUsuarios[c.username] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'} 
+                                  alt="Avatar" 
+                                  className="w-6 h-6 rounded-full object-cover border border-slate-700" 
+                                />
+                                <span className="font-bold text-blue-500">@{c.username}</span>
+                              </div>
+                              <span className="text-[10px] opacity-50">{c.horario}</span>
+                            </div>
+                            <p className="opacity-90 leading-relaxed pl-8 text-inherit">{c.texto}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
             );
-          }
-        }
+          })()}
+        </div>
+      )}
 
-        await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${storyId}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ curtidas })
-        });
-      }
-      return await BancoDeDados.getStories();
-    } catch (err) {
-      console.error("Erro ao curtir story:", err);
-      return await BancoDeDados.getStories();
-    }
-  },
+      {!planoSelecionado && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {planosFiltrados.length === 0 ? (
+            <div className="col-span-2 p-12 text-center rounded-3xl border bg-transparent border-slate-800/20">
+              <p className="text-xs opacity-60">Nenhum plano encontrado.</p>
+            </div>
+          ) : (
+            planosFiltrados.map(plano => {
+              const progresso = calcularProgresso(plano.dias);
+              const avatarCriador = perfisUsuarios[plano.criador] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80';
+              return (
+                <div 
+                  key={plano.id}
+                  onClick={() => {
+                    setPlanoSelecionado(plano);
+                    setModoLeitura(false);
+                    setDiaAtivoIndex(0);
+                    setTextoEstudoDia(plano.dias[0]?.conteudoEstudo || '');
+                    setMidiaDiaUrl(plano.dias[0]?.midia || '');
+                    setTipoMidiaDia(plano.dias[0]?.tipoMidia || 'imagem');
+                  }}
+                  className="rounded-3xl border bg-transparent border-slate-800/40 overflow-hidden cursor-pointer transition hover:scale-[1.01] hover:border-blue-500/50 shadow-sm flex flex-col"
+                >
+                  <div className="h-40 w-full relative">
+                    <img src={plano.capa} alt={plano.titulo} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                    <span className="absolute bottom-3 left-3 text-[10px] bg-blue-600 text-white font-bold px-2.5 py-1 rounded-full">
+                      {plano.dias.length} Dias
+                    </span>
+                  </div>
 
-  excluirStory: async (id) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${id}`, { method: 'DELETE', headers });
-      return await BancoDeDados.getStories();
-    } catch (err) { return []; }
-  },
+                  <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <img src={avatarCriador} alt="Avatar" className="w-4 h-4 rounded-full object-cover border border-slate-700" />
+                          <span className="text-[10px] text-blue-400 font-bold">@{plano.criador}</span>
+                        </div>
+                        <span className="text-xs font-black text-emerald-400">{progresso}%</span>
+                      </div>
+                      <h3 className="text-base font-extrabold">{plano.titulo}</h3>
+                      <p className="text-xs opacity-75 line-clamp-2 mt-1">{plano.descricao}</p>
+                    </div>
 
-  // --- PUBLICAÇÕES ---
-  getPublicacoes: async () => {
-    try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?select=*&order=id.desc`, { method: 'GET', headers });
-      if (!response.ok) return [];
-      return await response.json();
-    } catch (err) { return []; }
-  },
+                    <div className="w-full h-1.5 bg-slate-800/30 rounded-full overflow-hidden mt-2">
+                      <div className="h-full bg-emerald-500" style={{ width: `${progresso}%` }}></div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
-  salvarPublicacao: async (pub) => {
-    try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(pub)
-      });
-      if (!response.ok) return await BancoDeDados.getPublicacoes();
-      return await BancoDeDados.getPublicacoes();
-    } catch (err) { return []; }
-  },
-
-  excluirPublicacao: async (id) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, { method: 'DELETE', headers });
-      return await BancoDeDados.getPublicacoes();
-    } catch (err) { return []; }
-  },
-
-  atualizarPublicacao: async (id, texto, tema) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ texto, tema })
-      });
-    } catch (e) {}
-    return await BancoDeDados.getPublicacoes();
-  },
-
-  reagirPublicacao: async (id, tipoReacao, usernameUsuario) => {
-    try {
-      const pubs = await BancoDeDados.getPublicacoes();
-      const p = pubs.find(x => x.id === id);
-      if (p) {
-        // Estrutura atualizada com as novas 5 reações
-        let reacoes = p.reacoes || { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
-        if (!reacoes.amei) reacoes = { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
-
-        // Remove o usuário de todas as reações antes de aplicar a nova
-        Object.keys(reacoes).forEach(tipo => {
-          reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== usernameUsuario);
-        });
-
-        if (reacoes[tipoReacao]) {
-          reacoes[tipoReacao].push(usernameUsuario);
-        }
-        
-        const totalReacoes = Object.values(reacoes).reduce((acc, curr) => acc + curr.length, 0);
-
-        await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ reacoes, curtidas: totalReacoes })
-        });
-      }
-    } catch (e) {
-      console.error("Erro ao reagir na publicação:", e);
-    }
-    return await BancoDeDados.getPublicacoes();
-  },
-
-  adicionarComentarioPub: async (id, comentario) => {
-    try {
-      const pubs = await BancoDeDados.getPublicacoes();
-      const p = pubs.find(x => x.id === id);
-      if (p) {
-        const comentariosAtuais = p.comentarios || [];
-        const novosComentarios = [...comentariosAtuais, comentario];
-        await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ comentarios: novosComentarios })
-        });
-      }
-    } catch (e) {}
-    return await BancoDeDados.getPublicacoes();
-  },
-
-  reagirComentarioPub: async (publicacaoId, comentarioId, tipoReacao, username) => {
-    try {
-      const pubs = await BancoDeDados.getPublicacoes();
-      const p = pubs.find(x => x.id === publicacaoId);
-      if (p && p.comentarios) {
-        const novosComentarios = p.comentarios.map(c => {
-          if (c.id === comentarioId) {
-            let reacoes = c.reacoes || { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
-            if (!reacoes.amei) reacoes = { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
-
-            Object.keys(reacoes).forEach(tipo => {
-              reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== username);
-            });
-
-            if (reacoes[tipoReacao]) {
-              reacoes[tipoReacao].push(username);
-            }
-            return { ...c, reacoes };
-          }
-          return c;
-        });
-
-        await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${publicacaoId}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ comentarios: novosComentarios })
-        });
-      }
-    } catch (e) {
-      console.error("Erro ao reagir no comentário:", e);
-    }
-    return await BancoDeDados.getPublicacoes();
-  },
-
-  // --- AMIZADES ---
-  enviarPedidoAmizade: async (usernameRemetente, usernameDestinatario) => {
-    try {
-      const perfis = await BancoDeDados.getPerfisCadastrados();
-      const remetente = perfis.find(p => p.username === usernameRemetente);
-      const destinatario = perfis.find(p => p.username === usernameDestinatario);
-      if (!remetente || !destinatario) return;
-
-      const enviados = remetente.pedidos_enviados || [];
-      const recebidos = destinatario.pedidos_recebidos || [];
-
-      if (!enviados.includes(usernameDestinatario)) {
-        enviados.push(usernameDestinatario);
-        recebidos.push(usernameRemetente);
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, { method: 'PATCH', headers, body: JSON.stringify({ pedidos_enviados: enviados }) });
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameDestinatario}`, { method: 'PATCH', headers, body: JSON.stringify({ pedidos_recebidos: recebidos }) });
-        await BancoDeDados.adicionarNotificacao(usernameDestinatario, `@${usernameRemetente} enviou um pedido de amizade.`, 'amizade');
-      }
-    } catch (e) {}
-  },
-
-  aceitarPedidoAmizade: async (usernameLogado, usernameRemetente) => {
-    try {
-      const perfis = await BancoDeDados.getPerfisCadastrados();
-      const logado = perfis.find(p => p.username === usernameLogado);
-      const remetente = perfis.find(p => p.username === usernameRemetente);
-
-      if (logado && remetente) {
-        const novosRecebidos = (logado.pedidos_recebidos || []).filter(u => u !== usernameRemetente);
-        const novosEnviados = (remetente.pedidos_enviados || []).filter(u => u !== usernameLogado);
-
-        const novosAmigosLogado = [...(logado.amigos || [])];
-        if (!novosAmigosLogado.includes(usernameRemetente)) novosAmigosLogado.push(usernameRemetente);
-
-        const novosAmigosRemetente = [...(remetente.amigos || [])];
-        if (!novosAmigosRemetente.includes(usernameLogado)) novosAmigosRemetente.push(usernameLogado);
-
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameLogado}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ pedidos_recebidos: novosRecebidos, amigos: novosAmigosLogado })
-        });
-
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ pedidos_enviados: novosEnviados, amigos: novosAmigosRemetente })
-        });
-
-        await BancoDeDados.adicionarNotificacao(usernameRemetente, `@${usernameLogado} aceitou seu pedido de amizade! 🎉`, 'amizade');
-      }
-      return await BancoDeDados.getPerfisCadastrados();
-    } catch (e) {
-      return [];
-    }
-  },
-
-  recusarPedidoAmizade: async (usernameLogado, usernameRemetente) => {
-    try {
-      const perfis = await BancoDeDados.getPerfisCadastrados();
-      const logado = perfis.find(p => p.username === usernameLogado);
-      const remetente = perfis.find(p => p.username === usernameRemetente);
-
-      if (logado && remetente) {
-        const novosRecebidos = (logado.pedidos_recebidos || []).filter(u => u !== usernameRemetente);
-        const novosEnviados = (remetente.pedidos_enviados || []).filter(u => u !== usernameLogado);
-
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameLogado}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ pedidos_recebidos: novosRecebidos })
-        });
-
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ pedidos_enviados: novosEnviados })
-        });
-      }
-      return await BancoDeDados.getPerfisCadastrados();
-    } catch (e) {
-      return [];
-    }
-  },
-
-  // --- MENSAGENS E CHAT ---
-  getMensagensChat: async (usuarioA, usuarioB) => {
-    try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat?select=*&or=(and(remetente.eq.${usuarioA},destinatario.eq.${usuarioB}),and(remetente.eq.${usuarioB},destinatario.eq.${usuarioA}))&order=id.asc`, { method: 'GET', headers });
-      if (!response.ok) return [];
-      return await response.json();
-    } catch (err) { return []; }
-  },
-
-  enviarMensagemChat: async (novaMensagem) => {
-    try {
-      const payload = {
-        id: novaMensagem.id,
-        remetente: novaMensagem.remetente,
-        destinatario: novaMensagem.destinatario,
-        texto: novaMensagem.texto || '',
-        midia: novaMensagem.midia || null,
-        tipo_midia: novaMensagem.tipoMidia || null,
-        visualizacao_unica: Boolean(novaMensagem.visualizacaoUnica),
-        horario: novaMensagem.horario
-      };
-
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat`, { 
-        method: 'POST', 
-        headers, 
-        body: JSON.stringify(payload) 
-      });
-
-      if (response.ok) {
-        await BancoDeDados.adicionarNotificacao(novaMensagem.destinatario, `@${novaMensagem.remetente} enviou uma nova mensagem.`, 'mensagem');
-      }
-    } catch (err) {}
-  },
-
-  // --- NOTIFICAÇÕES ---
-  getNotificacoes: async (username) => {
-    try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?select=*&destinatario=eq.${username}&order=id.desc`, { method: 'GET', headers });
-      if (!response.ok) return [];
-      return await response.json();
-    } catch (err) { return []; }
-  },
-
-  adicionarNotificacao: async (usernameDestino, texto, tipo) => {
-    try {
-      const novaNotif = {
-        id: Date.now(),
-        destinatario: usernameDestino,
-        texto,
-        tipo,
-        lida: false,
-        horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes`, { method: 'POST', headers, body: JSON.stringify(novaNotif) });
-    } catch (e) {}
-  },
-
-  marcarNotificacoesLidas: async (username) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?destinatario=eq.${username}`, { method: 'PATCH', headers, body: JSON.stringify({ lida: true }) });
-    } catch (e) {}
-  },
-
-  // --- PEDIDOS DE ORAÇÃO ---
-  getPedidosOracao: async () => {
-    try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?select=*&order=id.desc`, { method: 'GET', headers });
-      if (!response.ok) return [];
-      return await response.json();
-    } catch (err) { return []; }
-  },
-
-  salvarPedidoOracao: async (pedido) => {
-    try {
-      const payload = {
-        id: pedido.id,
-        username: pedido.username,
-        autor: pedido.autor || pedido.username,
-        texto: pedido.texto,
-        apoios: 0
-      };
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao`, { method: 'POST', headers, body: JSON.stringify(payload) });
-      if (!response.ok) return await BancoDeDados.getPedidosOracao();
-      return await BancoDeDados.getPedidosOracao();
-    } catch (err) { return []; }
-  },
-
-  apoiarPedidoOracao: async (id) => {
-    try {
-      const pedidos = await BancoDeDados.getPedidosOracao();
-      const p = pedidos.find(item => item.id === id);
-      if (p) {
-        const novosApoios = (p.apoios || 0) + 1;
-        await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?id=eq.${id}`, { method: 'PATCH', headers, body: JSON.stringify({ apoios: novosApoios }) });
-      }
-      return await BancoDeDados.getPedidosOracao();
-    } catch (err) { return []; }
-  },
-
-  excluirPedidoOracao: async (id) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?id=eq.${id}`, { method: 'DELETE', headers });
-      return await BancoDeDados.getPedidosOracao();
-    } catch (err) { return []; }
-  },
-
-  limparConversaChat: async (usuarioA, usuarioB) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat?or=(and(remetente.eq.${usuarioA},destinatario.eq.${usuarioB}),and(remetente.eq.${usuarioB},destinatario.eq.${usuarioA}))`, {
-        method: 'DELETE',
-        headers
-      });
-      return [];
-    } catch (err) {
-      return [];
-    }
-  },
-
-  // --- ATUALIZAR TEMA DO USUÁRIO NO BANCO ---
-  atualizarTemaUsuario: async (username, darkMode) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${username}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ dark_mode: darkMode })
-      });
-    } catch (e) {
-      console.error("Erro ao atualizar tema no banco:", e);
-    }
-  },
-  // --- PLANOS DE ESTUDO ---
-  buscarPlanos: async () => {
-    try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/planos_estudo?select=*&order=created_at.desc`, { method: 'GET', headers });
-      if (!response.ok) return [];
-      const data = await response.json();
-      return data || [];
-    } catch (err) {
-      return [];
-    }
-  },
-
-  criarPlano: async (planoObj) => {
-    try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/planos_estudo`, {
-        method: 'POST',
-        headers: {
-          ...headers,
-          'Prefer': 'resolution=merge-duplicates' // Garante que se o ID já existir, ele atualiza (upsert)
-        },
-        body: JSON.stringify(planoObj)
-      });
-      if (!response.ok) return null;
-      return await response.json();
-    } catch (err) {
-      return null;
-    }
-  },
-
-  deletarPlano: async (planoId) => {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/planos_estudo?id=eq.${planoId}`, {
-        method: 'DELETE',
-        headers
-      });
-    } catch (err) {
-      console.error("Erro ao deletar plano:", err);
-    }
-  },
-};
+    </div>
+  );
+}
