@@ -138,22 +138,25 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       dias: diasArray
     };
 
-    const planosLocal = localStorage.getItem('rede_planos_estudo_global');
-    const planosAtuais = planosLocal ? JSON.parse(planosLocal) : [];
-    const atualizados = [novoPlanoObj, ...planosAtuais];
-    
-    localStorage.setItem('rede_planos_estudo_global', JSON.stringify(atualizados));
-    
-    // Se o BancoDeDados possuir método de salvamento no Supabase, você pode invocá-lo aqui:
-    // try { await BancoDeDados.salvarPlano(novoPlanoObj); } catch (err) {}
+    try {
+      // Salva diretamente no Supabase através do BancoDeDados
+      if (typeof BancoDeDados?.criarPlano === 'function') {
+        await BancoDeDados.criarPlano(novoPlanoObj);
+      }
 
-    carregarDadosCompartilhados();
+      // Atualiza os dados na tela instantaneamente
+      await carregarDadosCompartilhados();
 
-    setNovoTitulo('');
-    setNovaDescricao('');
-    setNovaCapaUrl('');
-    setTotalDias(7);
-    setModalCriarAberto(false);
+      // Limpa os campos e fecha o modal
+      setNovoTitulo('');
+      setNovaDescricao('');
+      setNovaCapaUrl('');
+      setTotalDias(7);
+      setModalCriarAberto(false);
+    } catch (error) {
+      console.error("Erro ao criar o plano:", error);
+      alert("Erro ao criar o plano. Verifique a conexão com o banco de dados.");
+    }
   };
 
   // Função de exclusão integrada com o BancoDeDados / Supabase
