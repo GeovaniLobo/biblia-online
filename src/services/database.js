@@ -557,7 +557,10 @@ export const BancoDeDados = {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/planos_estudo`, {
         method: 'POST',
-        headers,
+        headers: {
+          ...headers,
+          'Prefer': 'resolution=merge-duplicates' // Garante que se o ID já existir, ele atualiza (upsert)
+        },
         body: JSON.stringify(planoObj)
       });
       if (!response.ok) return null;
