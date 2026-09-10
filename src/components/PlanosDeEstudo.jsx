@@ -55,14 +55,19 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       localStorage.setItem('rede_planos_estudo_global', JSON.stringify(planosSalvos));
     }
 
-    // Carrega progresso individual dos participantes se houver
+    // Carrega progresso individual dos participantes
     const progressoLocal = localStorage.getItem(`progresso_planos_${usuarioLogado?.username}`);
     const progressoUsuarios = progressoLocal ? JSON.parse(progressoLocal) : {};
 
-    // Aplica o estado de concluído pessoal de cada usuário nos planos
+    // Aplica o estado de concluído pessoal e filtra planos que o leitor optou por "desistir/remover" do painel dele
     const planosMapeados = planosSalvos.map(plano => {
       const progressoPlano = progressoUsuarios[plano.id];
       if (progressoPlano) {
+        // Se o objeto de progresso tiver uma flag indicando que ele removeu/desistiu do plano
+        if (progressoPlano.removidoPeloUsuario) {
+          return null; // Oculta o plano para este usuário específico
+        }
+
         const diasAtualizados = plano.dias.map(d => ({
           ...d,
           concluido: !!progressoPlano[d.dia]
@@ -70,14 +75,17 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         return { ...plano, dias: diasAtualizados };
       }
       return plano;
-    });
+    }).filter(Boolean); // Remove os nulos (planos ocultados pelo leitor)
 
     setPlanos(planosMapeados);
 
-    // Se houver um plano selecionado, sincroniza com o estado atualizado
     if (planoSelecionado) {
       const atual = planosMapeados.find(p => p.id === planoSelecionado.id);
-      if (atual) setPlanoSelecionado(atual);
+      if (!atual) {
+        setPlanoSelecionado(null); // Se o plano foi apagado pelo criador, fecha a tela de detalhes
+      } else {
+        setPlanoSelecionado(atual);
+      }
     }
 
     const comentariosLocal = localStorage.getItem('rede_comentarios_planos_global');
@@ -111,8 +119,9 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   }, [usuarioLogado]);
 
   const salvarPlanosGlobais = (novosPlanos) => {
-    setPlanos(novosPlanos);
+    // Atualiza diretamente no localStorage global para apagar de vez para todos
     localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanos));
+    carregarDadosCompartilhados();
   };
 
   const salvarComentariosGlobais = (novosComentarios) => {
@@ -156,7 +165,11 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       dias: diasArray
     };
 
-    const atualizados = [novoPlanoObj, ...planos];
+    // Pega os dados crus atuais do storage global para adicionar corretamente
+    const planosLocal = localStorage.getItem('rede_planos_estudo_global');
+    const planosAtuais = planosLocal ? JSON.parse(planosLocal) : [];
+    const atualizados = [novoPlanoObj, ...planosAtuais];
+    
     salvarPlanosGlobais(atualizados);
 
     setNovoTitulo('');
@@ -166,41 +179,36 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     setModalCriarAberto(false);
   };
 
-  // Função para excluir plano (Criador apaga para todos / Participante apaga só para si)
+  // Função para excluir plano com regras separadas para Autor vs Participante
   const apagarPlano = (planoId) => {
-    const planoAlvo = planos.find(p => p.id === planoId);
+    const planosLocal = localStorage.getItem('rede_planos_estudo_global');
+    const planosAtuais = planosLocal ? JSON.parse(planosLocal) : [];
+    const planoAlvo = planosAtuais.find(p => p.id === planoId);
+    
     if (!planoAlvo) return;
 
     const souCriador = planoAlvo.criador === usuarioLogado.username;
 
     if (souCriador) {
       if (window.confirm('Tem certeza que deseja apagar este plano permanentemente para todos os participantes?')) {
-        const novosPlanos = planos.filter(p => p.id !== planoId);
+        // Remove de vez do banco global
+        const novosPlanos = planosAtuais.filter(p => p.id !== planoId);
         salvarPlanosGlobais(novosPlanos);
         setPlanoSelecionado(null);
-        alert('Plano excluído com sucesso.');
+        alert('Plano excluído definitivamente.');
       }
     } else {
-      if (window.confirm('Deseja desistir/remover este plano do seu perfil? Seu progresso será resetado, mas você poderá acessá-lo novamente depois.')) {
-        // Remove apenas o progresso pessoal salvo do usuário para este plano
+      if (window.confirm('Deseja remover este plano do seu painel? Você poderá acessá-lo e iniciá-lo novamente depois na aba de sugestões.')) {
+        // Marca como removido apenas para este usuário no storage dele (permite reaparecer caso ele queira entrar de novo)
         const progressoKey = `progresso_planos_${usuarioLogado.username}`;
         const progressoSalvo = JSON.parse(localStorage.getItem(progressoKey) || '{}');
-        delete progressoSalvo[planoId];
+        
+        progressoSalvo[planoId] = { removidoPeloUsuario: true };
         localStorage.setItem(progressoKey, JSON.stringify(progressoSalvo));
 
-        // Reseta localmente para não concluído
-        const planosAtualizados = planos.map(p => {
-          if (p.id === planoId) {
-            return {
-              ...p,
-              dias: p.dias.map(d => ({ ...d, concluido: false }))
-            };
-          }
-          return p;
-        });
-        setPlanos(planosAtualizados);
         setPlanoSelecionado(null);
-        alert('Você removeu este plano do seu painel.');
+        carregarDadosCompartilhados();
+        alert('Plano removido do seu painel.');
       }
     }
   };
@@ -232,14 +240,15 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     };
 
     const planoAtualizado = { ...planoSelecionado, dias: diasAtualizados };
-    setPlanosSelecionadoComAtualizacao(planoAtualizado);
-    alert('Alterações salvas com sucesso! 🚀');
-  };
-
-  const setPlanosSelecionadoComAtualizacao = (planoAtualizado) => {
-    setPlanoSelecionado(planoAtualizado);
-    const novosPlanos = planos.map(p => p.id === planoAtualizado.id ? planoAtualizado : p);
+    
+    // Atualiza globalmente no localStorage
+    const planosLocal = localStorage.getItem('rede_planos_estudo_global');
+    const planosAtuais = planosLocal ? JSON.parse(planosLocal) : [];
+    const novosPlanos = planosAtuais.map(p => p.id === planoAtualizado.id ? planoAtualizado : p);
+    
     salvarPlanosGlobais(novosPlanos);
+    setPlanoSelecionado(planoAtualizado);
+    alert('Alterações salvas com sucesso! 🚀');
   };
 
   const alternarConclusaoDia = (diaNum) => {
@@ -256,17 +265,20 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     const planoAtualizado = { ...planoSelecionado, dias: diasAtualizados };
     const progressoNovo = calcularProgresso(planoAtualizado.dias);
 
-    setPlanosSelecionadoComAtualizacao(planoAtualizado);
+    setPlanoSelecionado(planoAtualizado);
 
-    // Salva o progresso individual separadamente por usuário
+    // Salva o progresso individual separadamente por usuário sem afetar os dados globais do plano
     const progressoKey = `progresso_planos_${usuarioLogado.username}`;
     const progressoSalvo = JSON.parse(localStorage.getItem(progressoKey) || '{}');
-    const statusDiasObj = {};
-    planoAtualizado.dias.forEach(d => {
-      if (d.concluido) statusDiasObj[d.dia] = true;
-    });
+    const statusDiasObj = progressoSalvo[planoSelecionado.id] || {};
+    
+    statusDiasObj[diaNum] = diasAtualizados.find(d => d.dia === diaNum).concluido;
+    statusDiasObj.removidoPeloUsuario = false; // Garante que se ele estava oculto, volte a aparecer ao interagir
+
     progressoSalvo[planoSelecionado.id] = statusDiasObj;
     localStorage.setItem(progressoKey, JSON.stringify(progressoSalvo));
+
+    carregarDadosCompartilhados();
 
     if (progressoAntigo < 100 && progressoNovo === 100) {
       setMostrarModalConquista(true);
