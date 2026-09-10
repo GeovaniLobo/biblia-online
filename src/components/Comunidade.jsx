@@ -197,9 +197,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     }
   }, [mensagensChat]);
 
+  // CORREÇÃO PRINCIPAL: Forçando a prioridade absoluta dos dados frescos do Supabase
   const meuPerfilBanco = perfisReais.find(p => p.username === usuarioLogado.username) || {};
   const fotoPerfilOficial = meuPerfilBanco.foto || usuarioLogado.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
   const nomePerfilOficial = meuPerfilBanco.nome || usuarioLogado.nome || 'Usuário';
+  const biografiaOficial = meuPerfilBanco.biografia !== undefined ? meuPerfilBanco.biografia : (usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.');
 
   const meusAmigos = meuPerfilBanco.amigos || [];
   const pedidosRecebidos = meuPerfilBanco.pedidos_recebidos || [];
@@ -1513,7 +1515,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 {meuPerfilBanco.verificado && <SeloVerificado tamanho="w-4 h-4" />}
               </div>
               <p onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
-              <p className="text-xs opacity-75 mt-2 whitespace-pre-line break-words">{meuPerfilBanco.biografia || usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.'}</p>
+              {/* Biografia oficial vinda do Supabase */}
+              <p className="text-xs opacity-75 mt-2 whitespace-pre-line break-words">{biografiaOficial}</p>
             </div>
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
               <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
