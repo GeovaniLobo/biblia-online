@@ -59,13 +59,12 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     const progressoLocal = localStorage.getItem(`progresso_planos_${usuarioLogado?.username}`);
     const progressoUsuarios = progressoLocal ? JSON.parse(progressoLocal) : {};
 
-    // Aplica o estado de concluído pessoal e filtra planos que o leitor optou por "desistir/remover" do painel dele
+    // Aplica o estado de concluído pessoal e filtra planos que o leitor optou por "desistir/remover"
     const planosMapeados = planosSalvos.map(plano => {
       const progressoPlano = progressoUsuarios[plano.id];
       if (progressoPlano) {
-        // Se o objeto de progresso tiver uma flag indicando que ele removeu/desistiu do plano
         if (progressoPlano.removidoPeloUsuario) {
-          return null; // Oculta o plano para este usuário específico
+          return null; 
         }
 
         const diasAtualizados = plano.dias.map(d => ({
@@ -75,18 +74,9 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         return { ...plano, dias: diasAtualizados };
       }
       return plano;
-    }).filter(Boolean); // Remove os nulos (planos ocultados pelo leitor)
+    }).filter(Boolean);
 
     setPlanos(planosMapeados);
-
-    if (planoSelecionado) {
-      const atual = planosMapeados.find(p => p.id === planoSelecionado.id);
-      if (!atual) {
-        setPlanoSelecionado(null); // Se o plano foi apagado pelo criador, fecha a tela de detalhes
-      } else {
-        setPlanoSelecionado(atual);
-      }
-    }
 
     const comentariosLocal = localStorage.getItem('rede_comentarios_planos_global');
     if (comentariosLocal) {
@@ -117,12 +107,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     window.addEventListener('storage', aoMudarStorage);
     return () => window.removeEventListener('storage', aoMudarStorage);
   }, [usuarioLogado]);
-
-  const salvarPlanosGlobais = (novosPlanos) => {
-    // Atualiza diretamente no localStorage global para apagar de vez para todos
-    localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanos));
-    carregarDadosCompartilhados();
-  };
 
   const salvarComentariosGlobais = (novosComentarios) => {
     setComentariosDias(novosComentarios);
@@ -165,12 +149,12 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       dias: diasArray
     };
 
-    // Pega os dados crus atuais do storage global para adicionar corretamente
     const planosLocal = localStorage.getItem('rede_planos_estudo_global');
     const planosAtuais = planosLocal ? JSON.parse(planosLocal) : [];
     const atualizados = [novoPlanoObj, ...planosAtuais];
     
-    salvarPlanosGlobais(atualizados);
+    localStorage.setItem('rede_planos_estudo_global', JSON.stringify(atualizados));
+    carregarDadosCompartilhados();
 
     setNovoTitulo('');
     setNovaDescricao('');
@@ -179,7 +163,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     setModalCriarAberto(false);
   };
 
-  // Função para excluir plano com regras separadas para Autor vs Participante
+  // Função corrigida para apagar o plano de forma imediata na tela
   const apagarPlano = (planoId) => {
     const planosLocal = localStorage.getItem('rede_planos_estudo_global');
     const planosAtuais = planosLocal ? JSON.parse(planosLocal) : [];
@@ -193,20 +177,26 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       if (window.confirm('Tem certeza que deseja apagar este plano permanentemente para todos os participantes?')) {
         // Remove de vez do banco global
         const novosPlanos = planosAtuais.filter(p => p.id !== planoId);
-        salvarPlanosGlobais(novosPlanos);
+        localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanos));
+        
+        // Fecha a tela de detalhes instantaneamente e atualiza a listagem
         setPlanoSelecionado(null);
+        setModoLeitura(false);
+        carregarDadosCompartilhados();
         alert('Plano excluído definitivamente.');
       }
     } else {
       if (window.confirm('Deseja remover este plano do seu painel? Você poderá acessá-lo e iniciá-lo novamente depois na aba de sugestões.')) {
-        // Marca como removido apenas para este usuário no storage dele (permite reaparecer caso ele queira entrar de novo)
+        // Marca como removido apenas para este usuário no storage dele
         const progressoKey = `progresso_planos_${usuarioLogado.username}`;
         const progressoSalvo = JSON.parse(localStorage.getItem(progressoKey) || '{}');
         
-        progressoSalvo[planoId] = { removidoPeloUsuario: true };
+        progressoSalvo[planoId] = { ...(progressoSalvo[planoId] || {}), removidoPeloUsuario: true };
         localStorage.setItem(progressoKey, JSON.stringify(progressoSalvo));
 
+        // Fecha a tela de detalhes instantaneamente e atualiza a listagem
         setPlanoSelecionado(null);
+        setModoLeitura(false);
         carregarDadosCompartilhados();
         alert('Plano removido do seu painel.');
       }
@@ -241,13 +231,13 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
     const planoAtualizado = { ...planoSelecionado, dias: diasAtualizados };
     
-    // Atualiza globalmente no localStorage
     const planosLocal = localStorage.getItem('rede_planos_estudo_global');
     const planosAtuais = planosLocal ? JSON.parse(planosLocal) : [];
     const novosPlanos = planosAtuais.map(p => p.id === planoAtualizado.id ? planoAtualizado : p);
     
-    salvarPlanosGlobais(novosPlanos);
+    localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanos));
     setPlanoSelecionado(planoAtualizado);
+    carregarDadosCompartilhados();
     alert('Alterações salvas com sucesso! 🚀');
   };
 
@@ -267,13 +257,12 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
     setPlanoSelecionado(planoAtualizado);
 
-    // Salva o progresso individual separadamente por usuário sem afetar os dados globais do plano
     const progressoKey = `progresso_planos_${usuarioLogado.username}`;
     const progressoSalvo = JSON.parse(localStorage.getItem(progressoKey) || '{}');
     const statusDiasObj = progressoSalvo[planoSelecionado.id] || {};
     
     statusDiasObj[diaNum] = diasAtualizados.find(d => d.dia === diaNum).concluido;
-    statusDiasObj.removidoPeloUsuario = false; // Garante que se ele estava oculto, volte a aparecer ao interagir
+    statusDiasObj.removidoPeloUsuario = false; 
 
     progressoSalvo[planoSelecionado.id] = statusDiasObj;
     localStorage.setItem(progressoKey, JSON.stringify(progressoSalvo));
