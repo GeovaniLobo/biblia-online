@@ -1542,7 +1542,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 {meuPerfilBanco.verificado && <SeloVerificado tamanho="w-4 h-4" />}
               </div>
               <p onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
-              <p className="text-xs opacity-75 mt-2">{meuPerfilBanco.biografia || usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.'}</p>
+              <p className="text-xs opacity-75 mt-2 whitespace-pre-line break-words">{meuPerfilBanco.biografia || usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.'}</p>
             </div>
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
               <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
