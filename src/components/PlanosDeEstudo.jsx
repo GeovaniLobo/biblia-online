@@ -210,7 +210,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     }, 0);
   };
 
-  const salvarEdicaoDiaAtual = () => {
+  const salvarEdicaoDiaAtual = async () => {
     if (!planoSelecionado) return;
 
     if (planoSelecionado.criador !== usuarioLogado.username) {
@@ -230,14 +230,17 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     const planoAtualizado = { ...planoSelecionado, dias: diasAtualizados };
     
     try {
+      // Salva as alterações oficiais diretamente na tabela do Supabase
       if (typeof BancoDeDados?.criarPlano === 'function') {
-        BancoDeDados.criarPlano(planoAtualizado);
+        await BancoDeDados.criarPlano(planoAtualizado);
       }
-    } catch(e) {}
+    } catch(e) {
+      console.error("Erro ao salvar no Supabase:", e);
+    }
 
     setPlanoSelecionado(planoAtualizado);
-    carregarDadosCompartilhados();
-    alert('Alterações salvas com sucesso!');
+    await carregarDadosCompartilhados();
+    alert('Alterações salvas e sincronizadas com sucesso!');
   };
 
   const alternarConclusaoDia = (diaNum) => {
