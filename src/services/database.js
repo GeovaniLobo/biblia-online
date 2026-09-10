@@ -26,7 +26,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
   const [mostrarModalConquista, setMostrarModalConquista] = useState(false);
   const [abaAtivaFiltro, setAbaAtivaFiltro] = useState('todos');
-  const textareaRef = useRef(null);
+  const editorRef = useRef(null);
 
   const carregarDadosCompartilhados = async () => {
     try {
@@ -116,7 +116,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       capaFinal = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80';
     }
 
-    // Dias criados totalmente limpos, sem textos automáticos incômodos
+    // Dias criados TOTALMENTE VAZIOS, sem textos padrões incômodos
     const diasArray = Array.from({ length: Number(totalDias) }, (_, i) => ({
       dia: i + 1,
       tituloDia: `Dia ${i + 1}`,
@@ -192,6 +192,14 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     }
   };
 
+  // Aplica formatação visual direta (Negrito, Itálico, etc.) sem mostrar tags feias
+  const aplicarFormatacaoVisual = (comando, valor = null) => {
+    document.execCommand(comando, false, valor);
+    if (editorRef.current) {
+      setTextoEstudoDia(editorRef.current.innerHTML);
+    }
+  };
+
   const salvarEdicaoDiaAtual = async () => {
     if (!planoSelecionado) return;
 
@@ -200,10 +208,12 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       return;
     }
 
+    const conteudoFinal = editorRef.current ? editorRef.current.innerHTML : textoEstudoDia;
+
     const diasAtualizados = [...planoSelecionado.dias];
     diasAtualizados[diaAtivoIndex] = {
       ...diasAtualizados[diaAtivoIndex],
-      conteudoEstudo: textoEstudoDia,
+      conteudoEstudo: conteudoFinal,
       perguntaPratica: perguntaPratica,
       midia: midiaDiaUrl,
       tipoMidia: tipoMidiaDia
@@ -490,7 +500,11 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                 key={d.dia}
                 onClick={() => {
                   setDiaAtivoIndex(index);
-                  setTextoEstudoDia(d.conteudoEstudo || '');
+                  const conteudo = d.conteudoEstudo || '';
+                  setTextoEstudoDia(conteudo);
+                  if (editorRef.current) {
+                    editorRef.current.innerHTML = conteudo;
+                  }
                   setPerguntaPratica(d.perguntaPratica || '');
                   setMidiaDiaUrl(d.midia || '');
                   setTipoMidiaDia(d.tipoMidia || 'imagem');
@@ -537,17 +551,31 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                 <div className="space-y-6">
                   {souOCriador ? (
                     <div className="space-y-4">
-                      <label className="text-xs font-bold text-blue-400 block">Editor de Conteúdo do Dia:</label>
+                      <label className="text-xs font-bold text-blue-400 block">Editor de Conteúdo com Formatação Visual:</label>
                       
-                      {/* Textarea limpa, sem tags visíveis irritantes */}
-                      <textarea 
-                        ref={textareaRef}
-                        rows="8"
-                        value={textoEstudoDia}
-                        onChange={(e) => setTextoEstudoDia(e.target.value)}
-                        placeholder="Escreva o conteúdo do estudo aqui..."
-                        className="w-full text-sm sm:text-base rounded-2xl p-4 border border-slate-800/50 bg-transparent text-inherit focus:outline-none focus:border-blue-500 leading-relaxed resize-y"
-                      ></textarea>
+                      {/* Barra de Ferramentas com Estilos Visuais Reais */}
+                      <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-slate-900/40 border border-slate-800/60">
+                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacaoVisual('bold')} className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Negrito"><b>B</b></button>
+                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacaoVisual('italic')} className="px-2.5 py-1 text-xs italic bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Itálico"><i>I</i></button>
+                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacaoVisual('underline')} className="px-2.5 py-1 text-xs underline bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Sublinhado"><u>U</u></button>
+                        <span className="w-px h-5 bg-slate-700 self-center mx-1"></span>
+                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacaoVisual('fontSize', '4')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Título">Título</button>
+                        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacaoVisual('fontSize', '3')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Normal">Normal</button>
+                      </div>
+
+                      {/* Caixa de Edição Visual Limpa (Sem códigos HTML visíveis) */}
+                      <div 
+                        ref={editorRef}
+                        contentEditable={true}
+                        suppressContentEditableWarning={true}
+                        onInput={(e) => setTextoEstudoDia(e.currentTarget.innerHTML)}
+                        onClick={() => {
+                          if (editorRef.current && document.activeElement !== editorRef.current) {
+                            editorRef.current.focus();
+                          }
+                        }}
+                        className="w-full min-h-[220px] text-sm sm:text-base rounded-2xl p-4 border border-slate-800/50 bg-transparent focus:outline-none focus:border-blue-500 leading-relaxed cursor-text overflow-y-auto"
+                      ></div>
 
                       <div className="space-y-1">
                         <label className="text-xs font-bold text-amber-400 block">Desafio ou Pergunta Prática ("Pratique Hoje"):</label>
@@ -569,9 +597,11 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      <div className="text-sm sm:text-base leading-relaxed opacity-95 whitespace-pre-wrap">
-                        {diaAtual.conteudoEstudo || "Nenhum conteúdo publicado para este dia ainda."}
-                      </div>
+                      {/* Renderiza perfeitamente formatado para os participantes, sem tags cruas */}
+                      <div 
+                        className="prose prose-invert max-w-none text-sm sm:text-base leading-relaxed opacity-95"
+                        dangerouslySetInnerHTML={{ __html: diaAtual.conteudoEstudo || "Nenhum conteúdo publicado para este dia ainda." }}
+                      ></div>
 
                       {diaAtual.perguntaPratica && (
                         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-1">
@@ -683,7 +713,11 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     setPlanoSelecionado(plano);
                     setModoLeitura(false);
                     setDiaAtivoIndex(0);
-                    setTextoEstudoDia(plano.dias[0]?.conteudoEstudo || '');
+                    const conteudoInicial = plano.dias[0]?.conteudoEstudo || '';
+                    setTextoEstudoDia(conteudoInicial);
+                    if (editorRef.current) {
+                      editorRef.current.innerHTML = conteudoInicial;
+                    }
                     setMidiaDiaUrl(plano.dias[0]?.midia || '');
                     setTipoMidiaDia(plano.dias[0]?.tipoMidia || 'imagem');
                   }}
