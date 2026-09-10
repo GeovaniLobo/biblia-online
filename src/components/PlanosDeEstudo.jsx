@@ -31,31 +31,16 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   // Carrega os dados integrando com o Supabase / BancoDeDados da aplicação
   const carregarDadosCompartilhados = async () => {
     try {
-      // Se o seu serviço possui método assíncrono, você pode buscar do banco aqui. 
-      // Mantemos a compatibilidade com o localStorage caso o BancoDeDados sirva como wrapper ou fallback.
-      const planosLocal = localStorage.getItem('rede_planos_estudo_global');
-      let planosSalvos = planosLocal ? JSON.parse(planosLocal) : [];
+      let planosSalvos = [];
+      
+      // Busca direto do Supabase via BancoDeDados
+      if (typeof BancoDeDados?.buscarPlanos === 'function') {
+        planosSalvos = await BancoDeDados.buscarPlanos();
+      }
 
-      if (!planosSalvos || planosSalvos.length === 0) {
-        planosSalvos = [
-          {
-            id: 1,
-            criador: 'geovanilobo',
-            titulo: 'Como se aproximar de Deus nos dias de hoje',
-            descricao: 'Um devocional profundo de 7 dias para silenciar o barulho do mundo e cultivar uma intimidade real com o Criador.',
-            capa: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80',
-            dias: Array.from({ length: 7 }, (_, i) => ({
-              dia: i + 1,
-              tituloDia: `Dia ${i + 1}: Jornada Espiritual`,
-              conteudoEstudo: `<p>Reflexão guiada para o dia ${i + 1}: Busquem ao Senhor e meditem em Sua palavra.</p>`,
-              perguntaPratica: `Qual distração você pode remover hoje para passar 10 minutos em silêncio com Deus?`,
-              midia: '',
-              tipoMidia: 'imagem',
-              concluido: false
-            }))
-          }
-        ];
-        localStorage.setItem('rede_planos_estudo_global', JSON.stringify(planosSalvos));
+      // Se quiser que venha vazio caso o banco esteja vazio (sem recriar o plano fantasma):
+      if (!planosSalvos) {
+        planosSalvos = [];
       }
 
       const progressoLocal = localStorage.getItem(`progresso_planos_${usuarioLogado?.username}`);
