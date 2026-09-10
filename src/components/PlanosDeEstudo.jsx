@@ -44,7 +44,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
           dias: Array.from({ length: 7 }, (_, i) => ({
             dia: i + 1,
             tituloDia: `Dia ${i + 1}: Jornada Espiritual`,
-            conteudoEstudo: `<p>Reflexão guiada para o dia ${i + 1}: Busquem ao Senhor e meditem em Sua palavra.</p>`,
+            conteudoEstudo: `<p>Reflexão guiada para el dia ${i + 1}: Busquem ao Senhor e meditem em Sua palavra.</p>`,
             perguntaPratica: `Qual distração você pode remover hoje para passar 10 minutos em silêncio com Deus?`,
             midia: '',
             tipoMidia: 'imagem',
@@ -55,11 +55,9 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       localStorage.setItem('rede_planos_estudo_global', JSON.stringify(planosSalvos));
     }
 
-    // Carrega progresso individual dos participantes
     const progressoLocal = localStorage.getItem(`progresso_planos_${usuarioLogado?.username}`);
     const progressoUsuarios = progressoLocal ? JSON.parse(progressoLocal) : {};
 
-    // Aplica o estado de concluído pessoal e filtra planos que o leitor optou por "desistir/remover"
     const planosMapeados = planosSalvos.map(plano => {
       const progressoPlano = progressoUsuarios[plano.id];
       if (progressoPlano) {
@@ -163,7 +161,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     setModalCriarAberto(false);
   };
 
-  // Função corrigida para apagar o plano de forma imediata na tela
+  // Função corrigida para apagar o plano permanentemente para o autor ou individualmente para o leitor
   const apagarPlano = (planoId) => {
     const planosLocal = localStorage.getItem('rede_planos_estudo_global');
     const planosAtuais = planosLocal ? JSON.parse(planosLocal) : [];
@@ -175,28 +173,24 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
     if (souCriador) {
       if (window.confirm('Tem certeza que deseja apagar este plano permanentemente para todos os participantes?')) {
-        // 1. Remove do array global
         const novosPlanosGlobal = planosAtuais.filter(p => p.id !== planoId);
         localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanosGlobal));
-
-        // 2. Atualiza imediatamente o estado visual do React
-        setPlanos(prev => prev.filter(p => p.id !== planoId));
+        
         setPlanoSelecionado(null);
         setModoLeitura(false);
+        carregarDadosCompartilhados();
       }
     } else {
       if (window.confirm('Deseja remover este plano do seu painel? Você poderá acessá-lo e iniciá-lo novamente depois na aba de sugestões.')) {
-        // Marca como removido apenas para este usuário no storage dele
         const progressoKey = `progresso_planos_${usuarioLogado.username}`;
         const progressoSalvo = JSON.parse(localStorage.getItem(progressoKey) || '{}');
         
         progressoSalvo[planoId] = { ...(progressoSalvo[planoId] || {}), removidoPeloUsuario: true };
         localStorage.setItem(progressoKey, JSON.stringify(progressoSalvo));
 
-        // Atualiza imediatamente o estado visual do React
-        setPlanos(prev => prev.filter(p => p.id !== planoId));
         setPlanoSelecionado(null);
         setModoLeitura(false);
+        carregarDadosCompartilhados();
       }
     }
   };
@@ -313,18 +307,18 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       {mostrarModalConquista && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-300">
           <div className="max-w-md w-full bg-slate-900 border border-emerald-500/50 rounded-3xl p-8 shadow-2xl text-white text-center space-y-4">
-            <div className="w-20 h-20 bg-emerald-500/20 border-2 border-emerald-500 rounded-full flex items-center justify-center mx-auto text-4xl animate-bounce">
-              🏆
+            <div className="w-20 h-20 bg-emerald-500/20 border-2 border-emerald-500 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
+              OK
             </div>
             <h3 className="text-xl font-black text-emerald-400">Jornada Concluída!</h3>
             <p className="text-xs opacity-80 leading-relaxed">
-              Parabéns, @{usuarioLogado.username}! Você concluiu 100% do plano de estudo com dedicação e constância na Palavra. ✨
+              Parabéns, @{usuarioLogado.username}! Você concluiu 100% do plano de estudo com dedicação e constância na Palavra.
             </p>
             <button 
               onClick={() => setMostrarModalConquista(false)}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-3 rounded-xl shadow-lg transition cursor-pointer"
             >
-              Continuar Caminhada 🚀
+              Continuar Caminhada
             </button>
           </div>
         </div>
@@ -334,7 +328,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-700/20">
           <div>
             <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
-              Planos de Estudo 📖
+              Planos de Estudo
             </h2>
             <p className="text-xs opacity-70 mt-1">Jornadas devocionais para fortalecer sua caminhada diária.</p>
           </div>
@@ -370,7 +364,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
           <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <div className="flex justify-between items-center border-b pb-3 border-slate-700">
               <h3 className="font-extrabold text-sm">Criar Novo Plano de Estudo</h3>
-              <button onClick={() => setModalCriarAberto(false)} className="text-sm font-bold opacity-70 cursor-pointer">✕</button>
+              <button onClick={() => setModalCriarAberto(false)} className="text-sm font-bold opacity-70 cursor-pointer">X</button>
             </div>
 
             <form onSubmit={criarPlanoEstudo} className="space-y-4">
@@ -436,15 +430,14 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <button onClick={() => setPlanoSelecionado(null)} className="text-xs font-bold text-blue-500 hover:underline inline-block cursor-pointer">
-              ← Voltar para todos os planos
+              &larr; Voltar para todos os planos
             </button>
 
-            {/* Botão de Excluir / Desistir do Plano */}
             <button 
               onClick={() => apagarPlano(planoSelecionado.id)}
               className="text-xs font-bold text-rose-500 hover:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1.5"
             >
-              🗑️ {souOCriador ? 'Apagar Plano Definitivamente' : 'Desistir / Remover Plano'}
+              {souOCriador ? 'Apagar Plano Definitivamente' : 'Desistir / Remover Plano'}
             </button>
           </div>
 
@@ -479,7 +472,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                 onClick={() => setModoLeitura(true)}
                 className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-6 py-3 rounded-xl shadow-lg transition cursor-pointer"
               >
-                {calcularProgresso(planoSelecionado.dias) > 0 ? 'Continuar Leitura 📖' : 'Começar este Plano'}
+                {calcularProgresso(planoSelecionado.dias) > 0 ? 'Continuar Leitura' : 'Começar este Plano'}
               </button>
             </div>
 
@@ -495,7 +488,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <button onClick={() => setModoLeitura(false)} className="text-xs font-bold text-blue-500 hover:underline cursor-pointer">
-              ← Visão Geral do Plano
+              &larr; Visão Geral do Plano
             </button>
             <span className="text-xs font-bold text-slate-400">
               Progresso: {calcularProgresso(planoSelecionado.dias)}%
@@ -550,7 +543,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                         : 'bg-slate-800/30 text-slate-300 hover:bg-slate-700 border border-slate-700/40'
                     }`}
                   >
-                    {diaAtual.concluido ? '✓ Dia Concluído' : 'Marcar como Concluído'}
+                    {diaAtual.concluido ? 'Dia Concluído' : 'Marcar como Concluído'}
                   </button>
                 </div>
 
@@ -597,7 +590,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                         onClick={salvarEdicaoDiaAtual}
                         className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-md cursor-pointer"
                       >
-                        Salvar Alterações Oficiais 
+                        Salvar Alterações Oficiais
                       </button>
                     </div>
                   ) : (
@@ -648,10 +641,9 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     </div>
                   )}
 
-                  {/* SEÇÃO DE COMENTÁRIOS PÚBLICOS DA COMUNIDADE */}
                   <div className="pt-6 border-t border-slate-800/40 space-y-4">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
-                       Reflexões e Comentários da Comunidade ({listaComentarios.length})
+                      Reflexões e Comentários da Comunidade ({listaComentarios.length})
                     </h4>
 
                     <form onSubmit={(e) => adicionarComentarioDia(e, planoSelecionado.id, diaAtual.dia)} className="flex gap-2">
@@ -701,7 +693,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         </div>
       )}
 
-      {/* LISTA DE PLANOS */}
       {!planoSelecionado && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {planosFiltrados.length === 0 ? (
