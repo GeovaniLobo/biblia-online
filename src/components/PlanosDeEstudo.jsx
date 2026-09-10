@@ -8,6 +8,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
   const [novoTitulo, setNovoTitulo] = useState('');
   const [novaDescricao, setNovaDescricao] = useState('');
   const [novaCapaUrl, setNovaCapaUrl] = useState('');
+  const [enviandoCapa, setEnviandoCapa] = useState(false);
   const [totalDias, setTotalDias] = useState(7);
 
   const [planoSelecionado, setPlanoSelecionado] = useState(null);
@@ -116,7 +117,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
       capaFinal = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80';
     }
 
-    // Dias criados TOTALMENTE VAZIOS, sem textos padrões incômodos
     const diasArray = Array.from({ length: Number(totalDias) }, (_, i) => ({
       dia: i + 1,
       tituloDia: `Dia ${i + 1}`,
@@ -192,7 +192,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     }
   };
 
-  // Aplica formatação visual direta (Negrito, Itálico, etc.) sem mostrar tags feias
   const aplicarFormatacaoVisual = (comando, valor = null) => {
     document.execCommand(comando, false, valor);
     if (editorRef.current) {
@@ -392,14 +391,27 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
               </div>
 
               <div>
-                <label className="text-xs font-bold opacity-70 block mb-1">URL da Imagem de Capa (Opcional):</label>
+                <label className="text-xs font-bold opacity-70 block mb-1">Imagem de Capa (Upload do Dispositivo):</label>
                 <input 
-                  type="url" 
-                  placeholder="https://exemplo.com/imagem.jpg" 
-                  value={novaCapaUrl}
-                  onChange={(e) => setNovaCapaUrl(e.target.value)}
-                  className={`w-full text-xs rounded-xl px-3.5 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}
+                  type="file" 
+                  accept="image/*" 
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setEnviandoCapa(true);
+                      const url = await processarArquivo(file);
+                      setEnviandoCapa(false);
+                      setNovaCapaUrl(url);
+                    }
+                  }} 
+                  className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
                 />
+                {enviandoCapa && <p className="text-xs text-blue-400 animate-pulse mt-1">Carregando imagem de capa...</p>}
+                {novaCapaUrl && !enviandoCapa && (
+                  <div className="mt-2 w-full h-24 rounded-xl overflow-hidden border border-slate-700">
+                    <img src={novaCapaUrl} alt="Prévia da Capa" className="w-full h-full object-cover" />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -553,7 +565,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     <div className="space-y-4">
                       <label className="text-xs font-bold text-blue-400 block">Editor de Conteúdo com Formatação Visual:</label>
                       
-                      {/* Barra de Ferramentas com Estilos Visuais Reais */}
                       <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-slate-900/40 border border-slate-800/60">
                         <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacaoVisual('bold')} className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Negrito"><b>B</b></button>
                         <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacaoVisual('italic')} className="px-2.5 py-1 text-xs italic bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Itálico"><i>I</i></button>
@@ -563,7 +574,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                         <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacaoVisual('fontSize', '3')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Normal">Normal</button>
                       </div>
 
-                      {/* Caixa de Edição Visual Limpa (Sem códigos HTML visíveis) */}
                       <div 
                         ref={editorRef}
                         contentEditable={true}
@@ -597,7 +607,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {/* Renderiza perfeitamente formatado para os participantes, sem tags cruas */}
                       <div 
                         className="prose prose-invert max-w-none text-sm sm:text-base leading-relaxed opacity-95"
                         dangerouslySetInnerHTML={{ __html: diaAtual.conteudoEstudo || "Nenhum conteúdo publicado para este dia ainda." }}
