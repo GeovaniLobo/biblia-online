@@ -852,7 +852,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 text-xs">
-            <span className="opacity-75">Desenvolvido com por</span>
+            <span className="opacity-75">Desenvolvido por</span>
             <a 
               href="https://www.geolobo.dev" 
               target="_blank" 

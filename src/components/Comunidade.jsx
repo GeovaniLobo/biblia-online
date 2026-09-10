@@ -34,6 +34,15 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     '👍', '😎', '😢', '⭐', '🙌', '💪', '🥳', '👇', '🚀', '🕊️'
   ];
 
+  // Novas reações estilo Facebook com emojis animados
+  const listaReacoesOpcoes = [
+    { tipo: 'amei', emoji: '❤️', label: 'Amei', cor: 'text-rose-500' },
+    { tipo: 'amem', emoji: '🙏', label: 'Amém', cor: 'text-blue-500' },
+    { tipo: 'gloria', emoji: '✨', label: 'Glória', cor: 'text-amber-500' },
+    { tipo: 'parabens', emoji: '🎉', label: 'Parabéns', cor: 'text-purple-500' },
+    { tipo: 'felicidades', emoji: '🥳', label: 'Felicidades', cor: 'text-emerald-500' }
+  ];
+
   const [abaNotificacoesAberta, setAbaNotificacoesAberta] = useState(false);
   const [abaSolicitacoesAberta, setAbaSolicitacoesAberta] = useState(false);
 
@@ -530,7 +539,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       texto: pubTexto.trim(),
       imagem: pubImagem,
       curtidas: 0,
-      reacoes: { amem: [], aleluia: [], amor: [] },
+      reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] },
       comentarios: []
     };
     const atualizados = await BancoDeDados.salvarPublicacao(novoPost);
@@ -593,7 +602,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       username: usuarioLogado.username,
       texto: texto.trim(),
       resposta_a_id: respostaPaiId,
-      reacoes: { amem: [], aleluia: [], amor: [] }
+      reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] }
     };
 
     const atualizados = await BancoDeDados.adicionarComentarioPub(publicacaoId, comentarioObj);
@@ -700,11 +709,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     const autorVerificado = perfilAutorReal.verificado;
     const autorTemStory = storiesFiltradosAmigos.some(s => s.username === post.username);
 
-    const reacoes = post.reacoes || { amem: [], aleluia: [], amor: [] };
-    const meuAmem = (reacoes.amem || []).includes(usuarioLogado.username);
-    const meuAleluia = (reacoes.aleluia || []).includes(usuarioLogado.username);
-    const meuAmor = (reacoes.amor || []).includes(usuarioLogado.username);
-
     return (
       <div key={post.id} className={`p-4 sm:p-6 rounded-3xl border shadow-md space-y-4 relative w-full overflow-hidden box-border ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         
@@ -786,22 +790,55 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <button onClick={() => reagir(post.id, 'amem')} className={`text-[11px] sm:text-xs px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-bold border transition flex items-center gap-1 ${meuAmem ? 'bg-blue-600 text-white border-blue-500 shadow-sm' : darkMode ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'}`}>
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-              <span>Amém ({(reacoes.amem || []).length})</span>
-            </button>
-            <button onClick={() => reagir(post.id, 'aleluia')} className={`text-[11px] sm:text-xs px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-bold border transition flex items-center gap-1 ${meuAleluia ? 'bg-amber-600 text-white border-amber-500 shadow-sm' : darkMode ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'}`}>
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-              <span>Aleluia ({(reacoes.aleluia || []).length})</span>
-            </button>
-            <button onClick={() => reagir(post.id, 'amor')} className={`text-[11px] sm:text-xs px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-bold border transition flex items-center gap-1 ${meuAmor ? 'bg-pink-600 text-white border-pink-500 shadow-sm' : darkMode ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'}`}>
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
-              <span>Amor ({(reacoes.amor || []).length})</span>
-            </button>
+          
+          {/* SISTEMA DE REAÇÕES ESTILO FACEBOOK COM HOVER E EMOJIS ANIMADOS */}
+          <div className="relative group/reacoes inline-block">
+            {(() => {
+              const reacoes = post.reacoes || {};
+              let minhaReacaoTipo = null;
+              for (const tipo of Object.keys(reacoes)) {
+                if ((reacoes[tipo] || []).includes(usuarioLogado.username)) {
+                  minhaReacaoTipo = tipo;
+                  break;
+                }
+              }
+              const dadosReacaoAtual = listaReacoesOpcoes.find(r => r.tipo === minhaReacaoTipo);
+              const totalReacoesGeral = Object.values(reacoes).reduce((acc, lista) => acc + (lista ? lista.length : 0), 0);
+
+              return (
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={() => reagir(post.id, minhaReacaoTipo ? minhaReacaoTipo : 'amei')}
+                    className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 cursor-pointer ${
+                      minhaReacaoTipo 
+                        ? 'bg-blue-600 text-white border-blue-500 shadow-sm' 
+                        : darkMode ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'
+                    }`}
+                  >
+                    <span className="text-sm animate-bounce">{dadosReacaoAtual ? dadosReacaoAtual.emoji : '❤️'}</span>
+                    <span>{dadosReacaoAtual ? dadosReacaoAtual.label : 'Amei'}</span>
+                    {totalReacoesGeral > 0 && <span className="ml-1 opacity-80">({totalReacoesGeral})</span>}
+                  </button>
+
+                  {/* Menu Flutuante Estilo Facebook ao Passar o Mouse */}
+                  <div className="absolute bottom-full left-0 mb-2 hidden group-hover/reacoes:flex items-center gap-2 bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-full shadow-2xl z-50 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+                    {listaReacoesOpcoes.map((r) => (
+                      <button
+                        key={r.tipo}
+                        onClick={() => reagir(post.id, r.tipo)}
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-xl hover:scale-125 transition-transform duration-200 cursor-pointer animate-bounce"
+                        title={r.label}
+                      >
+                        {r.emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
-          {/* CAIXA DE COMPARTILHAMENTO (PC: original à direita | Mobile: seguro à esquerda) */}
+          {/* CAIXA DE COMPARTILHAMENTO */}
           <div className="relative">
             <button 
               onClick={() => setMenuCompartilharAberto(menuCompartilharAberto === post.id ? null : post.id)}
@@ -875,10 +912,12 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 const autorComentarioVerificado = perfilAutorComentario.verificado;
                 const autorComentarioTemStory = storiesFiltradosAmigos.some(s => s.username === c.username);
 
-                const reacoesComentario = c.reacoes || { amem: [], aleluia: [], amor: [] };
+                const reacoesComentario = c.reacoes || { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
+                const meuAmeiCom = (reacoesComentario.amei || []).includes(usuarioLogado.username);
                 const meuAmemCom = (reacoesComentario.amem || []).includes(usuarioLogado.username);
-                const meuAleluiaCom = (reacoesComentario.aleluia || []).includes(usuarioLogado.username);
-                const meuAmorCom = (reacoesComentario.amor || []).includes(usuarioLogado.username);
+                const meuGloriaCom = (reacoesComentario.gloria || []).includes(usuarioLogado.username);
+                const meuParabensCom = (reacoesComentario.parabens || []).includes(usuarioLogado.username);
+                const meuFelicidadesCom = (reacoesComentario.felicidades || []).includes(usuarioLogado.username);
 
                 const ehResposta = Boolean(c.resposta_a_id);
                 const comentarioPai = ehResposta ? post.comentarios.find(cp => cp.id === c.resposta_a_id) : null;
@@ -927,14 +966,20 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         <p className="opacity-95 break-words leading-relaxed">{c.texto}</p>
 
                         <div className="flex flex-wrap items-center gap-3 pt-1">
-                          <button onClick={() => reagirComentarioPub(post.id, c.id, 'amem')} className={`text-[10px] font-bold flex items-center gap-1 ${meuAmemCom ? 'text-red-500' : 'opacity-60 hover:opacity-100'}`}>
-                            ❤️ Amém ({(reacoesComentario.amem || []).length})
+                          <button onClick={() => reagirComentarioPub(post.id, c.id, 'amei')} className={`text-[10px] font-bold flex items-center gap-1 ${meuAmeiCom ? 'text-rose-500' : 'opacity-60 hover:opacity-100'}`}>
+                            ❤️ Amei ({(reacoesComentario.amei || []).length})
                           </button>
-                          <button onClick={() => reagirComentarioPub(post.id, c.id, 'aleluia')} className={`text-[10px] font-bold flex items-center gap-1 ${meuAleluiaCom ? 'text-amber-500' : 'opacity-60 hover:opacity-100'}`}>
-                            ⭐ Aleluia ({(reacoesComentario.aleluia || []).length})
+                          <button onClick={() => reagirComentarioPub(post.id, c.id, 'amem')} className={`text-[10px] font-bold flex items-center gap-1 ${meuAmemCom ? 'text-blue-500' : 'opacity-60 hover:opacity-100'}`}>
+                            🙏 Amém ({(reacoesComentario.amem || []).length})
                           </button>
-                          <button onClick={() => reagirComentarioPub(post.id, c.id, 'amor')} className={`text-[10px] font-bold flex items-center gap-1 ${meuAmorCom ? 'text-pink-500' : 'opacity-60 hover:opacity-100'}`}>
-                            ✨ Amor ({(reacoesComentario.amor || []).length})
+                          <button onClick={() => reagirComentarioPub(post.id, c.id, 'gloria')} className={`text-[10px] font-bold flex items-center gap-1 ${meuGloriaCom ? 'text-amber-500' : 'opacity-60 hover:opacity-100'}`}>
+                            ✨ Glória ({(reacoesComentario.gloria || []).length})
+                          </button>
+                          <button onClick={() => reagirComentarioPub(post.id, c.id, 'parabens')} className={`text-[10px] font-bold flex items-center gap-1 ${meuParabensCom ? 'text-purple-500' : 'opacity-60 hover:opacity-100'}`}>
+                            🎉 Parabéns ({(reacoesComentario.parabens || []).length})
+                          </button>
+                          <button onClick={() => reagirComentarioPub(post.id, c.id, 'felicidades')} className={`text-[10px] font-bold flex items-center gap-1 ${meuFelicidadesCom ? 'text-emerald-500' : 'opacity-60 hover:opacity-100'}`}>
+                            🥳 Felicidades ({(reacoesComentario.felicidades || []).length})
                           </button>
                         </div>
                       </div>
@@ -1012,7 +1057,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     );
   }
 
-return (
+  return (
     <div className={`w-screen relative left-1/2 -translate-x-1/2 px-4 sm:px-8 lg:px-12 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
       {toastMensagem && (
