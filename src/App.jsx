@@ -862,7 +862,7 @@ export default function App() {
           
           <div className="space-y-1">
             <p className="text-xs font-medium">
-              Bíblia Online &copy; {new Date().getFullYear()} — Todos os direitos reservados.
+              Luz do Mundo &copy; {new Date().getFullYear()} — Todos os direitos reservados.
             </p>
             <p className="text-[11px] opacity-75">
               Espalhando a palavra, fé e comunhão por onde for.
