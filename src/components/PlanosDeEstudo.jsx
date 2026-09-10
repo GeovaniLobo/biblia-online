@@ -33,12 +33,10 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     try {
       let planosSalvos = [];
       
-      // Busca direto do Supabase via BancoDeDados
       if (typeof BancoDeDados?.buscarPlanos === 'function') {
         planosSalvos = await BancoDeDados.buscarPlanos();
       }
 
-      // Se quiser que venha vazio caso o banco esteja vazio (sem recriar o plano fantasma):
       if (!planosSalvos) {
         planosSalvos = [];
       }
@@ -139,15 +137,12 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     };
 
     try {
-      // Salva diretamente no Supabase através do BancoDeDados
       if (typeof BancoDeDados?.criarPlano === 'function') {
         await BancoDeDados.criarPlano(novoPlanoObj);
       }
 
-      // Atualiza os dados na tela instantaneamente
       await carregarDadosCompartilhados();
 
-      // Limpa os campos e fecha o modal
       setNovoTitulo('');
       setNovaDescricao('');
       setNovaCapaUrl('');
@@ -159,11 +154,10 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
     }
   };
 
-  // Função de exclusão integrada com o BancoDeDados / Supabase
   const apagarPlano = async (planoId) => {
     const planosLocal = localStorage.getItem('rede_planos_estudo_global');
     const planosAtuais = planosLocal ? JSON.parse(planosLocal) : [];
-    const planoAlvo = planosAtuais.find(p => p.id === planoId);
+    const planoAlvo = planos.find(p => p.id === planoId) || planosAtuais.find(p => p.id === planoId);
     
     if (!planoAlvo) return;
 
@@ -171,11 +165,6 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
     if (souCriador) {
       if (window.confirm('Tem certeza que deseja apagar este plano permanentemente para todos os participantes?')) {
-        // 1. Remove do array local/global
-        const novosPlanosGlobal = planosAtuais.filter(p => p.id !== planoId);
-        localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanosGlobal));
-
-        // 2. Se o BancoDeDados do Supabase possuir um método de exclusão, execute-o aqui:
         try {
           if (typeof BancoDeDados?.deletarPlano === 'function') {
             await BancoDeDados.deletarPlano(planoId);
@@ -186,7 +175,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
         
         setPlanoSelecionado(null);
         setModoLeitura(false);
-        carregarDadosCompartilhados();
+        await carregarDadosCompartilhados();
       }
     } else {
       if (window.confirm('Deseja remover este plano do seu painel? Você poderá acessá-lo e iniciá-lo novamente depois na aba de sugestões.')) {
@@ -198,7 +187,7 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
         setPlanoSelecionado(null);
         setModoLeitura(false);
-        carregarDadosCompartilhados();
+        await carregarDadosCompartilhados();
       }
     }
   };
@@ -231,11 +220,13 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
 
     const planoAtualizado = { ...planoSelecionado, dias: diasAtualizados };
     
-    const planosLocal = localStorage.getItem('rede_planos_estudo_global');
-    const planosAtuais = planosLocal ? JSON.parse(planosLocal) : [];
-    const novosPlanos = planosAtuais.map(p => p.id === planoAtualizado.id ? planoAtualizado : p);
-    
-    localStorage.setItem('rede_planos_estudo_global', JSON.stringify(novosPlanos));
+    // Atualiza diretamente no Supabase criando ou atualizando o registro
+    try {
+      if (typeof BancoDeDados?.criarPlano === 'function') {
+        BancoDeDados.criarPlano(planoAtualizado);
+      }
+    } catch(e) {}
+
     setPlanoSelecionado(planoAtualizado);
     carregarDadosCompartilhados();
     alert('Alterações salvas com sucesso!');
@@ -569,18 +560,19 @@ export default function PlanosDeEstudo({ usuarioLogado, darkMode }) {
                         <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aplicarFormatacao('fontSize', '3')} className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-white cursor-pointer" title="Normal">Normal</button>
                       </div>
 
+                      {/* Editor corrigido sem re-renderizacoes que travam a digitacao */}
                       <div 
                         ref={editorRef}
                         contentEditable={true}
                         suppressContentEditableWarning={true}
+                        onInput={(e) => setTextoEstudoDia(e.currentTarget.innerHTML)}
                         onClick={() => {
                           if (editorRef.current && document.activeElement !== editorRef.current) {
                             editorRef.current.focus();
                           }
                         }}
-                        onInput={(e) => setTextoEstudoDia(e.currentTarget.innerHTML)}
-                        className="w-full min-h-[200px] text-sm sm:text-base rounded-2xl p-4 border border-slate-800/50 bg-transparent focus:outline-none focus:border-blue-500 leading-relaxed cursor-text"
                         dangerouslySetInnerHTML={{ __html: diaAtual.conteudoEstudo || '' }}
+                        className="w-full min-h-[200px] text-sm sm:text-base rounded-2xl p-4 border border-slate-800/50 bg-transparent focus:outline-none focus:border-blue-500 leading-relaxed cursor-text"
                       ></div>
 
                       <div className="space-y-1">
