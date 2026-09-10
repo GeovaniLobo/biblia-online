@@ -34,7 +34,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     '👍', '😎', '😢', '⭐', '🙌', '💪', '🥳', '👇', '🚀', '🕊️'
   ];
 
-  // Novas reações estilo Facebook com emojis animados
   const listaReacoesOpcoes = [
     { tipo: 'amei', emoji: '❤️', label: 'Amei', cor: 'text-rose-500' },
     { tipo: 'amem', emoji: '🙏', label: 'Amém', cor: 'text-blue-500' },
@@ -90,15 +89,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setTimeout(() => {
       setToastMensagem(null);
     }, 3000);
-  };
-
-  const processarArquivoParaUrl = (file) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => resolve(URL.createObjectURL(file));
-      reader.readAsDataURL(file);
-    });
   };
 
   const SeloVerificado = ({ tamanho = "w-4 h-4" }) => (
@@ -192,7 +182,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   useEffect(() => {
     async function carregarMensagens() {
       if (chatComUsuario) {
-        const msgs = typeof BancoDeDados.getMensagensChat === 'function' ? await BancoDeDados.getMensagensChat(usuarioLogado.username, chatComUsuario) : [];
+        const msgs = await BancoDeDados.getMensagensChat(usuarioLogado.username, chatComUsuario);
         setMensagensChat(msgs || []);
       }
     }
@@ -383,21 +373,21 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setNotificacoes(notifsAtualizadas || []);
   };
 
-  const enviarMensagemChat = async (e, arquivoMidia = null, tipoMidia = null) => {
+  const enviarMensagemChat = async (e, arquivoMidia = null, tipoMidiaParam = null) => {
     if (e) e.preventDefault();
     if (!textoMensagemChat.trim() && !arquivoMidia) return;
     if (!chatComUsuario) return;
     
     let urlMidia = arquivoMidia;
+    let tipoMidiaFinal = tipoMidiaParam;
+
     if (arquivoMidia && typeof arquivoMidia !== 'string') {
       setEnviandoMidia(true);
       try {
-        if (typeof BancoDeDados.uploadMidiaStory === 'function') {
-          urlMidia = await BancoDeDados.uploadMidiaStory(arquivoMidia);
-        }
-      } catch (err) {}
-      if (!urlMidia) {
-        urlMidia = await processarArquivoParaUrl(arquivoMidia);
+        urlMidia = await BancoDeDados.uploadMidiaStory(arquivoMidia);
+        tipoMidiaFinal = arquivoMidia.type.startsWith('video') ? 'video' : 'imagem';
+      } catch (err) {
+        console.error("Erro ao enviar mídia do chat:", err);
       }
       setEnviandoMidia(false);
     }
@@ -406,20 +396,16 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       id: Date.now(),
       remetente: usuarioLogado.username,
       destinatario: chatComUsuario,
-      texto: textoMensagemChat.trim() || (tipoMidia === 'video' ? '[Vídeo]' : '[Imagem]'),
+      texto: textoMensagemChat.trim() || (tipoMidiaFinal === 'video' ? '[Vídeo]' : '[Imagem]'),
       midia: urlMidia || null,
-      tipoMidia: tipoMidia || null,
+      tipoMidia: tipoMidiaFinal || null,
       visualizacaoUnica: visualizacaoUnicaChat,
       horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    if (typeof BancoDeDados.enviarMensagemChat === 'function') {
-      await BancoDeDados.enviarMensagemChat(novaMsg);
-      const msgsAtualizadas = await BancoDeDados.getMensagensChat(usuarioLogado.username, chatComUsuario);
-      setMensagensChat(msgsAtualizadas || []);
-    } else {
-      setMensagensChat(prev => [...prev, novaMsg]);
-    }
+    await BancoDeDados.enviarMensagemChat(novaMsg);
+    const msgsAtualizadas = await BancoDeDados.getMensagensChat(usuarioLogado.username, chatComUsuario);
+    setMensagensChat(msgsAtualizadas || []);
 
     setTextoMensagemChat('');
     setVisualizacaoUnicaChat(false);
@@ -491,7 +477,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
   const curtirStoryAtual = async () => {
     if (!storyAtivoObj) return;
-    const atualizados = typeof BancoDeDados.curtirStory === 'function' ? await BancoDeDados.curtirStory(storyAtivoObj.id, usuarioLogado.username) : [];
+    const atualizados = await BancoDeDados.curtirStory(storyAtivoObj.id, usuarioLogado.username);
     setStories(atualizados || []);
   };
 
@@ -791,56 +777,53 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
         <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
           
-          {/* SISTEMA DE REAÇÕES ESTILO FACEBOOK COM HOVER E EMOJIS ANIMADOS */}
-          {/* SISTEMA DE REAÇÕES ESTILO FACEBOOK COM PONTE DE HOVER */}
-<div className="relative group/reacoes inline-block py-2 -my-2">
-  {(() => {
-    const reacoes = post.reacoes || {};
-    let minhaReacaoTipo = null;
-    for (const tipo of Object.keys(reacoes)) {
-      if ((reacoes[tipo] || []).includes(usuarioLogado.username)) {
-        minhaReacaoTipo = tipo;
-        break;
-      }
-    }
-    const dadosReacaoAtual = listaReacoesOpcoes.find(r => r.tipo === minhaReacaoTipo);
-    const totalReacoesGeral = Object.values(reacoes).reduce((acc, lista) => acc + (lista ? lista.length : 0), 0);
+          <div className="relative group/reacoes inline-block py-2 -my-2">
+            {(() => {
+              const reacoes = post.reacoes || {};
+              let minhaReacaoTipo = null;
+              for (const tipo of Object.keys(reacoes)) {
+                if ((reacoes[tipo] || []).includes(usuarioLogado.username)) {
+                  minhaReacaoTipo = tipo;
+                  break;
+                }
+              }
+              const dadosReacaoAtual = listaReacoesOpcoes.find(r => r.tipo === minhaReacaoTipo);
+              const totalReacoesGeral = Object.values(reacoes).reduce((acc, lista) => acc + (lista ? lista.length : 0), 0);
 
-    return (
-      <div className="relative">
-        <button 
-          onClick={() => reagir(post.id, minhaReacaoTipo ? minhaReacaoTipo : 'amei')}
-          className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 cursor-pointer ${
-            minhaReacaoTipo 
-              ? 'bg-blue-600 text-white border-blue-500 shadow-sm' 
-              : darkMode ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'
-          }`}
-        >
-          <span className="text-sm animate-bounce">{dadosReacaoAtual ? dadosReacaoAtual.emoji : '❤️'}</span>
-          <span>{dadosReacaoAtual ? dadosReacaoAtual.label : 'Amei'}</span>
-          {totalReacoesGeral > 0 && <span className="ml-1 opacity-80">({totalReacoesGeral})</span>}
-        </button>
+              return (
+                <div className="relative">
+                  <button 
+                    onClick={() => reagir(post.id, minhaReacaoTipo ? minhaReacaoTipo : 'amei')}
+                    className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 cursor-pointer ${
+                      minhaReacaoTipo 
+                        ? 'bg-blue-600 text-white border-blue-500 shadow-sm' 
+                        : darkMode ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'
+                    }`}
+                  >
+                    <span className="text-sm animate-bounce">{dadosReacaoAtual ? dadosReacaoAtual.emoji : '❤️'}</span>
+                    <span>{dadosReacaoAtual ? dadosReacaoAtual.label : 'Amei'}</span>
+                    {totalReacoesGeral > 0 && <span className="ml-1 opacity-80">({totalReacoesGeral})</span>}
+                  </button>
 
-        {/* Menu Flutuante com Padding de aproximação para não sumir */}
-        <div className="absolute bottom-full left-0 pb-2 hidden group-hover/reacoes:flex z-50">
-          <div className="flex items-center gap-2 bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-full shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
-            {listaReacoesOpcoes.map((r) => (
-              <button
-                key={r.tipo}
-                onClick={() => reagir(post.id, r.tipo)}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-xl hover:scale-125 transition-transform duration-200 cursor-pointer animate-bounce"
-                title={r.label}
-              >
-                {r.emoji}
-              </button>
-            ))}
+                  <div className="absolute bottom-full left-0 pb-2 hidden group-hover/reacoes:flex z-50">
+                    <div className="flex items-center gap-2 bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-full shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+                      {listaReacoesOpcoes.map((r) => (
+                        <button
+                          key={r.tipo}
+                          onClick={() => reagir(post.id, r.tipo)}
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-xl hover:scale-125 transition-transform duration-200 cursor-pointer animate-bounce"
+                          title={r.label}
+                        >
+                          {r.emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
-        </div>
-      </div>
-    );
-  })()}
-</div>
-          {/* CAIXA DE COMPARTILHAMENTO */}
+
           <div className="relative">
             <button 
               onClick={() => setMenuCompartilharAberto(menuCompartilharAberto === post.id ? null : post.id)}
@@ -1071,8 +1054,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
-      
-
       {abaSolicitacoesAberta && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -1247,13 +1228,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                                 setEnviandoMidia(true);
                                 let urlPublica = '';
                                 try {
-                                  if (typeof BancoDeDados.uploadMidiaStory === 'function') {
-                                    urlPublica = await BancoDeDados.uploadMidiaStory(file);
-                                  }
+                                  urlPublica = await BancoDeDados.uploadMidiaStory(file);
                                 } catch (err) {}
-                                if (!urlPublica) {
-                                  urlPublica = await processarArquivoParaUrl(file);
-                                }
                                 setEnviandoMidia(false);
                                 if (urlPublica) {
                                   setTipoMidia(file.type.startsWith('video') ? 'video' : 'imagem');
@@ -1277,13 +1253,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                                 setEnviandoMidia(true);
                                 let urlPublica = '';
                                 try {
-                                  if (typeof BancoDeDados.uploadMidiaStory === 'function') {
-                                    urlPublica = await BancoDeDados.uploadMidiaStory(file);
-                                  }
+                                  urlPublica = await BancoDeDados.uploadMidiaStory(file);
                                 } catch (err) {}
-                                if (!urlPublica) {
-                                  urlPublica = await processarArquivoParaUrl(file);
-                                }
                                 setEnviandoMidia(false);
                                 if (urlPublica) {
                                   setTipoMidia('video');
@@ -1621,7 +1592,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <div className="flex justify-between items-center">
                 <label className={`text-xs px-4 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition font-semibold ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
                   📷 Imagem
-                  <input type="file" accept="image/*" onChange={async (e) => { const f = e.target.files[0]; if(f) { const url = await processarArquivoParaUrl(f); setPubImagem(url); } }} className="hidden" />
+                  <input type="file" accept="image/*" onChange={async (e) => { const f = e.target.files[0]; if(f) { const url = await BancoDeDados.uploadMidiaStory(f); if (url) setPubImagem(url); } }} className="hidden" />
                 </label>
                 <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-md">Publicar</button>
               </div>
@@ -1664,7 +1635,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button 
                           onClick={async () => { 
-                            const atualizados = typeof BancoDeDados.apoiarPedidoOracao === 'function' ? await BancoDeDados.apoiarPedidoOracao(p.id, usuarioLogado.username) : []; 
+                            const atualizados = await BancoDeDados.apoiarPedidoOracao(p.id, usuarioLogado.username); 
                             setPedidosOracao(atualizados || []); 
                           }} 
                           className={`px-3.5 py-1.5 rounded-xl font-bold transition ${jaApoiou ? 'bg-red-600 text-white' : 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white'}`}
@@ -1891,7 +1862,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                         ) : (
                           <>
                             {m.midia && (!m.visualizacaoUnica || souEu || jaViu) ? (
-                              m.tipoMidia === 'video' ? (
+                              m.tipo_midia === 'video' ? (
                                 <video src={m.midia} controls className="w-44 h-32 object-cover rounded-xl mb-1" />
                               ) : (
                                 <img src={m.midia} alt="Mídia" className="w-44 h-32 object-cover rounded-xl mb-1" />

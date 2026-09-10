@@ -61,7 +61,6 @@ export const BancoDeDados = {
     return await response.json();
   },
 
-  // --- STATUS ONLINE REAL (Heartbeat) ---
   atualizarUltimoAcesso: async (username) => {
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${username}`, {
@@ -98,7 +97,7 @@ export const BancoDeDados = {
     }
   },
 
-  // --- STORIES (Com filtro de 24 horas) ---
+  // --- STORIES ---
   getStories: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/stories?select=*&order=id.desc`, { method: 'GET', headers });
@@ -248,11 +247,9 @@ export const BancoDeDados = {
       const pubs = await BancoDeDados.getPublicacoes();
       const p = pubs.find(x => x.id === id);
       if (p) {
-        // Estrutura atualizada com as novas 5 reações
         let reacoes = p.reacoes || { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
         if (!reacoes.amei) reacoes = { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
 
-        // Remove o usuário de todas as reações antes de aplicar a nova
         Object.keys(reacoes).forEach(tipo => {
           reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== usernameUsuario);
         });
@@ -529,7 +526,6 @@ export const BancoDeDados = {
     }
   },
 
-  // --- ATUALIZAR TEMA DO USUÁRIO NO BANCO ---
   atualizarTemaUsuario: async (username, darkMode) => {
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${username}`, {
@@ -541,6 +537,7 @@ export const BancoDeDados = {
       console.error("Erro ao atualizar tema no banco:", e);
     }
   },
+
   // --- PLANOS DE ESTUDO ---
   buscarPlanos: async () => {
     try {
@@ -559,7 +556,7 @@ export const BancoDeDados = {
         method: 'POST',
         headers: {
           ...headers,
-          'Prefer': 'resolution=merge-duplicates' // Garante que se o ID já existir, ele atualiza (upsert)
+          'Prefer': 'resolution=merge-duplicates'
         },
         body: JSON.stringify(planoObj)
       });
