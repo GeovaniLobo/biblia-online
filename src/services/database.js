@@ -248,9 +248,11 @@ export const BancoDeDados = {
       const pubs = await BancoDeDados.getPublicacoes();
       const p = pubs.find(x => x.id === id);
       if (p) {
-        let reacoes = p.reacoes || { amem: [], aleluia: [], amor: [] };
-        if (!reacoes.amem) reacoes = { amem: [], aleluia: [], amor: [] };
+        // Estrutura atualizada com as novas 5 reações
+        let reacoes = p.reacoes || { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
+        if (!reacoes.amei) reacoes = { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
 
+        // Remove o usuário de todas as reações antes de aplicar a nova
         Object.keys(reacoes).forEach(tipo => {
           reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== usernameUsuario);
         });
@@ -297,8 +299,8 @@ export const BancoDeDados = {
       if (p && p.comentarios) {
         const novosComentarios = p.comentarios.map(c => {
           if (c.id === comentarioId) {
-            let reacoes = c.reacoes || { amem: [], aleluia: [], amor: [] };
-            if (!reacoes.amem) reacoes = { amem: [], aleluia: [], amor: [] };
+            let reacoes = c.reacoes || { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
+            if (!reacoes.amei) reacoes = { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
 
             Object.keys(reacoes).forEach(tipo => {
               reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== username);
@@ -517,7 +519,6 @@ export const BancoDeDados = {
 
   limparConversaChat: async (usuarioA, usuarioB) => {
     try {
-      // Deleta do Supabase todas as mensagens trocadas entre usuarioA e usuarioB
       await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat?or=(and(remetente.eq.${usuarioA},destinatario.eq.${usuarioB}),and(remetente.eq.${usuarioB},destinatario.eq.${usuarioA}))`, {
         method: 'DELETE',
         headers
@@ -527,6 +528,7 @@ export const BancoDeDados = {
       return [];
     }
   },
+
   // --- ATUALIZAR TEMA DO USUÁRIO NO BANCO ---
   atualizarTemaUsuario: async (username, darkMode) => {
     try {

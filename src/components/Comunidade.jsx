@@ -792,52 +792,54 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
           
           {/* SISTEMA DE REAÇÕES ESTILO FACEBOOK COM HOVER E EMOJIS ANIMADOS */}
-          <div className="relative group/reacoes inline-block">
-            {(() => {
-              const reacoes = post.reacoes || {};
-              let minhaReacaoTipo = null;
-              for (const tipo of Object.keys(reacoes)) {
-                if ((reacoes[tipo] || []).includes(usuarioLogado.username)) {
-                  minhaReacaoTipo = tipo;
-                  break;
-                }
-              }
-              const dadosReacaoAtual = listaReacoesOpcoes.find(r => r.tipo === minhaReacaoTipo);
-              const totalReacoesGeral = Object.values(reacoes).reduce((acc, lista) => acc + (lista ? lista.length : 0), 0);
+          {/* SISTEMA DE REAÇÕES ESTILO FACEBOOK COM PONTE DE HOVER */}
+<div className="relative group/reacoes inline-block py-2 -my-2">
+  {(() => {
+    const reacoes = post.reacoes || {};
+    let minhaReacaoTipo = null;
+    for (const tipo of Object.keys(reacoes)) {
+      if ((reacoes[tipo] || []).includes(usuarioLogado.username)) {
+        minhaReacaoTipo = tipo;
+        break;
+      }
+    }
+    const dadosReacaoAtual = listaReacoesOpcoes.find(r => r.tipo === minhaReacaoTipo);
+    const totalReacoesGeral = Object.values(reacoes).reduce((acc, lista) => acc + (lista ? lista.length : 0), 0);
 
-              return (
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => reagir(post.id, minhaReacaoTipo ? minhaReacaoTipo : 'amei')}
-                    className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 cursor-pointer ${
-                      minhaReacaoTipo 
-                        ? 'bg-blue-600 text-white border-blue-500 shadow-sm' 
-                        : darkMode ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'
-                    }`}
-                  >
-                    <span className="text-sm animate-bounce">{dadosReacaoAtual ? dadosReacaoAtual.emoji : '❤️'}</span>
-                    <span>{dadosReacaoAtual ? dadosReacaoAtual.label : 'Amei'}</span>
-                    {totalReacoesGeral > 0 && <span className="ml-1 opacity-80">({totalReacoesGeral})</span>}
-                  </button>
+    return (
+      <div className="relative">
+        <button 
+          onClick={() => reagir(post.id, minhaReacaoTipo ? minhaReacaoTipo : 'amei')}
+          className={`text-xs px-3.5 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 cursor-pointer ${
+            minhaReacaoTipo 
+              ? 'bg-blue-600 text-white border-blue-500 shadow-sm' 
+              : darkMode ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50 shadow-xs'
+          }`}
+        >
+          <span className="text-sm animate-bounce">{dadosReacaoAtual ? dadosReacaoAtual.emoji : '❤️'}</span>
+          <span>{dadosReacaoAtual ? dadosReacaoAtual.label : 'Amei'}</span>
+          {totalReacoesGeral > 0 && <span className="ml-1 opacity-80">({totalReacoesGeral})</span>}
+        </button>
 
-                  {/* Menu Flutuante Estilo Facebook ao Passar o Mouse */}
-                  <div className="absolute bottom-full left-0 mb-2 hidden group-hover/reacoes:flex items-center gap-2 bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-full shadow-2xl z-50 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
-                    {listaReacoesOpcoes.map((r) => (
-                      <button
-                        key={r.tipo}
-                        onClick={() => reagir(post.id, r.tipo)}
-                        className="w-9 h-9 rounded-full flex items-center justify-center text-xl hover:scale-125 transition-transform duration-200 cursor-pointer animate-bounce"
-                        title={r.label}
-                      >
-                        {r.emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
+        {/* Menu Flutuante com Padding de aproximação para não sumir */}
+        <div className="absolute bottom-full left-0 pb-2 hidden group-hover/reacoes:flex z-50">
+          <div className="flex items-center gap-2 bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-full shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+            {listaReacoesOpcoes.map((r) => (
+              <button
+                key={r.tipo}
+                onClick={() => reagir(post.id, r.tipo)}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-xl hover:scale-125 transition-transform duration-200 cursor-pointer animate-bounce"
+                title={r.label}
+              >
+                {r.emoji}
+              </button>
+            ))}
           </div>
-
+        </div>
+      </div>
+    );
+  })()}
+</div>
           {/* CAIXA DE COMPARTILHAMENTO */}
           <div className="relative">
             <button 
