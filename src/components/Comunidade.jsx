@@ -5,7 +5,7 @@ import PerfilPublico from './PerfilPublico';
 export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   if (!usuarioLogado) {
     return (
-      <div className={`w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+      <div className={`w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
         <p className="text-xs opacity-60">Carregando dados do usuário...</p>
       </div>
     );
@@ -640,7 +640,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   if (postDetalheId) {
     const postUnico = publicacoes.find(p => p.id === postDetalheId);
     return (
-      <div className={`w-full max-w-2xl mx-auto px-3 sm:px-6 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+      <div className={`w-full max-w-2xl mx-auto px-3 sm:px-6 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
         <button 
           onClick={() => setPostDetalheId(null)}
           className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-2"
@@ -697,7 +697,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     const autorTemStory = storiesFiltradosAmigos.some(s => s.username === post.username);
 
     return (
-      <div key={post.id} className={`p-4 sm:p-6 rounded-3xl border shadow-md space-y-4 relative w-full overflow-hidden box-border ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+      // REMOVIDO overflow-hidden para evitar que o menu flutuante de compartilhamento seja cortado
+      <div key={post.id} className={`p-4 sm:p-6 rounded-3xl border shadow-md space-y-4 relative w-full box-border ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         
         <div className="flex items-center justify-between">
           <div 
@@ -837,7 +838,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </button>
 
             {menuCompartilharAberto === post.id && (
-              <div className={`absolute left-0 sm:right-0 sm:left-auto bottom-full mb-3 w-56 rounded-2xl border shadow-2xl p-2 z-50 space-y-1 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+              // AJUSTADO: top-full mt-2 para abrir sem cortes por cima ou por baixo de forma fluida
+              <div className={`absolute right-0 top-full mt-2 w-56 rounded-2xl border shadow-2xl p-2 z-50 space-y-1 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                 <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 px-2 py-1">Opções de Partilha</p>
                 
                 <button 
@@ -1044,8 +1046,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   }
 
   return (
-    // AJUSTADO: w-full e padding lateral fluido de ponta a ponta sem espremer o conteúdo
-    <div className={`w-full px-3 sm:px-6 lg:px-10 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+    <div className={`w-full px-4 sm:px-6 lg:px-10 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
       {toastMensagem && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
@@ -1493,9 +1494,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
         
-        {/* AJUSTADO: lg:col-span-3 para perfil */}
         <div className="lg:col-span-3 space-y-6">
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
             <div 
@@ -1531,7 +1531,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           </div>
         </div>
 
-        {/* AJUSTADO: lg:col-span-6 expandido para o feed central */}
         <div className="lg:col-span-6 space-y-6">
 
           <div className={`p-4 rounded-3xl border shadow-md flex gap-3 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
@@ -1670,7 +1669,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           </div>
         </div>
 
-        {/* AJUSTADO: lg:col-span-3 para chat e membros */}
         <div className="lg:col-span-3 space-y-6">
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
