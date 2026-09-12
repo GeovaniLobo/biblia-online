@@ -5,7 +5,7 @@ import PerfilPublico from './PerfilPublico';
 export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   if (!usuarioLogado) {
     return (
-      <div className={`w-full max-w-[95%] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+      <div className={`w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
         <p className="text-xs opacity-60">Carregando dados do usuário...</p>
       </div>
     );
@@ -1044,8 +1044,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   }
 
   return (
-    // AJUSTADO: max-w-[96%] e respiros maiores em telas largas para ocupar toda a tela de forma fluida e sem estourar o scroll
-    <div className={`w-full max-w-[96%] xl:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+    // AJUSTADO: w-full e padding lateral fluido de ponta a ponta sem espremer o conteúdo
+    <div className={`w-full px-3 sm:px-6 lg:px-10 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
       {toastMensagem && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
@@ -1495,6 +1495,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
+        {/* AJUSTADO: lg:col-span-3 para perfil */}
         <div className="lg:col-span-3 space-y-6">
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
             <div 
@@ -1530,6 +1531,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           </div>
         </div>
 
+        {/* AJUSTADO: lg:col-span-6 expandido para o feed central */}
         <div className="lg:col-span-6 space-y-6">
 
           <div className={`p-4 rounded-3xl border shadow-md flex gap-3 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
@@ -1668,6 +1670,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           </div>
         </div>
 
+        {/* AJUSTADO: lg:col-span-3 para chat e membros */}
         <div className="lg:col-span-3 space-y-6">
           <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
