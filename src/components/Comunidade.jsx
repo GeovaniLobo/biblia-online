@@ -197,7 +197,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     }
   }, [mensagensChat]);
 
-  // CORREÇÃO PRINCIPAL: Forçando a prioridade absoluta dos dados frescos do Supabase
   const meuPerfilBanco = perfisReais.find(p => p.username === usuarioLogado.username) || {};
   const fotoPerfilOficial = meuPerfilBanco.foto || usuarioLogado.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
   const nomePerfilOficial = meuPerfilBanco.nome || usuarioLogado.nome || 'Usuário';
@@ -1045,7 +1044,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   }
 
   return (
-    <div className={`w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+    <div className={`w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6 overflow-x-hidden box-border ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
       {toastMensagem && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
