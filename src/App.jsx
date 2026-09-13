@@ -6,6 +6,7 @@ import Devocionais from './components/Devocionais';
 import PlanosDeEstudo from './components/PlanosDeEstudo';
 import PerfilPublico from './components/PerfilPublico';
 import EditarPerfil from './components/EditarPerfil';
+import { supabase } from './services/supabaseClient';
 
 export default function App() {
   const [versaoSelecionada, setVersaoSelecionada] = useState('acf');
@@ -28,6 +29,57 @@ export default function App() {
   const dropdownRef = useRef(null);
   const hamburguerRef = useRef(null);
   const notificacoesRef = useRef(null);
+
+  useEffect(() => {
+    // Verifica a sessão atual ao carregar o aplicativo
+    async function checarSessao() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && session.user) {
+        // Busca os dados complementares do usuário na tabela 'perfis'
+        const perfis = await BancoDeDados.getPerfisCadastrados();
+        const perfilEncontrado = perfis.find(p => p.email === session.user.email || p.username === session.user.user_metadata?.username);
+        
+        if (perfilEncontrado) {
+          setUsuarioLogado(perfilEncontrado);
+        } else {
+          // Caso logue pelo Google e ainda não tenha registro na tabela 'perfis'
+          const novoPerfil = {
+            email: session.user.email,
+            username: session.user.user_metadata?.username || session.user.email.split('@')[0],
+            nome: session.user.user_metadata?.name || session.user.user_metadata?.nome || 'Usuário Google',
+            foto: session.user.user_metadata?.avatar_url || session.user.user_metadata?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+            biografia: 'Praticando a fé e o amor ao próximo.',
+            amigos: [],
+            pedidos_enviados: [],
+            pedidos_recebidos: []
+          };
+          await BancoDeDados.salvarNovoPerfilNaRede(novoPerfil);
+          setUsuarioLogado(novoPerfil);
+        }
+      }
+    }
+
+    checarSessao();
+
+    // Ouve mudanças de login / logout em tempo real
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        const perfis = await BancoDeDados.getPerfisCadastrados();
+        const perfilEncontrado = perfis.find(p => p.email === session.user.email);
+        if (perfilEncontrado) {
+          setUsuarioLogado(perfilEncontrado);
+          BancoDeDados.fazerLogin(perfilEncontrado);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUsuarioLogado(null);
+        BancoDeDados.fazerLogout();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     async function carregarTemaDoBanco() {
@@ -717,17 +769,17 @@ export default function App() {
 
                 <div className="border-t border-slate-700/50 pt-1 mt-1">
                   <button
-                    onClick={() => {
-                      BancoDeDados.fazerLogout();
-                      setUsuarioLogado(null);
-                      setMenuPerfilAberto(false);
-                      navegarPara('/', 'biblia');
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-400 hover:bg-red-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                    Sair
-                  </button>
+  onClick={async () => {
+    await supabase.auth.signOut();
+    BancoDeDados.fazerLogout();
+    setUsuarioLogado(null);
+    setMenuPerfilAberto(false);
+    navegarPara('/', 'biblia');
+  }}
+  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-400 hover:bg-red-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
+>
+  Sair
+</button>
                 </div>
               </div>
             )}
