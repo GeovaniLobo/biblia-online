@@ -551,67 +551,67 @@ export default function App() {
           </button>
 
           {/* BOTÃO DE NOTIFICAÇÕES (Dropdown Flutuante) */}
-          {usuarioLogado && (
-            <div className="relative" ref={notificacoesRef}>
-              <button
-                onClick={async () => {
-                  const aberto = !menuNotificacoesAberto;
-                  setMenuNotificacoesAberto(abero);
-                  if (aberto) {
-                    const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
-                    setListaNotificacoes(notifs || []);
-                    await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
-                    setTotalNaoLidas(0);
-                  }
-                }}
-                className={`p-2.5 rounded-xl border transition relative flex items-center justify-center cursor-pointer ${darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-white' : 'bg-slate-100 border-slate-300 hover:bg-slate-200 text-slate-800'}`}
-                title="Notificações"
+{usuarioLogado && (
+  <div className="relative" ref={notificacoesRef}>
+    <button
+      onClick={async () => {
+        const novoEstado = !menuNotificacoesAberto;
+        setMenuNotificacoesAberto(novoEstado);
+        if (novoEstado) {
+          const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+          setListaNotificacoes(notifs || []);
+          await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
+          setTotalNaoLidas(0);
+        }
+      }}
+      className={`p-2.5 rounded-xl border transition relative flex items-center justify-center cursor-pointer ${darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-white' : 'bg-slate-100 border-slate-300 hover:bg-slate-200 text-slate-800'}`}
+      title="Notificações"
+    >
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+      </svg>
+      {totalNaoLidas > 0 && (
+        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full font-black flex items-center justify-center shadow-md animate-bounce">
+          {totalNaoLidas}
+        </span>
+      )}
+    </button>
+
+    {menuNotificacoesAberto && (
+      <div className={`absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl shadow-2xl border p-3 z-50 space-y-2 backdrop-blur-md max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+        <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
+          <h4 className="text-xs font-extrabold uppercase tracking-wider">Notificações</h4>
+          <button 
+            onClick={() => setMenuNotificacoesAberto(false)}
+            className="text-xs font-bold opacity-60 hover:opacity-100 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+
+        {listaNotificacoes.length === 0 ? (
+          <p className="text-xs opacity-60 text-center py-6">Nenhuma notificação no momento.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {listaNotificacoes.map((n, idx) => (
+              <div 
+                key={n.id || idx} 
+                className={`p-2.5 rounded-xl text-xs border transition ${darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                {totalNaoLidas > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full font-black flex items-center justify-center shadow-md animate-bounce">
-                    {totalNaoLidas}
+                <p className="font-semibold leading-relaxed">{n.texto}</p>
+                {n.data && (
+                  <span className="text-[10px] opacity-50 block mt-1">
+                    {new Date(n.data).toLocaleString('pt-BR')}
                   </span>
                 )}
-              </button>
-
-              {menuNotificacoesAberto && (
-                <div className={`absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl shadow-2xl border p-3 z-50 space-y-2 backdrop-blur-md max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
-                    <h4 className="text-xs font-extrabold uppercase tracking-wider">Notificações</h4>
-                    <button 
-                      onClick={() => setMenuNotificacoesAberto(false)}
-                      className="text-xs font-bold opacity-60 hover:opacity-100 cursor-pointer"
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  {listaNotificacoes.length === 0 ? (
-                    <p className="text-xs opacity-60 text-center py-6">Nenhuma notificação no momento.</p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {listaNotificacoes.map((n, idx) => (
-                        <div 
-                          key={n.id || idx} 
-                          className={`p-2.5 rounded-xl text-xs border transition ${darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
-                        >
-                          <p className="font-semibold leading-relaxed">{n.texto}</p>
-                          {n.data && (
-                            <span className="text-[10px] opacity-50 block mt-1">
-                              {new Date(n.data).toLocaleString('pt-BR')}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+)}
 
           {/* Balão de Perfil */}
           <div className="relative" ref={dropdownRef}>
