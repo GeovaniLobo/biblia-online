@@ -24,7 +24,7 @@ export default function App() {
   // Estados para o Dropdown de Notificações
   const [menuNotificacoesAberto, setMenuNotificacoesAberto] = useState(false);
   const [listaNotificacoes, setListaNotificacoes] = useState([]);
-
+  
   const dropdownRef = useRef(null);
   const hamburguerRef = useRef(null);
   const notificacoesRef = useRef(null);
