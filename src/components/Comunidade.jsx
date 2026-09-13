@@ -2,8 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BancoDeDados } from '../services/database';
 import PerfilPublico from './PerfilPublico';
 
-export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
-  
+
+export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil, abrirNotificacoesInicial, onFecharNotificacoes }) {
+  useEffect(() => {
+  if (abrirNotificacoesInicial) {
+    setAbaNotificacoesAberta(true);
+    if (onFecharNotificacoes) onFecharNotificacoes();
+  }
+}, [abrirNotificacoesInicial]);
   // Desativa o scroll horizontal no body
   useEffect(() => {
     const originalOverflowX = document.body.style.overflowX;
