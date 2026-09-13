@@ -550,7 +550,7 @@ export default function App() {
             )}
           </button>
 
-          {/* BOTÃO DE NOTIFICAÇÕES (Dropdown Flutuante) */}
+   {/* BOTÃO DE NOTIFICAÇÕES (Dropdown Flutuante) */}
 {usuarioLogado && (
   <div className="relative" ref={notificacoesRef}>
     <button
@@ -561,14 +561,19 @@ export default function App() {
           const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
           const perfis = await BancoDeDados.getPerfisCadastrados();
           
-          // Anexa os dados do perfil (foto, nome) na notificação se houver menção a @username
           const notifsFormatadas = (notifs || []).map(n => {
-            const matchUser = n.texto?.match(/@([a-zA-Z0-9_]+)/);
-            const usernameExtraido = matchUser ? matchUser[1] : null;
+            const matchUser = n.texto?.match(/@([a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+\.[a-zA-Z]+|[a-zA-Z0-9_]+)/);
+            // Procura @username ou @email na string
+            const matchArroba = n.texto?.match(/@([^\s!]+)/);
+            const usernameExtraido = matchArroba ? matchArroba[1] : null;
             const perfilEncontrado = perfis?.find(p => p.username === usernameExtraido);
+
+            const dataIso = n.data || n.timestamp || n.criado_em || n.createdAt;
+
             return {
               ...n,
-              avatarRemetente: perfilEncontrado?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+              dataReal: dataIso ? new Date(dataIso) : null,
+              avatarRemetente: perfilEncontrado?.foto || n.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
               nomeRemetente: perfilEncontrado?.nome || usernameExtraido
             };
           });
@@ -619,12 +624,12 @@ export default function App() {
               >
                 <div className="relative flex-shrink-0">
                   <img 
-                    src={n.avatarRemetente || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
+                    src={n.avatarRemetente} 
                     alt="Avatar" 
                     className="w-10 h-10 rounded-full object-cover border-2 border-blue-500/40 shadow-sm"
                   />
                   <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-blue-600 text-white rounded-full flex items-center justify-center text-[9px] shadow">
-                    💬
+                    {n.tipo === 'mensagem' ? '💬' : n.tipo === 'verificado' ? '✔' : '❤️'}
                   </span>
                 </div>
 
@@ -634,12 +639,14 @@ export default function App() {
                   </p>
                   <div className="flex items-center justify-between pt-0.5">
                     <span className="text-[10px] opacity-50 font-semibold">
-                      {n.data ? new Date(n.data).toLocaleString('pt-BR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      }) : 'Agora mesmo'}
+                      {n.dataReal && !isNaN(n.dataReal.getTime()) 
+                        ? n.dataReal.toLocaleString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : n.horario || 'Data não registrada'}
                     </span>
                     {!n.lida && (
                       <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
