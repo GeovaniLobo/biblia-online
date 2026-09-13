@@ -4,7 +4,7 @@ import PerfilPublico from './PerfilPublico';
 
 export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   
-  // TRUQUE DE MESTRE: Tira o scroll horizontal do body para o w-screen funcionar sem bugar no PC
+  // Desativa o scroll horizontal no body
   useEffect(() => {
     const originalOverflowX = document.body.style.overflowX;
     document.body.style.overflowX = 'hidden';
@@ -100,6 +100,12 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     setTimeout(() => {
       setToastMensagem(null);
     }, 3000);
+  };
+
+  const formatarData = (dataIso) => {
+    if (!dataIso) return '';
+    const data = new Date(dataIso);
+    return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' às ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   };
 
   const SeloVerificado = ({ tamanho = "w-4 h-4" }) => (
@@ -536,6 +542,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       tema: pubTema.trim() || 'Publicação',
       texto: pubTexto.trim(),
       imagem: pubImagem,
+      data_criacao: new Date().toISOString(), // NOVA DATA E HORA DE CRIAÇÃO DO POST
       curtidas: 0,
       reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] },
       comentarios: []
@@ -599,6 +606,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       autor: nomePerfilOficial,
       username: usuarioLogado.username,
       texto: texto.trim(),
+      data_criacao: new Date().toISOString(), // NOVA DATA E HORA DE CRIAÇÃO DO COMENTÁRIO
       resposta_a_id: respostaPaiId,
       reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] }
     };
@@ -648,55 +656,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     );
   }
 
-  if (postDetalheId) {
-    const postUnico = publicacoes.find(p => p.id === postDetalheId);
-    return (
-      <div className={`w-full max-w-2xl mx-auto px-3 sm:px-6 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
-        <button 
-          onClick={() => setPostDetalheId(null)}
-          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-2"
-        >
-          ← Voltar para o Feed da Comunidade
-        </button>
-
-        {!postUnico ? (
-          <div className={`p-8 text-center rounded-3xl border shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-            <p className="text-xs opacity-60">Esta publicação não foi encontrada ou foi removida.</p>
-          </div>
-        ) : (
-          renderizarCardPublicacao(postUnico, true)
-        )}
-      </div>
-    );
-  }
-
-  const amigosLista = perfisReais.filter(p => meusAmigos.includes(p.username));
-  const outrosUsuarios = perfisReais.filter(p => p.username !== usuarioLogado.username && !meusAmigos.includes(p.username));
-
-  const publicacoesFiltradas = publicacoes.filter(post => {
-    const termo = termoBuscaComunidade.toLowerCase();
-    return !termoBuscaComunidade.trim() || (post.tema || '').toLowerCase().includes(termo) || (post.texto || '').toLowerCase().includes(termo);
-  });
-
-  const membrosFiltrados = outrosUsuarios.filter(membro => {
-    if (!termoBuscaComunidade.trim()) return true;
-    const termo = termoBuscaComunidade.toLowerCase();
-    return membro.nome.toLowerCase().includes(termo) || membro.username.toLowerCase().includes(termo);
-  });
-
-  const perfisSugeridosMencao = perfisReais.filter(p => {
-    if (!termoBuscaMencao) return true;
-    const t = termoBuscaMencao.toLowerCase();
-    return p.username.toLowerCase().includes(t) || p.nome.toLowerCase().includes(t);
-  });
-
-  const perfisSugeridosMencaoComentario = perfisReais.filter(p => {
-    if (!termoBuscaMencaoComentario) return true;
-    const t = termoBuscaMencaoComentario.toLowerCase();
-    return p.username.toLowerCase().includes(t) || p.nome.toLowerCase().includes(t);
-  });
-
-  function renderizarCardPublicacao(post, isolado = false) {
+  const renderizarCardPublicacao = (post, isolado = false) => {
     const souDono = post.username === usuarioLogado.username;
     const estaEditando = postEditandoId === post.id;
     const perfilAutorReal = perfisReais.find(p => p.username === post.username) || {};
@@ -729,7 +689,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 </p>
                 {autorVerificado && <SeloVerificado tamanho="w-4 h-4" />}
               </div>
-              <p className="text-[10px] opacity-50 truncate">@{post.username || 'usuario'}</p>
+              <p className="text-[10px] opacity-50 truncate">
+                @{post.username || 'usuario'} {post.data_criacao && <span className="ml-1 opacity-70">• {formatarData(post.data_criacao)}</span>}
+              </p>
             </div>
           </div>
 
@@ -834,6 +796,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             })()}
           </div>
 
+          {/* MENU COMPARTILHAR - AQUI TEM A CORREÇÃO LEFT-0 PRA NÃO CORTAR NO MOBILE */}
           <div className="relative">
             <button 
               onClick={() => setMenuCompartilharAberto(menuCompartilharAberto === post.id ? null : post.id)}
@@ -846,14 +809,17 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </button>
 
             {menuCompartilharAberto === post.id && (
-              <div className={`absolute right-0 bottom-full mb-2 w-52 rounded-2xl border shadow-2xl p-2 z-50 space-y-1 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+              <div className={`absolute left-0 sm:left-auto sm:right-0 bottom-full mb-2 w-52 rounded-2xl border shadow-2xl p-2 z-50 space-y-1 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                 <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 px-2 py-1">Opções de Partilha</p>
                 
                 <button 
                   onClick={() => compartilharPostNoStory(post)}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2.5"
                 >
-                  ✨ Adicionar ao meu Story
+                  <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Adicionar ao meu Story
                 </button>
 
                 <button 
@@ -863,14 +829,20 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   }}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2.5"
                 >
-                  🔗 Abrir Link Direto do Post
+                  <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  Abrir Link Direto do Post
                 </button>
 
                 <button 
                   onClick={() => copiarLinkPost(post.id)}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2.5"
                 >
-                  📋 Copiar Link Próprio
+                  <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copiar Link Próprio
                 </button>
 
                 <button 
@@ -952,15 +924,20 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                           </button>
                         </div>
 
-                        {comentarioPai && (
-                          <p className="text-[10px] opacity-60 italic bg-blue-500/10 px-2 py-0.5 rounded w-fit">
-                            em resposta a @{comentarioPai.username}
-                          </p>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] opacity-50 block">
+                            {c.data_criacao && formatarData(c.data_criacao)}
+                          </span>
+                          {comentarioPai && (
+                            <p className="text-[9px] opacity-60 italic bg-blue-500/10 px-2 py-0.5 rounded w-fit inline-block">
+                              em resposta a @{comentarioPai.username}
+                            </p>
+                          )}
+                        </div>
 
-                        <p className="opacity-95 break-words leading-relaxed">{c.texto}</p>
+                        <p className="opacity-95 break-words leading-relaxed pt-1">{c.texto}</p>
 
-                        <div className="flex flex-wrap items-center gap-3 pt-1">
+                        <div className="flex flex-wrap items-center gap-3 pt-1.5">
                           <button onClick={() => reagirComentarioPub(post.id, c.id, 'amei')} className={`text-[10px] font-bold flex items-center gap-1 ${meuAmeiCom ? 'text-rose-500' : 'opacity-60 hover:opacity-100'}`}>
                             ❤️ Amei ({(reacoesComentario.amei || []).length})
                           </button>
@@ -992,7 +969,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
           )}
 
-          <form onSubmit={(e) => comentar(post.id, post.username, e)} className="flex gap-2 relative">
+          <form onSubmit={(e) => comentar(post.id, post.username, e)} className="flex gap-2 relative mt-2">
             <input 
               type="text" 
               placeholder="Escreva um comentário. Use @..." 
@@ -1050,13 +1027,44 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       </div>
     );
-  }
+  };
 
+  const amigosLista = perfisReais.filter(p => meusAmigos.includes(p.username));
+  const outrosUsuarios = perfisReais.filter(p => p.username !== usuarioLogado.username && !meusAmigos.includes(p.username));
+
+  const publicacoesFiltradas = publicacoes.filter(post => {
+    const termo = termoBuscaComunidade.toLowerCase();
+    return !termoBuscaComunidade.trim() || (post.tema || '').toLowerCase().includes(termo) || (post.texto || '').toLowerCase().includes(termo);
+  });
+
+  const membrosFiltrados = outrosUsuarios.filter(membro => {
+    if (!termoBuscaComunidade.trim()) return true;
+    const termo = termoBuscaComunidade.toLowerCase();
+    return membro.nome.toLowerCase().includes(termo) || membro.username.toLowerCase().includes(termo);
+  });
+
+  const perfisSugeridosMencao = perfisReais.filter(p => {
+    if (!termoBuscaMencao) return true;
+    const t = termoBuscaMencao.toLowerCase();
+    return p.username.toLowerCase().includes(t) || p.nome.toLowerCase().includes(t);
+  });
+
+  const perfisSugeridosMencaoComentario = perfisReais.filter(p => {
+    if (!termoBuscaMencaoComentario) return true;
+    const t = termoBuscaMencaoComentario.toLowerCase();
+    return p.username.toLowerCase().includes(t) || p.nome.toLowerCase().includes(t);
+  });
+
+  // O "TRUQUE" PARA MODAIS QUE QUEBRAM NO W-SCREEN:
+  // Colocamos um React Fragment vazio (<> ... </>) em volta do return. 
+  // Modais e coisas fixas (como chat flutuante e overlays) ficam do lado de FORA
+  // do container que tem a classe w-screen e transform! Isso garante que não quebrem as posições.
   return (
-    <div className={`w-screen relative left-1/2 -translate-x-1/2 px-4 sm:px-8 lg:px-12 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+    <>
+      {/* ----------------- TODOS OS ELEMENTOS FIXOS/MODAIS AQUI (FORA DO CONTAINER PRINCIPAL) ----------------- */}
       
       {toastMensagem && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-5 duration-300">
           <div className="bg-slate-900 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-2.5 backdrop-blur-md">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span>{toastMensagem}</span>
@@ -1065,7 +1073,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       )}
 
       {abaSolicitacoesAberta && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-xs">
           <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <div className="flex justify-between items-center border-b pb-3 border-slate-700">
               <h3 className="font-extrabold text-sm">👥 Solicitações de Amizade Pendentes</h3>
@@ -1120,10 +1128,15 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       )}
 
       {modalCriarStoryAberto && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-xs">
           <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <div className="flex justify-between items-center">
-              <h3 className="font-extrabold text-base">✨ Criar Novo Story</h3>
+              <h3 className="font-extrabold text-base flex items-center gap-2">
+                <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                Criar Novo Story
+              </h3>
               <button onClick={() => setModalCriarStoryAberto(false)} className="text-sm font-bold opacity-70 hover:opacity-100">✕</button>
             </div>
 
@@ -1226,9 +1239,12 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   ) : (
                     <div className="space-y-2">
                       <p className="text-xs opacity-60">Selecione um arquivo ou grave direto da câmera:</p>
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        <label className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer shadow-sm">
-                          📁 Enviar Arquivo (Foto/Vídeo)
+                      <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+                        <label className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer shadow-sm flex items-center justify-center gap-2">
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                          </svg>
+                          Enviar Arquivo (Foto/Vídeo)
                           <input 
                             type="file" 
                             accept="image/*,video/*" 
@@ -1251,8 +1267,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                           />
                         </label>
 
-                        <label className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer shadow-sm">
-                          📹 Gravar da Câmera
+                        <label className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer shadow-sm flex items-center justify-center gap-2">
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Gravar da Câmera
                           <input 
                             type="file" 
                             accept="video/*" 
@@ -1332,7 +1351,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       )}
 
       {usuarioStoryVisualizando && storyAtivoObj && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/90 z-[100] flex flex-col items-center justify-center p-4">
           <div className="relative max-w-md w-full h-[85vh] bg-slate-900 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-slate-800">
             
             <div className="absolute top-0 left-0 right-0 p-2 z-30 flex gap-1 bg-gradient-to-b from-black/85 to-transparent">
@@ -1410,7 +1429,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     onClick={() => setModalVisualizadoresAberto(true)}
                     className="bg-black/60 hover:bg-black/80 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 border border-white/20 backdrop-blur-sm"
                   >
-                    👁️ {(storyAtivoObj.visualizacoes || []).length} Visualizações
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    {(storyAtivoObj.visualizacoes || []).length} Visualizações
                   </button>
                   <button onClick={async () => { await BancoDeDados.excluirStory(storyAtivoObj.id); setStories(await BancoDeDados.getStories()); setUsuarioStoryVisualizando(null); mostrarToast('Story excluído.'); }} className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg hover:bg-red-700">Excluir</button>
                 </div>
@@ -1447,10 +1470,16 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       )}
 
       {modalVisualizadoresAberto && storyAtivoObj && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-xs">
           <div className="max-w-sm w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-white space-y-4">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="font-extrabold text-sm flex items-center gap-2">👁️ Quem visualizou este story</h3>
+              <h3 className="font-extrabold text-sm flex items-center gap-2">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                Quem visualizou este story
+              </h3>
               <button onClick={() => setModalVisualizadoresAberto(false)} className="text-xs opacity-70 font-bold hover:opacity-100">✕</button>
             </div>
 
@@ -1485,320 +1514,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
-      <div className={`w-full p-4 rounded-2xl border shadow-sm flex items-center gap-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-        <svg className="w-5 h-5 opacity-50 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input 
-          type="text" 
-          placeholder="Buscar publicações, versículos ou pessoas..." 
-          value={termoBuscaComunidade}
-          onChange={(e) => setTermoBuscaComunidade(e.target.value)}
-          className={`w-full text-xs sm:text-sm bg-transparent focus:outline-none ${darkMode ? 'text-white placeholder-slate-400' : 'text-slate-900 placeholder-slate-500'}`}
-        />
-        {termoBuscaComunidade && (
-          <button onClick={() => setTermoBuscaComunidade('')} className="text-xs opacity-60 hover:opacity-100 font-bold px-2">Limpar</button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <div className="lg:col-span-3 space-y-6">
-          <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-            <div 
-              onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} 
-              className="cursor-pointer group inline-block relative"
-            >
-              <div className={`w-24 h-24 rounded-full p-1 mx-auto flex items-center justify-center transition ${temStoryAtivo ? (meusStoriesVistos ? 'border-2 border-slate-500/40 opacity-75' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-xl') : ''}`}>
-                <img src={fotoPerfilOficial} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 shadow-md group-hover:opacity-90 transition" />
-              </div>
-              {temStoryAtivo && (
-                <span className={`absolute -top-1 right-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md ${meusStoriesVistos ? 'bg-slate-600 text-slate-300' : 'bg-gradient-to-r from-rose-600 to-amber-500 text-white'}`}>Story</span>
-              )}
-            </div>
-
-            <div>
-              <div className="flex items-center justify-center gap-1">
-                <h3 onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} className="font-extrabold text-sm cursor-pointer hover:text-blue-500 hover:underline transition">{nomePerfilOficial}</h3>
-                {meuPerfilBanco.verificado && <SeloVerificado tamanho="w-4 h-4" />}
-              </div>
-              <p onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
-              <p className="text-xs opacity-75 mt-2 whitespace-pre-line break-words">{biografiaOficial}</p>
-            </div>
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
-              <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
-                <span className="block font-extrabold text-blue-500 text-sm">{meusAmigos.length}</span>
-                <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Amigos</span>
-              </div>
-              <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
-                <span className="block font-extrabold text-indigo-500 text-sm">{publicacoes.filter(p => p.username === usuarioLogado.username).length}</span>
-                <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Posts</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="lg:col-span-6 space-y-6">
-
-          <div className={`p-4 rounded-3xl border shadow-md flex gap-3 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-            <div 
-              onClick={() => setModalCriarStoryAberto(true)}
-              className={`relative flex-shrink-0 w-28 h-44 rounded-2xl border flex flex-col justify-end items-center pb-3 cursor-pointer overflow-hidden transition hover:scale-105 shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}
-            >
-              <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${fotoPerfilOficial})` }}></div>
-              <div className="absolute top-3 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">+</div>
-              <span className="relative z-10 text-[11px] font-bold text-center px-1">Adicionar story</span>
-            </div>
-
-            {listaAutoresStories.map((autorItem) => {
-              const st = autorItem.primeiroStory;
-              const todosVistos = autorItem.todosVistos;
-
-              return (
-                <div 
-                  key={autorItem.username} 
-                  onClick={() => clicarPerfilOuStory(autorItem.username)}
-                  className={`relative flex-shrink-0 w-28 h-44 rounded-2xl overflow-hidden cursor-pointer shadow-md transition hover:scale-105 border-2 bg-slate-900 flex flex-col justify-between p-2 ${todosVistos ? 'border-slate-500/40 opacity-70' : 'border-amber-500'}`}
-                >
-                  {st.tipo === 'texto' ? (
-                    <div className="absolute inset-0 p-3 flex items-center justify-center text-center" style={{ backgroundColor: st.cor_fundo || '#1e293b' }}>
-                      <p className="text-white text-[11px] font-bold line-clamp-4">{st.conteudo}</p>
-                    </div>
-                  ) : st.tipo === 'video' ? (
-                    <video src={st.conteudo} className="absolute inset-0 w-full h-full object-cover" />
-                  ) : (
-                    <img src={st.conteudo} alt="Story" className="absolute inset-0 w-full h-full object-cover" />
-                  )}
-
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
-                  
-                  <div className={`relative z-10 w-8 h-8 rounded-full p-0.5 shadow-md ${todosVistos ? 'border border-slate-400 bg-slate-600' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400'}`}>
-                    <img src={autorItem.avatar} className="w-full h-full rounded-full object-cover border border-white" />
-                  </div>
-
-                  <div className="relative z-10 flex items-center gap-1">
-                    <span 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        abrirPerfilPorUsername(autorItem.username);
-                      }} 
-                      className="text-white text-[11px] font-bold truncate hover:underline"
-                    >
-                      {autorItem.autor}
-                    </span>
-                    {autorItem.verificado && <SeloVerificado tamanho="w-3 h-3" />}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Criar Publicação</h3>
-            <form onSubmit={publicarPost} className="space-y-3">
-              <input type="text" placeholder="Tema da publicação..." value={pubTema} onChange={(e) => setPubTema(e.target.value)} className={`w-full text-sm rounded-xl px-4 py-2.5 border font-bold ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
-              <textarea rows="3" placeholder="Compartilhe algo com a comunidade..." value={pubTexto} onChange={(e) => setPubTexto(e.target.value)} className={`w-full text-sm rounded-xl px-4 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
-              {pubImagem && <img src={pubImagem} alt="Preview" className="w-full h-48 object-cover rounded-2xl shadow-sm" />}
-              <div className="flex justify-between items-center">
-                <label className={`text-xs px-4 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition font-semibold ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
-                  📷 Imagem
-                  <input type="file" accept="image/*" onChange={async (e) => { const f = e.target.files[0]; if(f) { const url = await BancoDeDados.uploadMidiaStory(f); if (url) setPubImagem(url); } }} className="hidden" />
-                </label>
-                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-md">Publicar</button>
-              </div>
-            </form>
-          </div>
-
-          <div className={`p-6 rounded-3xl border shadow-md space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração 🙏</h3>
-            <form onSubmit={criarPedidoOracaoHandler} className="flex gap-2">
-              <input 
-                type="text" 
-                placeholder="Compartilhe um pedido de oração..." 
-                value={novoPedidoTexto} 
-                onChange={(e) => setNovoPedidoTexto(e.target.value)} 
-                className={`w-full text-xs rounded-xl px-4 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} 
-              />
-              <button type="submit" className="bg-blue-600 text-white text-xs px-5 py-2.5 rounded-xl font-bold transition hover:bg-blue-700 shadow-sm flex-shrink-0">Pedir Oração</button>
-            </form>
-
-            <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-              {pedidosOracao.length === 0 ? (
-                <p className="text-[11px] opacity-50 text-center py-4">Nenhum pedido de oração no momento.</p>
-              ) : (
-                pedidosOracao.map(p => {
-                  const souDonoDoPedido = p.username === usuarioLogado.username;
-                  const apoiadores = p.apoiadores || [];
-                  const jaApoiou = apoiadores.includes(usuarioLogado.username);
-                  return (
-                    <div key={p.id} className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-                      <div className="flex-1 min-w-0 flex items-center gap-2">
-                        <span 
-                          onClick={() => abrirPerfilPorUsername(p.username)} 
-                          className="cursor-pointer font-bold text-blue-500 hover:underline"
-                        >
-                          @{p.username}:
-                        </span>
-                        <span className="break-words">{p.texto}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <button 
-                          onClick={async () => { 
-                            const atualizados = await BancoDeDados.apoiarPedidoOracao(p.id, usuarioLogado.username); 
-                            setPedidosOracao(atualizados || []); 
-                          }} 
-                          className={`px-3.5 py-1.5 rounded-xl font-bold transition ${jaApoiou ? 'bg-red-600 text-white' : 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white'}`}
-                        >
-                          ❤️ Apoiar ({p.apoios || 0})
-                        </button>
-                        {souDonoDoPedido && (
-                          <button onClick={async () => { if (window.confirm('Excluir pedido?')) { const atualizados = await BancoDeDados.excluirPedidoOracao(p.id); setPedidosOracao(atualizados || []); mostrarToast('Pedido excluído.'); }}} className="text-slate-400 hover:text-red-500 p-1.5 font-bold transition">✕</button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-md font-bold opacity-75">Feed da Comunidade</h3>
-
-            {publicacoesFiltradas.length === 0 ? (
-              <div className={`p-8 text-center rounded-3xl border shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <p className="text-xs opacity-60">Nenhuma publicação encontrada.</p>
-              </div>
-            ) : (
-              publicacoesFiltradas.map((post) => renderizarCardPublicacao(post, false))
-            )}
-          </div>
-        </div>
-
-        <div className="lg:col-span-3 space-y-6">
-          <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
-
-            <div className="space-y-3">
-              <p className="text-xs opacity-60">Selecione um amigo para conversar:</p>
-              {amigosLista.length === 0 ? (
-                <p className="text-xs opacity-40 text-center py-6">Nenhum amigo conectado no chat ainda.</p>
-              ) : (
-                amigosLista.map(amigo => {
-                  const naoLidasDoAmigo = notificacoes.filter(
-                    n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
-                  ).length;
-                  const amigoTemStory = storiesFiltradosAmigos.some(s => s.username === amigo.username);
-
-                  return (
-                    <div 
-                      key={amigo.username} 
-                      onClick={() => abrirChatComAmigo(amigo.username)} 
-                      className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            clicarPerfilOuStory(amigo.username);
-                          }}
-                          className={`relative w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${amigoTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
-                        >
-                          <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-                        </div>
-
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1 min-w-0">
-                            <p onClick={(e) => { e.stopPropagation(); abrirPerfilPorUsername(amigo.username); }} className="text-xs font-bold truncate hover:underline">{amigo.nome}</p>
-                            {amigo.verificado && <SeloVerificado tamanho="w-3 h-3" />}
-                          </div>
-                          <p className="text-[10px] opacity-50 truncate">@{amigo.username}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {naoLidasDoAmigo > 0 && (
-                          <span className="bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs animate-bounce">
-                            {naoLidasDoAmigo}
-                          </span>
-                        )}
-                        <button title="Abrir chat" className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">👥 Membros da Comunidade</h4>
-            <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-              {membrosFiltrados.length === 0 ? (
-                <p className="text-xs opacity-40 text-center py-4">Nenhum membro encontrado.</p>
-              ) : (
-                membrosFiltrados.map(membro => {
-                  const enviei = meuPerfilBanco.pedidos_enviados?.includes(membro.username);
-                  const membroTemStory = storiesFiltradosAmigos.some(s => s.username === membro.username);
-
-                  return (
-                    <div key={membro.username} className={`p-3 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                      <div 
-                        className="flex items-center gap-2.5 min-w-0 cursor-pointer" 
-                        onClick={() => clicarPerfilOuStory(membro.username)}
-                      >
-                        <div className={`relative w-8 h-8 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${membroTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-sm animate-pulse' : ''}`}>
-                          <img src={membro.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1 min-w-0">
-                            <p onClick={(e) => { e.stopPropagation(); abrirPerfilPorUsername(membro.username); }} className="font-bold truncate hover:underline">{membro.nome}</p>
-                            {membro.verificado && <SeloVerificado tamanho="w-3 h-3" />}
-                          </div>
-                          <p className="text-[10px] opacity-50 truncate">@{membro.username}</p>
-                        </div>
-                      </div>
-
-                      <button 
-                        disabled={enviei}
-                        title={enviei ? 'Solicitação Pendente' : 'Seguir / Adicionar'}
-                        onClick={async () => {
-                          await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, membro.username);
-                          mostrarToast(`Pedido de amizade enviado para @${membro.username}!`);
-                        }}
-                        className={`p-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center flex-shrink-0 ${
-                          enviei 
-                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/35 cursor-not-allowed' 
-                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
-                        }`}
-                      >
-                        {enviei ? (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-
-      </div>
-
       {chatComUsuario ? (
-        <div className="fixed bottom-4 right-4 z-50 w-[360px] sm:w-[380px] h-[520px] max-h-[85vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden backdrop-blur-md bg-slate-900 border-slate-700 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed bottom-4 right-4 z-[100] w-[360px] sm:w-[380px] h-[520px] max-h-[85vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden backdrop-blur-md bg-slate-900 border-slate-700 animate-in fade-in zoom-in-95 duration-200">
           
           <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
             <div 
@@ -1932,7 +1649,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
               <label className="text-slate-400 hover:text-white p-1.5 cursor-pointer transition" title="Enviar Imagem ou Vídeo">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <input type="file" accept="image/*,video/*" onChange={lidarComEnvioMidiaChat} className="hidden" />
               </label>
@@ -1967,7 +1684,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
         </div>
       ) : (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-6 right-6 z-[100]">
           <button 
             onClick={() => {
               if (amigosLista.length > 0) {
@@ -1993,7 +1710,350 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           </button>
         </div>
       )}
-  
-    </div>
+
+      {/* ----------------- SEU SITE PRINCIPAL AQUI (DENTRO DA CAIXA W-SCREEN QUE ESTICA A TELA) ----------------- */}
+      <div className={`w-screen relative left-1/2 -translate-x-1/2 px-4 sm:px-8 lg:px-12 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+        
+        {postDetalheId ? (
+          (() => {
+            const postUnico = publicacoes.find(p => p.id === postDetalheId);
+            return (
+              <div className={`w-full max-w-2xl mx-auto px-3 sm:px-6 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+                <button 
+                  onClick={() => setPostDetalheId(null)}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-2"
+                >
+                  ← Voltar para o Feed da Comunidade
+                </button>
+
+                {!postUnico ? (
+                  <div className={`p-8 text-center rounded-3xl border shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <p className="text-xs opacity-60">Esta publicação não foi encontrada ou foi removida.</p>
+                  </div>
+                ) : (
+                  renderizarCardPublicacao(postUnico, true)
+                )}
+              </div>
+            );
+          })()
+        ) : (
+          <>
+            <div className={`w-full p-4 rounded-2xl border shadow-sm flex items-center gap-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <svg className="w-5 h-5 opacity-50 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input 
+                type="text" 
+                placeholder="Buscar publicações, versículos ou pessoas..." 
+                value={termoBuscaComunidade}
+                onChange={(e) => setTermoBuscaComunidade(e.target.value)}
+                className={`w-full text-xs sm:text-sm bg-transparent focus:outline-none ${darkMode ? 'text-white placeholder-slate-400' : 'text-slate-900 placeholder-slate-500'}`}
+              />
+              {termoBuscaComunidade && (
+                <button onClick={() => setTermoBuscaComunidade('')} className="text-xs opacity-60 hover:opacity-100 font-bold px-2">Limpar</button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              <div className="lg:col-span-3 space-y-6">
+                <div className={`p-6 rounded-3xl border shadow-md space-y-4 text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div 
+                    onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} 
+                    className="cursor-pointer group inline-block relative"
+                  >
+                    <div className={`w-24 h-24 rounded-full p-1 mx-auto flex items-center justify-center transition ${temStoryAtivo ? (meusStoriesVistos ? 'border-2 border-slate-500/40 opacity-75' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-xl') : ''}`}>
+                      <img src={fotoPerfilOficial} alt="Avatar" className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 shadow-md group-hover:opacity-90 transition" />
+                    </div>
+                    {temStoryAtivo && (
+                      <span className={`absolute -top-1 right-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md ${meusStoriesVistos ? 'bg-slate-600 text-slate-300' : 'bg-gradient-to-r from-rose-600 to-amber-500 text-white'}`}>Story</span>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-center gap-1">
+                      <h3 onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} className="font-extrabold text-sm cursor-pointer hover:text-blue-500 hover:underline transition">{nomePerfilOficial}</h3>
+                      {meuPerfilBanco.verificado && <SeloVerificado tamanho="w-4 h-4" />}
+                    </div>
+                    <p onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
+                    <p className="text-xs opacity-75 mt-2 whitespace-pre-line break-words">{biografiaOficial}</p>
+                  </div>
+                  <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
+                    <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <span className="block font-extrabold text-blue-500 text-sm">{meusAmigos.length}</span>
+                      <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Amigos</span>
+                    </div>
+                    <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <span className="block font-extrabold text-indigo-500 text-sm">{publicacoes.filter(p => p.username === usuarioLogado.username).length}</span>
+                      <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Posts</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-6 space-y-6">
+
+                <div className={`p-4 rounded-3xl border shadow-md flex gap-3 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div 
+                    onClick={() => setModalCriarStoryAberto(true)}
+                    className={`relative flex-shrink-0 w-28 h-44 rounded-2xl border flex flex-col justify-end items-center pb-3 cursor-pointer overflow-hidden transition hover:scale-105 shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}
+                  >
+                    <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${fotoPerfilOficial})` }}></div>
+                    <div className="absolute top-3 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">+</div>
+                    <span className="relative z-10 text-[11px] font-bold text-center px-1">Adicionar story</span>
+                  </div>
+
+                  {listaAutoresStories.map((autorItem) => {
+                    const st = autorItem.primeiroStory;
+                    const todosVistos = autorItem.todosVistos;
+
+                    return (
+                      <div 
+                        key={autorItem.username} 
+                        onClick={() => clicarPerfilOuStory(autorItem.username)}
+                        className={`relative flex-shrink-0 w-28 h-44 rounded-2xl overflow-hidden cursor-pointer shadow-md transition hover:scale-105 border-2 bg-slate-900 flex flex-col justify-between p-2 ${todosVistos ? 'border-slate-500/40 opacity-70' : 'border-amber-500'}`}
+                      >
+                        {st.tipo === 'texto' ? (
+                          <div className="absolute inset-0 p-3 flex items-center justify-center text-center" style={{ backgroundColor: st.cor_fundo || '#1e293b' }}>
+                            <p className="text-white text-[11px] font-bold line-clamp-4">{st.conteudo}</p>
+                          </div>
+                        ) : st.tipo === 'video' ? (
+                          <video src={st.conteudo} className="absolute inset-0 w-full h-full object-cover" />
+                        ) : (
+                          <img src={st.conteudo} alt="Story" className="absolute inset-0 w-full h-full object-cover" />
+                        )}
+
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+                        
+                        <div className={`relative z-10 w-8 h-8 rounded-full p-0.5 shadow-md ${todosVistos ? 'border border-slate-400 bg-slate-600' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400'}`}>
+                          <img src={autorItem.avatar} className="w-full h-full rounded-full object-cover border border-white" />
+                        </div>
+
+                        <div className="relative z-10 flex items-center gap-1">
+                          <span 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              abrirPerfilPorUsername(autorItem.username);
+                            }} 
+                            className="text-white text-[11px] font-bold truncate hover:underline"
+                          >
+                            {autorItem.autor}
+                          </span>
+                          {autorItem.verificado && <SeloVerificado tamanho="w-3 h-3" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                  <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Criar Publicação</h3>
+                  <form onSubmit={publicarPost} className="space-y-3">
+                    <input type="text" placeholder="Tema da publicação..." value={pubTema} onChange={(e) => setPubTema(e.target.value)} className={`w-full text-sm rounded-xl px-4 py-2.5 border font-bold ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} />
+                    <textarea rows="3" placeholder="Compartilhe algo com a comunidade..." value={pubTexto} onChange={(e) => setPubTexto(e.target.value)} className={`w-full text-sm rounded-xl px-4 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`}></textarea>
+                    {pubImagem && <img src={pubImagem} alt="Preview" className="w-full h-48 object-cover rounded-2xl shadow-sm" />}
+                    <div className="flex justify-between items-center">
+                      <label className={`text-xs px-4 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 transition font-semibold ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
+                        <svg className="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Imagem
+                        <input type="file" accept="image/*" onChange={async (e) => { const f = e.target.files[0]; if(f) { const url = await BancoDeDados.uploadMidiaStory(f); if (url) setPubImagem(url); } }} className="hidden" />
+                      </label>
+                      <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-md">Publicar</button>
+                    </div>
+                  </form>
+                </div>
+
+                <div className={`p-6 rounded-3xl border shadow-md space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                  <h3 className="text-xs font-bold uppercase tracking-wider opacity-60">Mural de Pedidos de Oração 🙏</h3>
+                  <form onSubmit={criarPedidoOracaoHandler} className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Compartilhe um pedido de oração..." 
+                      value={novoPedidoTexto} 
+                      onChange={(e) => setNovoPedidoTexto(e.target.value)} 
+                      className={`w-full text-xs rounded-xl px-4 py-2.5 border ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300'}`} 
+                    />
+                    <button type="submit" className="bg-blue-600 text-white text-xs px-5 py-2.5 rounded-xl font-bold transition hover:bg-blue-700 shadow-sm flex-shrink-0">Pedir Oração</button>
+                  </form>
+
+                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                    {pedidosOracao.length === 0 ? (
+                      <p className="text-[11px] opacity-50 text-center py-4">Nenhum pedido de oração no momento.</p>
+                    ) : (
+                      pedidosOracao.map(p => {
+                        const souDonoDoPedido = p.username === usuarioLogado.username;
+                        const apoiadores = p.apoiadores || [];
+                        const jaApoiou = apoiadores.includes(usuarioLogado.username);
+                        return (
+                          <div key={p.id} className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/40 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                            <div className="flex-1 min-w-0 flex items-center gap-2">
+                              <span 
+                                onClick={() => abrirPerfilPorUsername(p.username)} 
+                                className="cursor-pointer font-bold text-blue-500 hover:underline"
+                              >
+                                @{p.username}:
+                              </span>
+                              <span className="break-words">{p.texto}</span>
+                            </div>
+
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <button 
+                                onClick={async () => { 
+                                  const atualizados = await BancoDeDados.apoiarPedidoOracao(p.id, usuarioLogado.username); 
+                                  setPedidosOracao(atualizados || []); 
+                                }} 
+                                className={`px-3.5 py-1.5 rounded-xl font-bold transition ${jaApoiou ? 'bg-red-600 text-white' : 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white'}`}
+                              >
+                                ❤️ Apoiar ({p.apoios || 0})
+                              </button>
+                              {souDonoDoPedido && (
+                                <button onClick={async () => { if (window.confirm('Excluir pedido?')) { const atualizados = await BancoDeDados.excluirPedidoOracao(p.id); setPedidosOracao(atualizados || []); mostrarToast('Pedido excluído.'); }}} className="text-slate-400 hover:text-red-500 p-1.5 font-bold transition">✕</button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-md font-bold opacity-75">Feed da Comunidade</h3>
+
+                  {publicacoesFiltradas.length === 0 ? (
+                    <div className={`p-8 text-center rounded-3xl border shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                      <p className="text-xs opacity-60">Nenhuma publicação encontrada.</p>
+                    </div>
+                  ) : (
+                    publicacoesFiltradas.map((post) => renderizarCardPublicacao(post, false))
+                  )}
+                </div>
+              </div>
+
+              <div className="lg:col-span-3 space-y-6">
+                <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                  <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
+
+                  <div className="space-y-3">
+                    <p className="text-xs opacity-60">Selecione um amigo para conversar:</p>
+                    {amigosLista.length === 0 ? (
+                      <p className="text-xs opacity-40 text-center py-6">Nenhum amigo conectado no chat ainda.</p>
+                    ) : (
+                      amigosLista.map(amigo => {
+                        const naoLidasDoAmigo = notificacoes.filter(
+                          n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
+                        ).length;
+                        const amigoTemStory = storiesFiltradosAmigos.some(s => s.username === amigo.username);
+
+                        return (
+                          <div 
+                            key={amigo.username} 
+                            onClick={() => abrirChatComAmigo(amigo.username)} 
+                            className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  clicarPerfilOuStory(amigo.username);
+                                }}
+                                className={`relative w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${amigoTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
+                              >
+                                <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
+                              </div>
+
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1 min-w-0">
+                                  <p onClick={(e) => { e.stopPropagation(); abrirPerfilPorUsername(amigo.username); }} className="text-xs font-bold truncate hover:underline">{amigo.nome}</p>
+                                  {amigo.verificado && <SeloVerificado tamanho="w-3 h-3" />}
+                                </div>
+                                <p className="text-[10px] opacity-50 truncate">@{amigo.username}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {naoLidasDoAmigo > 0 && (
+                                <span className="bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs animate-bounce">
+                                  {naoLidasDoAmigo}
+                                </span>
+                              )}
+                              <button title="Abrir chat" className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                  <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">👥 Membros da Comunidade</h4>
+                  <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                    {membrosFiltrados.length === 0 ? (
+                      <p className="text-xs opacity-40 text-center py-4">Nenhum membro encontrado.</p>
+                    ) : (
+                      membrosFiltrados.map(membro => {
+                        const enviei = meuPerfilBanco.pedidos_enviados?.includes(membro.username);
+                        const membroTemStory = storiesFiltradosAmigos.some(s => s.username === membro.username);
+
+                        return (
+                          <div key={membro.username} className={`p-3 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                            <div 
+                              className="flex items-center gap-2.5 min-w-0 cursor-pointer" 
+                              onClick={() => clicarPerfilOuStory(membro.username)}
+                            >
+                              <div className={`relative w-8 h-8 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${membroTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-sm animate-pulse' : ''}`}>
+                                <img src={membro.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1 min-w-0">
+                                  <p onClick={(e) => { e.stopPropagation(); abrirPerfilPorUsername(membro.username); }} className="font-bold truncate hover:underline">{membro.nome}</p>
+                                  {membro.verificado && <SeloVerificado tamanho="w-3 h-3" />}
+                                </div>
+                                <p className="text-[10px] opacity-50 truncate">@{membro.username}</p>
+                              </div>
+                            </div>
+
+                            <button 
+                              disabled={enviei}
+                              title={enviei ? 'Solicitação Pendente' : 'Seguir / Adicionar'}
+                              onClick={async () => {
+                                await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, membro.username);
+                                mostrarToast(`Pedido de amizade enviado para @${membro.username}!`);
+                              }}
+                              className={`p-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center flex-shrink-0 ${
+                                enviei 
+                                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/35 cursor-not-allowed' 
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
+                              }`}
+                            >
+                              {enviei ? (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 }
