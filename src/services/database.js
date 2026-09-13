@@ -452,18 +452,20 @@ export const BancoDeDados = {
   },
 
   adicionarNotificacao: async (usernameDestino, texto, tipo) => {
-    try {
-      const novaNotif = {
-        id: Date.now(),
-        destinatario: usernameDestino,
-        texto,
-        tipo,
-        lida: false,
-        horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes`, { method: 'POST', headers, body: JSON.stringify(novaNotif) });
-    } catch (e) {}
-  },
+  try {
+    const agora = new Date();
+    const novaNotif = {
+      id: Date.now(),
+      destinatario: usernameDestino,
+      texto,
+      tipo,
+      lida: false,
+      data: agora.toISOString(), // <-- Salva a data completa em ISO
+      horario: agora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    await fetch(`${SUPABASE_URL}/rest/v1/notificacoes`, { method: 'POST', headers, body: JSON.stringify(novaNotif) });
+  } catch (e) {}
+},
 
   marcarNotificacoesLidas: async (username) => {
     try {
