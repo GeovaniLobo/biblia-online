@@ -16,12 +16,18 @@ export default function App() {
 
   const [usuarioLogado, setUsuarioLogado] = useState(BancoDeDados.getUsuarioLogado());
   const [darkMode, setDarkMode] = useState(false);
-  const [abrirNotificacoesComunidade, setAbrirNotificacoesComunidade] = useState(false);
+
   const [modalLoginAberto, setModalLoginAberto] = useState(false);
   const [menuPerfilAberto, setMenuPerfilAberto] = useState(false);
   const [menuHamburguerAberto, setMenuHamburguerAberto] = useState(false);
+  
+  // Estados para o Dropdown de Notificações
+  const [menuNotificacoesAberto, setMenuNotificacoesAberto] = useState(false);
+  const [listaNotificacoes, setListaNotificacoes] = useState([]);
+
   const dropdownRef = useRef(null);
   const hamburguerRef = useRef(null);
+  const notificacoesRef = useRef(null);
 
   useEffect(() => {
     async function carregarTemaDoBanco() {
@@ -62,6 +68,9 @@ export default function App() {
       }
       if (hamburguerRef.current && !hamburguerRef.current.contains(event.target)) {
         setMenuHamburguerAberto(false);
+      }
+      if (notificacoesRef.current && !notificacoesRef.current.contains(event.target)) {
+        setMenuNotificacoesAberto(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -203,6 +212,7 @@ export default function App() {
     if (aba !== 'perfilUrl') setPerfilUrlAlvo(null);
     setMenuPerfilAberto(false);
     setMenuHamburguerAberto(false);
+    setMenuNotificacoesAberto(false);
   };
 
   useEffect(() => {
@@ -353,7 +363,6 @@ export default function App() {
         {/* Lado Esquerdo: Botão Hambúrguer (Mobile) + Logo */}
         <div className="flex items-center gap-3">
           
-          {/* Botão Hambúrguer visível apenas em telas menores (Mobile/Tablet) */}
           <div className="relative lg:hidden" ref={hamburguerRef}>
             <button
               onClick={() => setMenuHamburguerAberto(!menuHamburguerAberto)}
@@ -365,11 +374,9 @@ export default function App() {
               </svg>
             </button>
 
-            {/* Gaveta do Menu Hambúrguer (Mobile) */}
             {menuHamburguerAberto && (
               <div className={`absolute left-0 mt-3 w-64 rounded-2xl shadow-2xl border p-3 z-50 space-y-3 backdrop-blur-md ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                 
-                {/* Seletor de Versão mobile exibido APENAS na página da Bíblia */}
                 {abaPrincipal === 'biblia' && (
                   <div className="pb-2 border-b border-slate-700/50">
                     <p className="text-[10px] uppercase tracking-wider font-extrabold opacity-60 mb-1">Versão da Bíblia</p>
@@ -454,7 +461,6 @@ export default function App() {
             LUZ DO MUNDO
           </span>
 
-          {/* Seletor de Versão desktop exibido APENAS na página da Bíblia */}
           {abaPrincipal === 'biblia' && (
             <select
               value={versaoSelecionada}
@@ -529,7 +535,7 @@ export default function App() {
           />
         </div>
 
-        {/* Lado Direito: Ações (Tema + Notificações condicional + Perfil) */}
+        {/* Lado Direito: Ações (Tema + Notificações Dropdown + Perfil) */}
         <div className="flex items-center gap-3">
           
           <button
@@ -544,19 +550,68 @@ export default function App() {
             )}
           </button>
 
-          {/* BOTÃO DE NOTIFICAÇÕES (Exibido apenas se o usuário estiver logado) */}
+          {/* BOTÃO DE NOTIFICAÇÕES (Dropdown Flutuante) */}
           {usuarioLogado && (
-  <button
-    onClick={() => {
-      setAbrirNotificacoesComunidade(true);
-      navegarPara('/comunidade', 'comunidade');
-    }}
-    className={`p-2.5 rounded-xl border transition relative flex items-center justify-center cursor-pointer ${darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-white' : 'bg-slate-100 border-slate-300 hover:bg-slate-200 text-slate-800'}`}
-    title="Notificações"
-  >
-    {/* ... ícone e badge ... */}
-  </button>
-)}
+            <div className="relative" ref={notificacoesRef}>
+              <button
+                onClick={async () => {
+                  const aberto = !menuNotificacoesAberto;
+                  setMenuNotificacoesAberto(abero);
+                  if (aberto) {
+                    const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+                    setListaNotificacoes(notifs || []);
+                    await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
+                    setTotalNaoLidas(0);
+                  }
+                }}
+                className={`p-2.5 rounded-xl border transition relative flex items-center justify-center cursor-pointer ${darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-white' : 'bg-slate-100 border-slate-300 hover:bg-slate-200 text-slate-800'}`}
+                title="Notificações"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {totalNaoLidas > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full font-black flex items-center justify-center shadow-md animate-bounce">
+                    {totalNaoLidas}
+                  </span>
+                )}
+              </button>
+
+              {menuNotificacoesAberto && (
+                <div className={`absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl shadow-2xl border p-3 z-50 space-y-2 backdrop-blur-md max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider">Notificações</h4>
+                    <button 
+                      onClick={() => setMenuNotificacoesAberto(false)}
+                      className="text-xs font-bold opacity-60 hover:opacity-100 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {listaNotificacoes.length === 0 ? (
+                    <p className="text-xs opacity-60 text-center py-6">Nenhuma notificação no momento.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {listaNotificacoes.map((n, idx) => (
+                        <div 
+                          key={n.id || idx} 
+                          className={`p-2.5 rounded-xl text-xs border transition ${darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                        >
+                          <p className="font-semibold leading-relaxed">{n.texto}</p>
+                          {n.data && (
+                            <span className="text-[10px] opacity-50 block mt-1">
+                              {new Date(n.data).toLocaleString('pt-BR')}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Balão de Perfil */}
           <div className="relative" ref={dropdownRef}>
@@ -783,16 +838,14 @@ export default function App() {
             )}
 
             {abaPrincipal === 'comunidade' && usuarioLogado && (
-  <Comunidade 
-    usuarioLogado={usuarioLogado} 
-    darkMode={darkMode} 
-    onVerPerfil={(username) => navegarPara(`/${username}`, 'perfilUrl')}
-    abaAtual={abaPrincipal}
-    setAbaAtual={(novaAba) => navegarPara(novaAba === 'biblia' ? '/' : `/${novaAba}`, novaAba)}
-    abrirNotificacoesInicial={abrirNotificacoesComunidade}
-    onFecharNotificacoes={() => setAbrirNotificacoesComunidade(false)}
-  />
-)}
+              <Comunidade 
+                usuarioLogado={usuarioLogado} 
+                darkMode={darkMode} 
+                onVerPerfil={(username) => navegarPara(`/${username}`, 'perfilUrl')}
+                abaAtual={abaPrincipal}
+                setAbaAtual={(novaAba) => navegarPara(novaAba === 'biblia' ? '/' : `/${novaAba}`, novaAba)}
+              />
+            )}
 
             {abaPrincipal === 'perfilUrl' && (
               <PerfilPublico
