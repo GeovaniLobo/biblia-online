@@ -14,6 +14,18 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     };
   }, []);
 
+  // Fechar menus com a tecla ESC
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setMenuCompartilharAberto(null);
+        setMenuOpcoesPostAberto(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   if (!usuarioLogado) {
     return (
       <div className={`w-screen relative left-1/2 -translate-x-1/2 px-4 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
@@ -542,7 +554,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       tema: pubTema.trim() || 'Publicação',
       texto: pubTexto.trim(),
       imagem: pubImagem,
-      data_criacao: new Date().toISOString(), // NOVA DATA E HORA DE CRIAÇÃO DO POST
+      data_criacao: new Date().toISOString(),
       curtidas: 0,
       reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] },
       comentarios: []
@@ -606,7 +618,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       autor: nomePerfilOficial,
       username: usuarioLogado.username,
       texto: texto.trim(),
-      data_criacao: new Date().toISOString(), // NOVA DATA E HORA DE CRIAÇÃO DO COMENTÁRIO
+      data_criacao: new Date().toISOString(),
       resposta_a_id: respostaPaiId,
       reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] }
     };
@@ -796,7 +808,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             })()}
           </div>
 
-          {/* MENU COMPARTILHAR - AQUI TEM A CORREÇÃO LEFT-0 PRA NÃO CORTAR NO MOBILE */}
+          {/* BOTÃO COMPARTILHAR */}
           <div className="relative">
             <button 
               onClick={() => setMenuCompartilharAberto(menuCompartilharAberto === post.id ? null : post.id)}
@@ -808,63 +820,82 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               <span>Compartilhar</span>
             </button>
 
+            {/* SE ESTIVER ABERTO: Overlay centralizado no Mobile / Dropdown no Desktop + Backdrop de clique fora */}
             {menuCompartilharAberto === post.id && (
-              <div className={`absolute left-0 sm:left-auto sm:right-0 bottom-full mb-2 w-52 rounded-2xl border shadow-2xl p-2 z-50 space-y-1 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 px-2 py-1">Opções de Partilha</p>
-                
-                <button 
-                  onClick={() => compartilharPostNoStory(post)}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2.5"
-                >
-                  <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
-                  Adicionar ao meu Story
-                </button>
+              <>
+                {/* Backdrop invisível para fechar ao clicar fora */}
+                <div 
+                  className="fixed inset-0 z-40 bg-black/40 sm:bg-transparent"
+                  onClick={() => setMenuCompartilharAberto(null)}
+                />
 
-                <button 
-                  onClick={() => {
-                    setPostDetalheId(post.id);
-                    setMenuCompartilharAberto(null);
-                  }}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2.5"
-                >
-                  <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                  Abrir Link Direto do Post
-                </button>
+                {/* Conteúdo do balão: Centralizado no mobile (sm:hidden) e dropdown no PC (hidden sm:block) */}
+                <div className={`
+                  fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 w-auto max-w-xs mx-auto p-3 rounded-2xl border shadow-2xl space-y-1
+                  sm:fixed sm:inset-auto sm:right-0 sm:bottom-full sm:mb-2 sm:w-52 sm:translate-y-0 sm:mx-0
+                  ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}
+                `}>
+                  <div className="flex justify-between items-center sm:hidden pb-1 mb-1 border-b border-slate-700/50">
+                    <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Opções de Partilha</p>
+                    <button onClick={() => setMenuCompartilharAberto(null)} className="text-xs font-bold px-1">✕</button>
+                  </div>
+                  
+                  <p className="hidden sm:block text-[10px] font-bold uppercase tracking-wider opacity-50 px-2 py-1">Opções de Partilha</p>
+                  
+                  <button 
+                    onClick={() => compartilharPostNoStory(post)}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2.5"
+                  >
+                    <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Adicionar ao meu Story
+                  </button>
 
-                <button 
-                  onClick={() => copiarLinkPost(post.id)}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2.5"
-                >
-                  <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  Copiar Link Próprio
-                </button>
+                  <button 
+                    onClick={() => {
+                      setPostDetalheId(post.id);
+                      setMenuCompartilharAberto(null);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2.5"
+                  >
+                    <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    Abrir Link Direto do Post
+                  </button>
 
-                <button 
-                  onClick={() => compartilharRedesSociais('whatsapp', post)}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-600 hover:text-white transition flex items-center gap-2.5 text-emerald-500 hover:text-white"
-                >
-                  <svg className="w-4 h-4 fill-current flex-shrink-0" viewBox="0 0 24 24">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                  </svg>
-                  <span>WhatsApp</span>
-                </button>
+                  <button 
+                    onClick={() => copiarLinkPost(post.id)}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2.5"
+                  >
+                    <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copiar Link Próprio
+                  </button>
 
-                <button 
-                  onClick={() => compartilharRedesSociais('facebook', post)}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2.5 text-blue-500 hover:text-white"
-                >
-                  <svg className="w-4 h-4 fill-current flex-shrink-0" viewBox="0 0 24 24">
-                    <path d="M9 8H6v4h3v12h5V12h3.642L18 8h-4V6.333C14 5.378 14.5 5 15.5 5H18V0h-3.808C10.592 0 9 1.589 9 4.75V8z"/>
-                  </svg>
-                  <span>Facebook</span>
-                </button>
-              </div>
+                  <button 
+                    onClick={() => compartilharRedesSociais('whatsapp', post)}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-600 hover:text-white transition flex items-center gap-2.5 text-emerald-500 hover:text-white"
+                  >
+                    <svg className="w-4 h-4 fill-current flex-shrink-0" viewBox="0 0 24 24">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                    </svg>
+                    <span>WhatsApp</span>
+                  </button>
+
+                  <button 
+                    onClick={() => compartilharRedesSociais('facebook', post)}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2.5 text-blue-500 hover:text-white"
+                  >
+                    <svg className="w-4 h-4 fill-current flex-shrink-0" viewBox="0 0 24 24">
+                      <path d="M9 8H6v4h3v12h5V12h3.642L18 8h-4V6.333C14 5.378 14.5 5 15.5 5H18V0h-3.808C10.592 0 9 1.589 9 4.75V8z"/>
+                    </svg>
+                    <span>Facebook</span>
+                  </button>
+                </div>
+              </>
             )}
           </div>
 
@@ -1055,14 +1086,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return p.username.toLowerCase().includes(t) || p.nome.toLowerCase().includes(t);
   });
 
-  // O "TRUQUE" PARA MODAIS QUE QUEBRAM NO W-SCREEN:
-  // Colocamos um React Fragment vazio (<> ... </>) em volta do return. 
-  // Modais e coisas fixas (como chat flutuante e overlays) ficam do lado de FORA
-  // do container que tem a classe w-screen e transform! Isso garante que não quebrem as posições.
   return (
     <>
-      {/* ----------------- TODOS OS ELEMENTOS FIXOS/MODAIS AQUI (FORA DO CONTAINER PRINCIPAL) ----------------- */}
-      
       {toastMensagem && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-5 duration-300">
           <div className="bg-slate-900 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-2.5 backdrop-blur-md">
@@ -1711,7 +1736,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
-      {/* ----------------- SEU SITE PRINCIPAL AQUI (DENTRO DA CAIXA W-SCREEN QUE ESTICA A TELA) ----------------- */}
+      {/* CONTAINER PRINCIPAL */}
       <div className={`w-screen relative left-1/2 -translate-x-1/2 px-4 sm:px-8 lg:px-12 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
         
         {postDetalheId ? (
