@@ -64,11 +64,11 @@ export default function AuthModal({ isOpen, onClose, onLoginSucesso, darkMode })
     setCarregando(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin
-        }
-      });
+  provider: 'google',
+  options: {
+    redirectTo: 'https://biblia-online-kappa.vercel.app'
+  }
+});
       if (error) throw error;
     } catch (err) {
       setErro(`Erro ao entrar com Google: ${err.message}`);
