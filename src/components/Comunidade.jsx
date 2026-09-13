@@ -3,10 +3,21 @@ import { BancoDeDados } from '../services/database';
 import PerfilPublico from './PerfilPublico';
 
 export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
+  
+  // TRUQUE DE MESTRE: Tira o scroll horizontal do body para o w-screen funcionar sem bugar no PC
+  useEffect(() => {
+    const originalOverflowX = document.body.style.overflowX;
+    document.body.style.overflowX = 'hidden';
+    
+    return () => {
+      document.body.style.overflowX = originalOverflowX;
+    };
+  }, []);
+
   if (!usuarioLogado) {
     return (
-      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
-        <p className="text-xs opacity-60">Carregando dados do usuário...</p>
+      <div className={`w-screen relative left-1/2 -translate-x-1/2 px-4 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+        <p className="text-xs opacity-60 text-center">Carregando dados do usuário...</p>
       </div>
     );
   }
@@ -1042,7 +1053,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   }
 
   return (
-    <div className={`w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+    <div className={`w-screen relative left-1/2 -translate-x-1/2 px-4 sm:px-8 lg:px-12 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
       
       {toastMensagem && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
@@ -1921,7 +1932,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
               <label className="text-slate-400 hover:text-white p-1.5 cursor-pointer transition" title="Enviar Imagem ou Vídeo">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <input type="file" accept="image/*,video/*" onChange={lidarComEnvioMidiaChat} className="hidden" />
               </label>
