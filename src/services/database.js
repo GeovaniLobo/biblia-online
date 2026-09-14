@@ -28,7 +28,10 @@ export const BancoDeDados = {
       if (!response.ok) return [];
       const data = await response.json();
       return data || [];
-    } catch (err) { return []; }
+    } catch (err) {
+      console.error("Erro ao buscar perfis:", err);
+      return []; 
+    }
   },
 
   cadastrarPerfil: async (novoPerfil) => {
@@ -56,6 +59,7 @@ export const BancoDeDados = {
       console.error("Exceção ao salvar perfil:", e);
     }
   },
+
   atualizarPerfil: async (username, novosDados) => {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${username}`, {
       method: 'PATCH',
@@ -73,7 +77,9 @@ export const BancoDeDados = {
         headers,
         body: JSON.stringify({ ultimo_acesso: Date.now() })
       });
-    } catch (e) {}
+    } catch (e) {
+      console.error("Erro ao atualizar último acesso:", e);
+    }
   },
 
   // --- UPLOAD DE MÍDIA PARA O SUPABASE STORAGE ---
@@ -121,6 +127,7 @@ export const BancoDeDados = {
 
       return storiesValidos;
     } catch (err) { 
+      console.error("Erro ao buscar stories:", err);
       return []; 
     }
   },
@@ -133,9 +140,15 @@ export const BancoDeDados = {
         headers,
         body: JSON.stringify(novoStoryComVisualizacoes)
       });
-      if (!response.ok) return await BancoDeDados.getStories();
+      if (!response.ok) {
+        console.error("Erro ao salvar story:", await response.text());
+        return await BancoDeDados.getStories();
+      }
       return await BancoDeDados.getStories();
-    } catch (err) { return []; }
+    } catch (err) { 
+      console.error("Exceção ao salvar story:", err);
+      return []; 
+    }
   },
 
   registrarVisualizacaoStory: async (storyId, dadosVisualizador) => {
@@ -205,7 +218,10 @@ export const BancoDeDados = {
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${id}`, { method: 'DELETE', headers });
       return await BancoDeDados.getStories();
-    } catch (err) { return []; }
+    } catch (err) { 
+      console.error("Erro ao excluir story:", err);
+      return []; 
+    }
   },
 
   // --- PUBLICAÇÕES ---
@@ -214,7 +230,10 @@ export const BancoDeDados = {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?select=*&order=id.desc`, { method: 'GET', headers });
       if (!response.ok) return [];
       return await response.json();
-    } catch (err) { return []; }
+    } catch (err) { 
+      console.error("Erro ao buscar publicações:", err);
+      return []; 
+    }
   },
 
   salvarPublicacao: async (pub) => {
@@ -224,16 +243,25 @@ export const BancoDeDados = {
         headers,
         body: JSON.stringify(pub)
       });
-      if (!response.ok) return await BancoDeDados.getPublicacoes();
+      if (!response.ok) {
+        console.error("Erro ao salvar publicação:", await response.text());
+        return await BancoDeDados.getPublicacoes();
+      }
       return await BancoDeDados.getPublicacoes();
-    } catch (err) { return []; }
+    } catch (err) { 
+      console.error("Exceção ao salvar publicação:", err);
+      return []; 
+    }
   },
 
   excluirPublicacao: async (id) => {
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, { method: 'DELETE', headers });
       return await BancoDeDados.getPublicacoes();
-    } catch (err) { return []; }
+    } catch (err) { 
+      console.error("Erro ao excluir publicação:", err);
+      return []; 
+    }
   },
 
   atualizarPublicacao: async (id, texto, tema) => {
@@ -243,7 +271,9 @@ export const BancoDeDados = {
         headers,
         body: JSON.stringify({ texto, tema })
       });
-    } catch (e) {}
+    } catch (e) {
+      console.error("Erro ao atualizar publicação:", e);
+    }
     return await BancoDeDados.getPublicacoes();
   },
 
@@ -292,11 +322,14 @@ export const BancoDeDados = {
       if (p) {
         const comentariosAtuais = p.comentarios || [];
         const novosComentarios = [...comentariosAtuais, comentario];
-        await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({ comentarios: novosComentarios })
         });
+        if (!res.ok) {
+          console.error("Erro ao adicionar comentário:", await res.text());
+        }
 
         if (p.username !== comentario.username) {
           await BancoDeDados.adicionarNotificacao(
@@ -306,7 +339,9 @@ export const BancoDeDados = {
           );
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Exceção ao adicionar comentário:", e);
+    }
     return await BancoDeDados.getPublicacoes();
   },
 
@@ -358,11 +393,26 @@ export const BancoDeDados = {
       if (!enviados.includes(usernameDestinatario)) {
         enviados.push(usernameDestinatario);
         recebidos.push(usernameRemetente);
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, { method: 'PATCH', headers, body: JSON.stringify({ pedidos_enviados: enviados }) });
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameDestinatario}`, { method: 'PATCH', headers, body: JSON.stringify({ pedidos_recebidos: recebidos }) });
+
+        const res1 = await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, { 
+          method: 'PATCH', 
+          headers, 
+          body: JSON.stringify({ pedidos_enviados: enviados }) 
+        });
+        if (!res1.ok) console.error("Erro ao atualizar pedidos enviados:", await res1.text());
+
+        const res2 = await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameDestinatario}`, { 
+          method: 'PATCH', 
+          headers, 
+          body: JSON.stringify({ pedidos_recebidos: recebidos }) 
+        });
+        if (!res2.ok) console.error("Erro ao atualizar pedidos recebidos:", await res2.text());
+
         await BancoDeDados.adicionarNotificacao(usernameDestinatario, `@${usernameRemetente} enviou um pedido de amizade.`, 'amizade');
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Exceção em enviarPedidoAmizade:", e);
+    }
   },
 
   aceitarPedidoAmizade: async (usernameLogado, usernameRemetente) => {
@@ -381,22 +431,25 @@ export const BancoDeDados = {
         const novosAmigosRemetente = [...(remetente.amigos || [])];
         if (!novosAmigosRemetente.includes(usernameLogado)) novosAmigosRemetente.push(usernameLogado);
 
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameLogado}`, {
+        const res1 = await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameLogado}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({ pedidos_recebidos: novosRecebidos, amigos: novosAmigosLogado })
         });
+        if (!res1.ok) console.error("Erro ao aceitar pedido (logado):", await res1.text());
 
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, {
+        const res2 = await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({ pedidos_enviados: novosEnviados, amigos: novosAmigosRemetente })
         });
+        if (!res2.ok) console.error("Erro ao aceitar pedido (remetente):", await res2.text());
 
         await BancoDeDados.adicionarNotificacao(usernameRemetente, `@${usernameLogado} aceitou seu pedido de amizade! 🎉`, 'amizade');
       }
       return await BancoDeDados.getPerfisCadastrados();
     } catch (e) {
+      console.error("Exceção ao aceitar pedido:", e);
       return [];
     }
   },
@@ -425,6 +478,7 @@ export const BancoDeDados = {
       }
       return await BancoDeDados.getPerfisCadastrados();
     } catch (e) {
+      console.error("Erro ao recusar pedido:", e);
       return [];
     }
   },
@@ -435,7 +489,10 @@ export const BancoDeDados = {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat?select=*&or=(and(remetente.eq.${usuarioA},destinatario.eq.${usuarioB}),and(remetente.eq.${usuarioB},destinatario.eq.${usuarioA}))&order=id.asc`, { method: 'GET', headers });
       if (!response.ok) return [];
       return await response.json();
-    } catch (err) { return []; }
+    } catch (err) { 
+      console.error("Erro ao buscar mensagens do chat:", err);
+      return []; 
+    }
   },
 
   enviarMensagemChat: async (novaMensagem) => {
@@ -457,13 +514,17 @@ export const BancoDeDados = {
         body: JSON.stringify(payload) 
       });
 
-      if (response.ok) {
+      if (!response.ok) {
+        console.error("Erro ao enviar mensagem do chat:", await response.text());
+      } else {
         await BancoDeDados.adicionarNotificacao(novaMensagem.destinatario, `@${novaMensagem.remetente} enviou uma nova mensagem.`, 'mensagem');
       }
-    } catch (err) {}
+    } catch (err) {
+      console.error("Exceção ao enviar mensagem:", err);
+    }
   },
 
-  // --- NOTIFICAÇÕES (COM LOGS DE ERRO ATIVADOS) ---
+  // --- NOTIFICAÇÕES ---
   getNotificacoes: async (username) => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?select=*&destinatario=eq.${encodeURIComponent(username)}&order=id.desc`, { method: 'GET', headers });
@@ -529,7 +590,10 @@ export const BancoDeDados = {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?select=*&order=id.desc`, { method: 'GET', headers });
       if (!response.ok) return [];
       return await response.json();
-    } catch (err) { return []; }
+    } catch (err) { 
+      console.error("Erro ao buscar pedidos de oração:", err);
+      return []; 
+    }
   },
 
   salvarPedidoOracao: async (pedido) => {
@@ -542,9 +606,15 @@ export const BancoDeDados = {
         apoios: 0
       };
       const response = await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao`, { method: 'POST', headers, body: JSON.stringify(payload) });
-      if (!response.ok) return await BancoDeDados.getPedidosOracao();
+      if (!response.ok) {
+        console.error("Erro ao salvar pedido de oração:", await response.text());
+        return await BancoDeDados.getPedidosOracao();
+      }
       return await BancoDeDados.getPedidosOracao();
-    } catch (err) { return []; }
+    } catch (err) { 
+      console.error("Exceção ao salvar pedido de oração:", err);
+      return []; 
+    }
   },
 
   apoiarPedidoOracao: async (id) => {
@@ -556,14 +626,20 @@ export const BancoDeDados = {
         await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?id=eq.${id}`, { method: 'PATCH', headers, body: JSON.stringify({ apoios: novosApoios }) });
       }
       return await BancoDeDados.getPedidosOracao();
-    } catch (err) { return []; }
+    } catch (err) { 
+      console.error("Erro ao apoiar pedido de oração:", err);
+      return []; 
+    }
   },
 
   excluirPedidoOracao: async (id) => {
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?id=eq.${id}`, { method: 'DELETE', headers });
       return await BancoDeDados.getPedidosOracao();
-    } catch (err) { return []; }
+    } catch (err) { 
+      console.error("Erro ao excluir pedido de oração:", err);
+      return []; 
+    }
   },
 
   limparConversaChat: async (usuarioA, usuarioB) => {
@@ -574,6 +650,7 @@ export const BancoDeDados = {
       });
       return [];
     } catch (err) {
+      console.error("Erro ao limpar conversa:", err);
       return [];
     }
   },
@@ -598,6 +675,7 @@ export const BancoDeDados = {
       const data = await response.json();
       return data || [];
     } catch (err) {
+      console.error("Erro ao buscar planos:", err);
       return [];
     }
   },
@@ -615,6 +693,7 @@ export const BancoDeDados = {
       if (!response.ok) return null;
       return await response.json();
     } catch (err) {
+      console.error("Erro ao criar plano:", err);
       return null;
     }
   },
