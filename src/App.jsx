@@ -66,11 +66,11 @@ export default function App() {
           setUsuarioLogado(perfilEncontrado);
         } else {
           const novoPerfil = {
-            email: session.user.email,
             username: session.user.user_metadata?.username || session.user.email.split('@')[0],
             nome: session.user.user_metadata?.name || session.user.user_metadata?.nome || 'Usuário Google',
             foto: session.user.user_metadata?.avatar_url || session.user.user_metadata?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
             biografia: 'Praticando a fé e o amor ao próximo.',
+            senha: 'google_auth_user', // <-- Adicione esta linha se a coluna 'senha' for obrigatória no banco
             amigos: [],
             pedidos_enviados: [],
             pedidos_recebidos: []
