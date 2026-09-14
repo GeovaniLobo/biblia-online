@@ -639,6 +639,7 @@ export default function App() {
                   
                   {/* Seção 1: Solicitações de Amizade */}
                   {/* Seção 1: Solicitações de Amizade */}
+{/* Seção 1: Solicitações de Amizade */}
 <div>
   <h4 className="text-xs font-extrabold uppercase tracking-wider mb-2 flex items-center justify-between">
     <span>Solicitações Pendentes</span>
@@ -650,10 +651,8 @@ export default function App() {
   ) : (
     <div className="space-y-2">
       {solicitacoesPendentes.map((remetenteUsername) => {
-        // Busca os dados completos do perfil do remetente (nome, foto, etc)
-        const perfilRemetente = (sugestoesMembros.concat(
-          // Garante que busca também se já estiver na lista geral
-        )).find(p => p.username === remetenteUsername);
+        // Busca o perfil completo da pessoa que enviou o pedido na base de perfis
+        const perfilRemetente = perfisCache.find(p => p.username === remetenteUsername);
 
         const nomeRemetente = perfilRemetente?.nome || remetenteUsername;
         const fotoRemetente = perfilRemetente?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
@@ -674,7 +673,7 @@ export default function App() {
               <img 
                 src={fotoRemetente} 
                 alt={nomeRemetente} 
-                className="w-8 h-8 rounded-full object-cover border border-blue-500/40 flex-shrink-0" 
+                className="w-9 h-9 rounded-full object-cover border-2 border-blue-500/40 flex-shrink-0" 
               />
               <div className="min-w-0">
                 <p className="font-bold truncate hover:underline">{nomeRemetente}</p>
