@@ -458,13 +458,20 @@ export const BancoDeDados = {
     } catch (err) {}
   },
 
-  // --- NOTIFICAÇÕES ---
+  // --- NOTIFICAÇÕES (COM LOGS DE ERRO ATIVADOS) ---
   getNotificacoes: async (username) => {
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?select=*&destinatario=eq.${username}&order=id.desc`, { method: 'GET', headers });
-      if (!response.ok) return [];
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?select=*&destinatario=eq.${encodeURIComponent(username)}&order=id.desc`, { method: 'GET', headers });
+      if (!response.ok) {
+        const errData = await response.text();
+        console.error("Erro ao buscar notificações:", errData);
+        return [];
+      }
       return await response.json();
-    } catch (err) { return []; }
+    } catch (err) { 
+      console.error("Exceção ao buscar notificações:", err);
+      return []; 
+    }
   },
 
   adicionarNotificacao: async (usernameDestino, texto, tipo) => {
@@ -479,14 +486,36 @@ export const BancoDeDados = {
         data: agora.toISOString(),
         horario: agora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
-      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes`, { method: 'POST', headers, body: JSON.stringify(novaNotif) });
-    } catch (e) {}
+      
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/notificacoes`, { 
+        method: 'POST', 
+        headers, 
+        body: JSON.stringify(novaNotif) 
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("Falha ao inserir notificação no Supabase:", errText);
+      }
+    } catch (e) {
+      console.error("Exceção ao adicionar notificação:", e);
+    }
   },
 
   marcarNotificacoesLidas: async (username) => {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?destinatario=eq.${username}`, { method: 'PATCH', headers, body: JSON.stringify({ lida: true }) });
-    } catch (e) {}
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?destinatario=eq.${encodeURIComponent(username)}`, { 
+        method: 'PATCH', 
+        headers, 
+        body: JSON.stringify({ lida: true }) 
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("Erro ao marcar notificações como lidas:", errText);
+      }
+    } catch (e) {
+      console.error("Exceção ao marcar notificações como lidas:", e);
+    }
   },
 
   // --- PEDIDOS DE ORAÇÃO ---
