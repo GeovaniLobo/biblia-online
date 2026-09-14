@@ -602,7 +602,7 @@ export default function App() {
             )}
           </button>
 
-   {/* BOTÃO DE NOTIFICAÇÕES (Dropdown Flutuante) */}
+          {/* BOTÃO DE NOTIFICAÇÕES (Dropdown Flutuante) */}
           {usuarioLogado && (
             <div className="relative" ref={notificacoesRef}>
               <button
@@ -648,8 +648,7 @@ export default function App() {
               </button>
 
               {menuNotificacoesAberto && (
-  <div className={`absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl shadow-2xl border p-3 z-50 space-y-2 backdrop-blur-md max-h-96 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-    {/* ... cabeçalho e lista ... */}
+                <div className={`absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl shadow-2xl border p-3 z-50 space-y-2 backdrop-blur-md max-h-96 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
                       <span>🔔</span> Notificações
@@ -769,17 +768,17 @@ export default function App() {
 
                 <div className="border-t border-slate-700/50 pt-1 mt-1">
                   <button
-  onClick={async () => {
-    await supabase.auth.signOut();
-    BancoDeDados.fazerLogout();
-    setUsuarioLogado(null);
-    setMenuPerfilAberto(false);
-    navegarPara('/', 'biblia');
-  }}
-  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-400 hover:bg-red-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
->
-  Sair
-</button>
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      BancoDeDados.fazerLogout();
+                      setUsuarioLogado(null);
+                      setMenuPerfilAberto(false);
+                      navegarPara('/', 'biblia');
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-400 hover:bg-red-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
+                  >
+                    Sair
+                  </button>
                 </div>
               </div>
             )}

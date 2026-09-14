@@ -18,7 +18,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       if (e.key === 'Escape') {
         setMenuCompartilharAberto(null);
         setMenuOpcoesPostAberto(null);
-        setAbaNotificacoesAberta(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -63,7 +62,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     { tipo: 'felicidades', emoji: '🥳', label: 'Felicidades', cor: 'text-emerald-500' }
   ];
 
-  const [abaNotificacoesAberta, setAbaNotificacoesAberta] = useState(false);
   const [abaSolicitacoesAberta, setAbaSolicitacoesAberta] = useState(false);
 
   const [postDetalheId, setPostDetalheId] = useState(null);
@@ -118,7 +116,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' às ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Selo de verificado limpo e proporcional
   const SeloVerificado = ({ tamanho = "w-4 h-4" }) => (
     <span className="relative inline-flex items-center justify-center flex-shrink-0 group/badge cursor-pointer -translate-y-0.5 ml-1" title="Verificado">
       <svg className={`${tamanho} text-blue-500 transform transition hover:scale-110 flex-shrink-0`} viewBox="0 0 24 24" fill="currentColor">
@@ -1016,82 +1013,12 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
-      {/* Barra de Notificações Fixa no Topo (Cabeçalho da Comunidade) */}
+      {/* Cabeçalho da Comunidade (Sem o sino) */}
       <div className={`w-full px-4 sm:px-8 lg:px-12 py-3 border-b flex items-center justify-between ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-extrabold uppercase tracking-wider opacity-80">Comunidade Luz do Mundo</h2>
         </div>
-        <div className="flex items-center gap-3">
-          {/* BOTÃO DE NOTIFICAÇÕES NO TOPO */}
-          <button 
-            onClick={async () => {
-              setAbaNotificacoesAberta(true);
-              await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
-              const atualizadas = await BancoDeDados.getNotificacoes(usuarioLogado.username);
-              setNotificacoes(atualizadas || []);
-            }}
-            className="relative p-2.5 rounded-xl border border-slate-700/50 hover:bg-slate-800 transition flex items-center justify-center cursor-pointer"
-            title="Ver Notificações"
-          >
-            <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C6.705 6.136 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            {notificacoes.some(n => !n.lida) && (
-              <span className="w-2.5 h-2.5 bg-red-500 rounded-full absolute top-1.5 right-1.5 animate-pulse"></span>
-            )}
-          </button>
-        </div>
       </div>
-
-      {/* Modal de Notificações */}
-      {abaNotificacoesAberta && (
-        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            <div className="flex justify-between items-center border-b pb-3 border-slate-700">
-              <h3 className="font-extrabold text-sm flex items-center gap-2">
-                <span>🔔</span> Notificações
-              </h3>
-              <button onClick={() => setAbaNotificacoesAberta(false)} className="text-sm font-bold opacity-70 hover:opacity-100">✕</button>
-            </div>
-
-            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-              {notificacoes.length === 0 ? (
-                <p className="text-xs opacity-50 text-center py-8">Nenhuma notificação por enquanto.</p>
-              ) : (
-                notificacoes.map((notif, index) => (
-                  <div 
-                    key={notif.id || index} 
-                    className={`p-3 rounded-2xl border text-xs flex items-start justify-between gap-3 ${
-                      notif.lida 
-                        ? darkMode ? 'bg-slate-800/30 border-slate-800 opacity-75' : 'bg-slate-50 border-slate-200 opacity-75'
-                        : darkMode ? 'bg-blue-600/10 border-blue-500/40' : 'bg-blue-50 border-blue-200'
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      <p className="font-medium leading-relaxed">{notif.texto}</p>
-                      <span className="text-[10px] opacity-50 block">
-                        {notif.data ? formatarData(notif.data) : 'Recentemente'}
-                      </span>
-                    </div>
-                    {!notif.lida && (
-                      <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5"></span>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <button 
-                onClick={() => setAbaNotificacoesAberta(false)}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {menuCompartilharAberto && (
         (() => {
@@ -1604,7 +1531,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
-      {/* MODAL / LISTA DE ESCOLHA DE AMIGOS PARA O CHAT */}
       {modalListaAmigosChatAberto && !chatComUsuario && (
         <div className="fixed bottom-20 right-6 z-[105] w-80 sm:w-96 rounded-3xl shadow-2xl border p-4 backdrop-blur-md bg-slate-900 border-slate-700 text-white animate-in fade-in zoom-in-95 duration-200 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-700/60">
@@ -1833,7 +1759,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       ) : (
         <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3">
-          {/* Botão Flutuante do Chat */}
           <button 
             onClick={() => {
               if (amigosLista.length > 0) {
