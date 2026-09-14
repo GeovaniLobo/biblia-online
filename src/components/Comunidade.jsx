@@ -223,7 +223,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const nomePerfilOficial = meuPerfilBanco.nome || usuarioLogado.nome || 'Usuário';
   const biografiaOficial = meuPerfilBanco.biografia !== undefined ? meuPerfilBanco.biografia : (usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.');
 
-  // Deriva amigos e pedidos a partir de relacoesAmizade
   const amigosListaUsernames = relacoesAmizade
     .filter(r => r.status === 'aceito')
     .map(r => r.usuario_id === usuarioLogado.username ? r.amigo_id : r.usuario_id);
@@ -838,7 +837,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 const meuFelicidadesCom = (reacoesComentario.felicidades || []).includes(usuarioLogado.username);
 
                 const ehResposta = Boolean(c.resposta_a_id);
-                const comentarioPai = ehResposta ? post.comentarios.find(cp => cp.id === c.resposta_a_id) : null;
+                const comentarioPai = ehResposta ? post.comentarios.find(cp => String(cp.id) === String(c.resposta_a_id)) : null;
 
                 return (
                   <div 
@@ -868,7 +867,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                             {autorComentarioVerificado && <SeloVerificado tamanho="w-3.5 h-3.5" />}
                           </div>
                           <button 
-                            onClick={() => setRespondendoComentarioId({ ...respondendoComentarioId, [post.id]: c.id })}
+                            onClick={() => setRespondendoComentarioId(prev => ({ ...prev, [post.id]: c.id }))}
                             className="text-[10px] font-semibold opacity-60 hover:opacity-100 text-blue-400 flex-shrink-0"
                           >
                             Responder
@@ -1397,35 +1396,34 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 </div>
               ) : (
                 <div className="flex items-center gap-2 w-full">
-                 {/* Ícone de Repostar */}
-<button
-  onClick={() => repostarStory(storyAtivoObj)}
-  className="p-2.5 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition cursor-pointer flex items-center justify-center shadow-lg"
-  title="Repostar story"
->
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-  </svg>
-</button>
-                 <button 
-                  onClick={curtirStoryAtual} 
-                  className={`p-3 rounded-2xl shadow-lg transition flex items-center justify-center backdrop-blur-sm border ${
-                    (storyAtivoObj.curtidas || []).includes(usuarioLogado.username) 
-                      ? 'bg-red-600/90 border-red-500 text-white' 
-                      : 'bg-black/60 border-white/20 text-white hover:bg-black/80'
-                  }`}
-                  title="Curtir story"
-                >
-                  <svg 
-                    className="w-5 h-5" 
-                    fill={(storyAtivoObj.curtidas || []).includes(usuarioLogado.username) ? "currentColor" : "none"} 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    viewBox="0 0 24 24"
+                  <button
+                    onClick={() => repostarStory(storyAtivoObj)}
+                    className="p-2.5 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition cursor-pointer flex items-center justify-center shadow-lg"
+                    title="Repostar story"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                </button>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                  <button 
+                    onClick={curtirStoryAtual} 
+                    className={`p-3 rounded-2xl shadow-lg transition flex items-center justify-center backdrop-blur-sm border ${
+                      (storyAtivoObj.curtidas || []).includes(usuarioLogado.username) 
+                        ? 'bg-red-600/90 border-red-500 text-white' 
+                        : 'bg-black/60 border-white/20 text-white hover:bg-black/80'
+                    }`}
+                    title="Curtir story"
+                  >
+                    <svg 
+                      className="w-5 h-5" 
+                      fill={(storyAtivoObj.curtidas || []).includes(usuarioLogado.username) ? "currentColor" : "none"} 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </button>
                 </div>
               )}
             </div>
@@ -1959,7 +1957,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
               <div className="lg:col-span-3 space-y-6">
 
-                {/* SOLICITAÇÕES DE AMIZADE RECEBIDAS */}
                 {pedidosRecebidosList.length > 0 && (
                   <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                     <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">🤝 Solicitações de Amizade</h4>
