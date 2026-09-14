@@ -1005,11 +1005,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
-      <div className={`w-full px-4 sm:px-8 lg:px-12 py-3 border-b flex items-center justify-between ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-extrabold uppercase tracking-wider opacity-80">Comunidade Luz do Mundo</h2>
-        </div>
-      </div>
+     
 
       {menuCompartilharAberto && (
         (() => {

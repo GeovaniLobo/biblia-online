@@ -640,7 +640,7 @@ export default function App() {
                   {/* Seção 1: Solicitações de Amizade */}
                   <div>
                     <h4 className="text-xs font-extrabold uppercase tracking-wider mb-2 flex items-center justify-between">
-                      <span>👥 Solicitações Pendentes</span>
+                      <span>Solicitações Pendentes</span>
                       <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full">{solicitacoesPendentes.length}</span>
                     </h4>
 
@@ -684,7 +684,7 @@ export default function App() {
 
                   {/* Seção 2: Sugestões de Amigos */}
                   <div className="border-t border-slate-700/50 pt-3">
-                    <h4 className="text-xs font-extrabold uppercase tracking-wider mb-2">✨ Sugestões para você</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider mb-2">Sugestões para você</h4>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {sugestoesMembros.length === 0 ? (
                         <p className="text-xs opacity-60">Sem novas sugestões no momento.</p>
