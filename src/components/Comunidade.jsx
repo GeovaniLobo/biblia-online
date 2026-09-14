@@ -118,10 +118,19 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   };
 
   const SeloVerificado = ({ tamanho = "w-4 h-4" }) => (
-    <span className="relative inline-flex items-center justify-center flex-shrink-0 group/badge cursor-pointer -translate-y-0.5 ml-1" title="Perfil Verificado">
-      <svg className={`${tamanho} text-blue-500 transform transition hover:scale-110`} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2c-.65 0-1.28.31-1.66.85l-.78 1.13c-.38.55-1.03.86-1.69.81l-1.37-.11c-.78-.06-1.46.46-1.61 1.23l-.28 1.35c-.15.72-.63 1.3-1.28 1.62l-1.18.59c-.68.34-.97 1.17-.65 1.86l.6 1.25c.33.68.33 1.49 0 2.17l-.6 1.25c-.32.69-.03 1.52.65 1.86l1.18.59c.65.32 1.13.9 1.28 1.62l.28 1.35c.15.77.83 1.29 1.61 1.23l1.37-.11c.66-.05 1.31-.26 1.69-.81l.78 1.13c.38.54 1.01.85 1.66.85s1.28-.31 1.66-.85l.78-1.13c.38-.55 1.03-.86 1.69-.81l1.37.11c.78.06 1.46-.46 1.61-1.23l.28-1.35c.15-.72.63-1.3 1.28-1.62l1.18-.59c.68-.34.97-1.17.65-1.86l-.6-1.25c-.33-.68-.33-1.49 0-2.17l.6-1.25c.32-.69.03-1.52.65-1.86l-1.18-.59c-.65-.32-1.13-.9-1.28-1.62l-.28-1.35c-.15-.77-.83-1.29-1.61-1.23l-1.37.11c-.66.05-1.31-.26-1.69-.81l-.78-1.13A2.01 2.01 0 0 0 12 2z" />
-        <path d="m9.5 13.79-2.15-2.15a1 1 0 0 0-1.41 1.41l2.86 2.86a1 1 0 0 0 1.41 0l6.14-6.14a1 1 0 0 0-1.41-1.41L9.5 13.79z" fill="#ffffff" />
+    <span className="relative inline-flex items-center justify-center flex-shrink-0 group/badge cursor-pointer -translate-y-0.5 ml-1" title="Verificado">
+      <svg 
+        aria-label="Verificado" 
+        className={`${tamanho} transform transition hover:scale-110 flex-shrink-0`} 
+        fill="rgb(0, 149, 246)" 
+        role="img" 
+        viewBox="0 0 40 40" 
+      >
+        <title>Verificado</title>
+        <path 
+          d="M19.998 3.094 14.638 0l-2.972 5.15H5.432v6.354L0 14.64 3.094 20 0 25.359l15.432 3.137v5.905h5.975l14.638 40.15.36-3.094L25.358 40l3.232-5.6h6.162v-6.01L40 25.359 36.905 20 40 14.64l1-5.248-3.03v-6.46h-6.419L25.358 0l-5.36 3.094Zm7.415 11.225 2.254 2.287-11.43 11.5-6.835-6.93 2.244-2.258 4.587 4.581 9.18-9.18Z" 
+          fillRule="evenodd"
+        />
       </svg>
     </span>
   );
