@@ -18,6 +18,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       if (e.key === 'Escape') {
         setMenuCompartilharAberto(null);
         setMenuOpcoesPostAberto(null);
+        setAbaNotificacoesAberta(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -118,16 +119,13 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   };
 
   const SeloVerificado = ({ tamanho = "w-4 h-4" }) => (
-  <span className="relative inline-flex items-center justify-center flex-shrink-0 group/badge cursor-pointer -translate-y-0.5 ml-1" title="Verificado">
-    <svg 
-      className={`${tamanho} text-blue-500 transform transition hover:scale-110 flex-shrink-0`} 
-      viewBox="0 0 24 24" 
-      fill="currentColor"
-    >
-      <path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z" />
-    </svg>
-  </span>
-);
+    <span className="relative inline-flex items-center justify-center flex-shrink-0 group/badge cursor-pointer -translate-y-0.5 ml-1" title="Perfil Verificado">
+      <svg className={`${tamanho} text-blue-500 transform transition hover:scale-110`} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2c-.65 0-1.28.31-1.66.85l-.78 1.13c-.38.55-1.03.86-1.69.81l-1.37-.11c-.78-.06-1.46.46-1.61 1.23l-.28 1.35c-.15.72-.63 1.3-1.28 1.62l-1.18.59c-.68.34-.97 1.17-.65 1.86l.6 1.25c.33.68.33 1.49 0 2.17l-.6 1.25c-.32.69-.03 1.52.65 1.86l1.18.59c.65.32 1.13.9 1.28 1.62l.28 1.35c.15.77.83 1.29 1.61 1.23l1.37-.11c.66-.05 1.31-.26 1.69-.81l.78 1.13c.38.54 1.01.85 1.66.85s1.28-.31 1.66-.85l.78-1.13c.38-.55 1.03-.86 1.69-.81l1.37.11c.78.06 1.46-.46 1.61-1.23l.28-1.35c.15-.72.63-1.3 1.28-1.62l1.18-.59c.68-.34.97-1.17.65-1.86l-.6-1.25c-.33-.68-.33-1.49 0-2.17l.6-1.25c.32-.69.03-1.52.65-1.86l-1.18-.59c-.65-.32-1.13-.9-1.28-1.62l-.28-1.35c-.15-.77-.83-1.29-1.61-1.23l-1.37.11c-.66.05-1.31-.26-1.69-.81l-.78-1.13A2.01 2.01 0 0 0 12 2z" />
+        <path d="m9.5 13.79-2.15-2.15a1 1 0 0 0-1.41 1.41l2.86 2.86a1 1 0 0 0 1.41 0l6.14-6.14a1 1 0 0 0-1.41-1.41L9.5 13.79z" fill="#ffffff" />
+      </svg>
+    </span>
+  );
 
   useEffect(() => {
     let montado = true;
@@ -1018,6 +1016,56 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
+      {/* Modal de Notificações */}
+      {abaNotificacoesAberta && (
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <div className="flex justify-between items-center border-b pb-3 border-slate-700">
+              <h3 className="font-extrabold text-sm flex items-center gap-2">
+                <span>🔔</span> Notificações
+              </h3>
+              <button onClick={() => setAbaNotificacoesAberta(false)} className="text-sm font-bold opacity-70 hover:opacity-100">✕</button>
+            </div>
+
+            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+              {notificacoes.length === 0 ? (
+                <p className="text-xs opacity-50 text-center py-8">Nenhuma notificação por enquanto.</p>
+              ) : (
+                notificacoes.map((notif, index) => (
+                  <div 
+                    key={notif.id || index} 
+                    className={`p-3 rounded-2xl border text-xs flex items-start justify-between gap-3 ${
+                      notif.lida 
+                        ? darkMode ? 'bg-slate-800/30 border-slate-800 opacity-75' : 'bg-slate-50 border-slate-200 opacity-75'
+                        : darkMode ? 'bg-blue-600/10 border-blue-500/40' : 'bg-blue-50 border-blue-200'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <p className="font-medium leading-relaxed">{notif.texto}</p>
+                      <span className="text-[10px] opacity-50 block">
+                        {notif.data ? formatarData(notif.data) : 'Recentemente'}
+                      </span>
+                    </div>
+                    {!notif.lida && (
+                      <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5"></span>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button 
+                onClick={() => setAbaNotificacoesAberta(false)}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {menuCompartilharAberto && (
         (() => {
           const postAtual = publicacoes.find(p => p.id === menuCompartilharAberto);
@@ -1082,25 +1130,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <div className="flex justify-between items-center border-b pb-3 border-slate-700">
               <h3 className="font-extrabold text-sm">👥 Solicitações de Amizade Pendentes</h3>
-              {/* Botão de Notificações */}
-<button 
-  onClick={async () => {
-    setAbaNotificacoesAberta(true);
-    // Marca como lidas ao abrir
-    await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
-    const atualizadas = await BancoDeDados.getNotificacoes(usuarioLogado.username);
-    setNotificacoes(atualizadas || []);
-  }}
-  className="relative p-2.5 rounded-xl border border-slate-700/50 hover:bg-slate-800 transition flex items-center justify-center"
-  title="Ver Notificações"
->
-  <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C6.705 6.136 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-  </svg>
-  {notificacoes.some(n => !n.lida) && (
-    <span className="w-2.5 h-2.5 bg-red-500 rounded-full absolute top-2 right-2 animate-pulse"></span>
-  )}
-</button>
+              <button onClick={() => setAbaSolicitacoesAberta(false)} className="text-sm font-bold">✕</button>
             </div>
 
             <div className="space-y-3 max-h-72 overflow-y-auto">
@@ -1548,266 +1578,260 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       )}
 
       {/* MODAL / LISTA DE ESCOLHA DE AMIGOS PARA O CHAT */}
-{modalListaAmigosChatAberto && !chatComUsuario && (
-  <div className="fixed bottom-20 right-6 z-[105] w-80 sm:w-96 rounded-3xl shadow-2xl border p-4 backdrop-blur-md bg-slate-900 border-slate-700 text-white animate-in fade-in zoom-in-95 duration-200 space-y-3">
-    <div className="flex items-center justify-between pb-2 border-b border-slate-700/60">
-      <h4 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
-        <span>💬</span> Selecionar Conversa
-      </h4>
-      <button 
-        onClick={() => setModalListaAmigosChatAberto(false)}
-        className="text-xs font-bold opacity-60 hover:opacity-100 p-1 cursor-pointer"
-      >
-        ✕
-      </button>
-    </div>
-
-    <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
-      {amigosLista.length === 0 ? (
-        <p className="text-xs opacity-60 text-center py-8">Você ainda não tem amigos adicionados.</p>
-      ) : (
-        amigosLista.map(amigo => {
-          const naoLidasDoAmigo = notificacoes.filter(
-            n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
-          ).length;
-
-          return (
-            <div
-              key={amigo.username}
-              onClick={() => {
-                abrirChatComAmigo(amigo.username);
-                setModalListaAmigosChatAberto(false);
-              }}
-              className="p-2.5 rounded-2xl border border-slate-800 hover:bg-slate-800/80 cursor-pointer transition flex items-center justify-between"
+      {modalListaAmigosChatAberto && !chatComUsuario && (
+        <div className="fixed bottom-20 right-6 z-[105] w-80 sm:w-96 rounded-3xl shadow-2xl border p-4 backdrop-blur-md bg-slate-900 border-slate-700 text-white animate-in fade-in zoom-in-95 duration-200 space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-700/60">
+            <h4 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+              <span>💬</span> Selecionar Conversa
+            </h4>
+            <button 
+              onClick={() => setModalListaAmigosChatAberto(false)}
+              className="text-xs font-bold opacity-60 hover:opacity-100 p-1 cursor-pointer"
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <img 
-                  src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
-                  className="w-9 h-9 rounded-full object-cover border border-blue-500/50 flex-shrink-0" 
-                  alt="Avatar"
-                />
-                <div className="min-w-0">
-                  <p className="text-xs font-bold truncate text-white">{amigo.nome}</p>
-                  <p className="text-[10px] text-blue-400 truncate">@{amigo.username}</p>
-                </div>
-              </div>
+              ✕
+            </button>
+          </div>
 
-              {naoLidasDoAmigo > 0 && (
-                <span className="bg-red-500 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full animate-bounce">
-                  {naoLidasDoAmigo}
-                </span>
-              )}
-            </div>
-          );
-        })
-      )}
-    </div>
-  </div>
-)}
+          <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
+            {amigosLista.length === 0 ? (
+              <p className="text-xs opacity-60 text-center py-8">Você ainda não tem amigos adicionados.</p>
+            ) : (
+              amigosLista.map(amigo => {
+                const naoLidasDoAmigo = notificacoes.filter(
+                  n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
+                ).length;
 
-{chatComUsuario ? (
-  <div className="fixed bottom-4 right-4 z-[100] w-[360px] sm:w-[380px] h-[520px] max-h-[85vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden backdrop-blur-md bg-slate-900 border-slate-700 animate-in fade-in zoom-in-95 duration-200">
-    
-    <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
-      <div 
-        onClick={() => { setChatComUsuario(null); abrirPerfilPorUsername(chatComUsuario); }}
-        className="flex items-center gap-2.5 min-w-0 cursor-pointer group"
-      >
-        <img 
-          src={perfisReais.find(p => p.username === chatComUsuario)?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
-          className="w-8 h-8 rounded-full object-cover border border-blue-500 shadow-sm flex-shrink-0" 
-          alt="Perfil"
-        />
-        <div className="min-w-0">
-          <span className="text-xs font-bold text-white block truncate group-hover:underline">@{chatComUsuario}</span>
-          <span className="text-[10px] text-blue-400 block">Chat Privado</span>
+                return (
+                  <div
+                    key={amigo.username}
+                    onClick={() => {
+                      abrirChatComAmigo(amigo.username);
+                      setModalListaAmigosChatAberto(false);
+                    }}
+                    className="p-2.5 rounded-2xl border border-slate-800 hover:bg-slate-800/80 cursor-pointer transition flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <img 
+                        src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
+                        className="w-9 h-9 rounded-full object-cover border border-blue-500/50 flex-shrink-0" 
+                        alt="Avatar"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold truncate text-white">{amigo.nome}</p>
+                        <p className="text-[10px] text-blue-400">@{amigo.username}</p>
+                      </div>
+                    </div>
+
+                    {naoLidasDoAmigo > 0 && (
+                      <span className="bg-red-500 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full animate-bounce">
+                        {naoLidasDoAmigo}
+                      </span>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="flex items-center gap-2">
-        <button 
-          onClick={async () => {
-            if (window.confirm('Deseja realmente limpar toda a conversa?')) {
-              await BancoDeDados.limparConversaChat(usuarioLogado.username, chatComUsuario);
-              setMensagensChat([]);
-              mostrarToast('Conversa limpa com sucesso!');
-            }
-          }}
-          className="text-xs text-red-400 hover:text-red-300 font-bold px-2 py-1"
-        >
-          Limpar Conversa
-        </button>
-        <button 
-          onClick={() => setChatComUsuario(null)} 
-          className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition"
-        >
-          ✕
-        </button>
-      </div>
-    </div>
+      {chatComUsuario ? (
+        <div className="fixed bottom-4 right-4 z-[100] w-[360px] sm:w-[380px] h-[520px] max-h-[85vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden backdrop-blur-md bg-slate-900 border-slate-700 animate-in fade-in zoom-in-95 duration-200">
+          
+          <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <div 
+              onClick={() => { setChatComUsuario(null); abrirPerfilPorUsername(chatComUsuario); }}
+              className="flex items-center gap-2.5 min-w-0 cursor-pointer group"
+            >
+              <img 
+                src={perfisReais.find(p => p.username === chatComUsuario)?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
+                className="w-8 h-8 rounded-full object-cover border border-blue-500 shadow-sm flex-shrink-0" 
+                alt="Perfil"
+              />
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-white block truncate group-hover:underline">@{chatComUsuario}</span>
+                <span className="text-[10px] text-blue-400 block">Chat Privado</span>
+              </div>
+            </div>
 
-    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-950/60 flex flex-col">
-      {mensagensChat.length === 0 ? (
-        <div className="text-center my-auto opacity-50 text-xs text-slate-400">
-          Inicie uma conversa em tempo real com @{chatComUsuario}!
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={async () => {
+                  if (window.confirm('Deseja realmente limpar toda a conversa?')) {
+                    await BancoDeDados.limparConversaChat(usuarioLogado.username, chatComUsuario);
+                    setMensagensChat([]);
+                    mostrarToast('Conversa limpa com sucesso!');
+                  }
+                }}
+                className="text-xs text-red-400 hover:text-red-300 font-bold px-2 py-1"
+              >
+                Limpar Conversa
+              </button>
+              <button 
+                onClick={() => setChatComUsuario(null)} 
+                className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-950/60 flex flex-col">
+            {mensagensChat.length === 0 ? (
+              <div className="text-center my-auto opacity-50 text-xs text-slate-400">
+                Inicie uma conversa em tempo real com @{chatComUsuario}!
+              </div>
+            ) : (
+              mensagensChat.map((m, idx) => {
+                const souEu = m.remetente === usuarioLogado.username;
+                const fotoAvatar = souEu ? fotoPerfilOficial : (perfisReais.find(p => p.username === chatComUsuario)?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80');
+                const jaViu = mensagensVisualizadasChat[m.id];
+
+                return (
+                  <div key={m.id || idx} className={`flex items-end gap-2 ${souEu ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}>
+                    <img src={fotoAvatar} className="w-6 h-6 rounded-full object-cover border border-slate-600 flex-shrink-0 mb-1" alt="Avatar" />
+                    
+                    <div className={`flex flex-col max-w-[75%] ${souEu ? 'items-end' : 'items-start'}`}>
+                      <div className={`p-3 rounded-2xl text-xs shadow-sm relative group ${souEu ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'}`}>
+                        
+                        {m.visualizacaoUnica && !souEu && !jaViu ? (
+                          <div 
+                            onClick={async () => {
+                              setMensagensVisualizadasChat(prev => ({ ...prev, [m.id]: true }));
+                              if (m.midia) {
+                                window.open(m.midia, '_blank');
+                              }
+                            }}
+                            className="cursor-pointer bg-blue-500/20 border border-blue-400/40 p-2.5 rounded-xl text-center space-y-1 hover:bg-blue-500/30 transition"
+                          >
+                            <span className="text-xs">👁️ Mídia Única</span>
+                            <p className="text-[9px] underline font-bold text-blue-300">Clique para abrir</p>
+                          </div>
+                        ) : (
+                          <>
+                            {m.midia && (!m.visualizacaoUnica || souEu || jaViu) ? (
+                              m.tipo_midia === 'video' ? (
+                                <video src={m.midia} controls className="w-44 h-32 object-cover rounded-xl mb-1" />
+                              ) : (
+                                <img src={m.midia} alt="Mídia" className="w-44 h-32 object-cover rounded-xl mb-1" />
+                              )
+                            ) : null}
+
+                            {(!m.visualizacaoUnica || souEu || jaViu) && <p className="break-words leading-relaxed">{m.texto}</p>}
+                          </>
+                        )}
+
+                        <div className="flex items-center justify-between gap-3 pt-1">
+                          {souEu && (
+                            <button 
+                              onClick={() => apagarMensagemChatParaTodos(m.id)}
+                              className="text-[9px] opacity-70 hover:opacity-100 text-red-200 hover:underline"
+                              title="Apagar para todos"
+                            >
+                              Apagar
+                            </button>
+                          )}
+                          <span className="text-[9px] opacity-60 ml-auto">{m.horario}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            <div ref={chatFimRef} />
+          </div>
+
+          {mostrarEmojisChat && (
+            <div className="bg-slate-800 p-2 border-t border-slate-700 grid grid-cols-10 gap-1 max-h-32 overflow-y-auto">
+              {emojisListaCompleta.map((emoji, i) => (
+                <button 
+                  key={i} 
+                  type="button" 
+                  onClick={() => setTextoMensagemChat(prev => prev + emoji)}
+                  className="text-lg hover:scale-125 transition text-center p-0.5"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <form onSubmit={enviarMensagemChat} className="p-3 bg-slate-900 border-t border-slate-700 space-y-2">
+            <div className="flex items-center gap-2">
+              <button 
+                type="button" 
+                onClick={() => setMostrarEmojisChat(!mostrarEmojisChat)}
+                className="text-slate-400 hover:text-white p-1.5 transition text-base"
+                title="Lista de Emojis"
+              >
+                😊
+              </button>
+
+              <label className="text-slate-400 hover:text-white p-1.5 cursor-pointer transition" title="Enviar Imagem ou Vídeo">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <input type="file" accept="image/*,video/*" onChange={lidarComEnvioMidiaChat} className="hidden" />
+              </label>
+
+              <input 
+                type="text" 
+                placeholder={enviandoMidia ? "Enviando..." : "Digite sua mensagem..."}
+                disabled={enviandoMidia}
+                value={textoMensagemChat}
+                onChange={(e) => setTextoMensagemChat(e.target.value)}
+                className="flex-1 bg-slate-800 text-xs text-white rounded-xl px-3.5 py-2.5 border border-slate-700 focus:outline-none focus:border-blue-500"
+              />
+
+              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition shadow-sm">
+                Enviar
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 pl-1">
+              <input 
+                type="checkbox" 
+                id="visUnicaChatFlutuante"
+                checked={visualizacaoUnicaChat} 
+                onChange={(e) => setVisualizacaoUnicaChat(e.target.checked)} 
+                className="w-3.5 h-3.5 rounded border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <label htmlFor="visUnicaChatFlutuante" className="text-[10px] font-semibold text-slate-300 cursor-pointer select-none">
+                👁️ Visualização única
+              </label>
+            </div>
+          </form>
+
         </div>
       ) : (
-        mensagensChat.map((m, idx) => {
-          const souEu = m.remetente === usuarioLogado.username;
-          const fotoAvatar = souEu ? fotoPerfilOficial : (perfisReais.find(p => p.username === chatComUsuario)?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80');
-          const jaViu = mensagensVisualizadasChat[m.id];
-
-          return (
-            <div key={m.id || idx} className={`flex items-end gap-2 ${souEu ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}>
-              <img src={fotoAvatar} className="w-6 h-6 rounded-full object-cover border border-slate-600 flex-shrink-0 mb-1" alt="Avatar" />
-              
-              <div className={`flex flex-col max-w-[75%] ${souEu ? 'items-end' : 'items-start'}`}>
-                <div className={`p-3 rounded-2xl text-xs shadow-sm relative group ${souEu ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'}`}>
-                  
-                  {m.visualizacaoUnica && !souEu && !jaViu ? (
-                    <div 
-                      onClick={async () => {
-                        setMensagensVisualizadasChat(prev => ({ ...prev, [m.id]: true }));
-                        if (m.midia) {
-                          window.open(m.midia, '_blank');
-                        }
-                      }}
-                      className="cursor-pointer bg-blue-500/20 border border-blue-400/40 p-2.5 rounded-xl text-center space-y-1 hover:bg-blue-500/30 transition"
-                    >
-                      <span className="text-xs">👁️ Mídia Única</span>
-                      <p className="text-[9px] underline font-bold text-blue-300">Clique para abrir</p>
-                    </div>
-                  ) : (
-                    <>
-                      {m.midia && (!m.visualizacaoUnica || souEu || jaViu) ? (
-                        m.tipo_midia === 'video' ? (
-                          <video src={m.midia} controls className="w-44 h-32 object-cover rounded-xl mb-1" />
-                        ) : (
-                          <img src={m.midia} alt="Mídia" className="w-44 h-32 object-cover rounded-xl mb-1" />
-                        )
-                      ) : null}
-
-                      {(!m.visualizacaoUnica || souEu || jaViu) && <p className="break-words leading-relaxed">{m.texto}</p>}
-                    </>
-                  )}
-
-                  <div className="flex items-center justify-between gap-3 pt-1">
-                    {souEu && (
-                      <button 
-                        onClick={() => apagarMensagemChatParaTodos(m.id)}
-                        className="text-[9px] opacity-70 hover:opacity-100 text-red-200 hover:underline"
-                        title="Apagar para todos"
-                      >
-                        Apagar
-                      </button>
-                    )}
-                    <span className="text-[9px] opacity-60 ml-auto">{m.horario}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })
-      )}
-      <div ref={chatFimRef} />
-    </div>
-
-    {mostrarEmojisChat && (
-      <div className="bg-slate-800 p-2 border-t border-slate-700 grid grid-cols-10 gap-1 max-h-32 overflow-y-auto">
-        {emojisListaCompleta.map((emoji, i) => (
+        <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3">
+          {/* Botão de Notificações */}
           <button 
-            key={i} 
-            type="button" 
-            onClick={() => setTextoMensagemChat(prev => prev + emoji)}
-            className="text-lg hover:scale-125 transition text-center p-0.5"
+            onClick={async () => {
+              setAbaNotificacoesAberta(true);
+              await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
+              const atualizadas = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+              setNotificacoes(atualizadas || []);
+            }}
+            className="w-12 h-12 bg-slate-800 hover:bg-slate-700 text-white rounded-full shadow-2xl flex items-center justify-center transition hover:scale-110 relative border border-slate-700"
+            title="Ver Notificações"
           >
-            {emoji}
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C6.705 6.136 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            {notificacoes.some(n => !n.lida) && (
+              <span className="w-3 h-3 bg-red-500 rounded-full absolute -top-1 -right-1 animate-pulse border-2 border-slate-900"></span>
+            )}
           </button>
-        ))}
-      </div>
-    )}
 
-    <form onSubmit={enviarMensagemChat} className="p-3 bg-slate-900 border-t border-slate-700 space-y-2">
-      <div className="flex items-center gap-2">
-        <button 
-          type="button" 
-          onClick={() => setMostrarEmojisChat(!mostrarEmojisChat)}
-          className="text-slate-400 hover:text-white p-1.5 transition text-base"
-          title="Lista de Emojis"
-        >
-          😊
-        </button>
-
-        <label className="text-slate-400 hover:text-white p-1.5 cursor-pointer transition" title="Enviar Imagem ou Vídeo">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <input type="file" accept="image/*,video/*" onChange={lidarComEnvioMidiaChat} className="hidden" />
-        </label>
-
-        <input 
-          type="text" 
-          placeholder={enviandoMidia ? "Enviando..." : "Digite sua mensagem..."}
-          disabled={enviandoMidia}
-          value={textoMensagemChat}
-          onChange={(e) => setTextoMensagemChat(e.target.value)}
-          className="flex-1 bg-slate-800 text-xs text-white rounded-xl px-3.5 py-2.5 border border-slate-700 focus:outline-none focus:border-blue-500"
-        />
-
-        <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition shadow-sm">
-          Enviar
-        </button>
-      </div>
-
-      <div className="flex items-center gap-2 pl-1">
-        <input 
-          type="checkbox" 
-          id="visUnicaChatFlutuante"
-          checked={visualizacaoUnicaChat} 
-          onChange={(e) => setVisualizacaoUnicaChat(e.target.checked)} 
-          className="w-3.5 h-3.5 rounded border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
-        />
-        <label htmlFor="visUnicaChatFlutuante" className="text-[10px] font-semibold text-slate-300 cursor-pointer select-none">
-          👁️ Visualização única
-        </label>
-      </div>
-    </form>
-
-  </div>
-) : (
-  <div className="fixed bottom-6 right-6 z-[100]">
-    <button 
-      onClick={() => {
-        if (amigosLista.length > 0) {
-          setModalListaAmigosChatAberto(!modalListaAmigosChatAberto);
-        } else {
-          mostrarToast('Você precisa ter amigos adicionados na comunidade para iniciar um chat!');
-        }
-      }}
-      className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center transition hover:scale-110 relative group border-2 border-white/20"
-      title="Abrir Chat"
-    >
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-      </svg>
-      {notificacoes.some(n => !n.lida && n.tipo === 'mensagem') && (
-        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-extrabold rounded-full flex items-center justify-center shadow-md animate-bounce">
-          !
-        </span>
-      )}
-      <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1 rounded-xl bg-slate-900 text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition shadow-xl pointer-events-none border border-slate-700">
-        Abrir Chat 
-      </span>
-    </button>
-  </div>
-)}
-        <div className="fixed bottom-6 right-6 z-[100]">
+          {/* Botão Flutuante do Chat */}
           <button 
             onClick={() => {
               if (amigosLista.length > 0) {
-                setChatComUsuario(amigosLista[0].username);
+                setModalListaAmigosChatAberto(!modalListaAmigosChatAberto);
               } else {
-                mostrarToast('Você precisa ter amigos adicionados na comunidade para iniciar um chat rápido!');
+                mostrarToast('Você precisa ter amigos adicionados na comunidade para iniciar um chat!');
               }
             }}
             className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center transition hover:scale-110 relative group border-2 border-white/20"
@@ -1826,7 +1850,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </span>
           </button>
         </div>
-      
+      )}
 
       {/* CONTAINER PRINCIPAL */}
       <div className={`w-screen relative left-1/2 -translate-x-1/2 px-4 sm:px-8 lg:px-12 py-6 space-y-6 ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>
@@ -1896,8 +1920,14 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     <p className="text-xs opacity-75 mt-2 whitespace-pre-line break-words">{biografiaOficial}</p>
                   </div>
                   <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
-                    <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
-                      <span className="block font-extrabold text-blue-500 text-sm">{meusAmigos.length}</span>
+                    <div 
+                      onClick={() => setAbaSolicitacoesAberta(true)}
+                      className={`p-3 rounded-2xl border shadow-xs cursor-pointer hover:border-blue-500 transition ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}
+                      title="Ver Solicitações"
+                    >
+                      <span className="block font-extrabold text-blue-500 text-sm">
+                        {meusAmigos.length} {pedidosRecebidos.length > 0 && <span className="text-[10px] text-amber-400">({pedidosRecebidos.length})</span>}
+                      </span>
                       <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Amigos</span>
                     </div>
                     <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -2137,30 +2167,40 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                               </div>
                             </div>
 
-                           <button 
-  disabled={enviei}
-  title={enviei ? 'Solicitação Pendente' : 'Seguir / Adicionar'}
-  onClick={async () => {
-    // 1. Envia o pedido de amizade no banco
-    await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, membro.username);
-    
-    // 2. Cria a notificação para o usuário alvo
-    await BancoDeDados.adicionarNotificacao(
-      membro.username, 
-      `@${usuarioLogado.username} enviou uma solicitação de amizade.`, 
-      'amizade'
-    );
-
-    mostrarToast(`Pedido de amizade enviado para @${membro.username}!`);
-  }}
-  className={`p-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center flex-shrink-0 ${
-    enviei 
-      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/35 cursor-not-allowed' 
-      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
-  }`}
->
-  {/* ícones... */}
-</button>
+                            <button 
+                              disabled={enviei}
+                              title={enviei ? 'Solicitação Pendente' : 'Seguir / Adicionar'}
+                              onClick={async () => {
+                                await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, membro.username);
+                                await BancoDeDados.adicionarNotificacao(
+                                  membro.username, 
+                                  `@${usuarioLogado.username} enviou uma solicitação de amizade.`, 
+                                  'amizade'
+                                );
+                                mostrarToast(`Pedido de amizade enviado para @${membro.username}!`);
+                              }}
+                              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 flex-shrink-0 ${
+                                enviei 
+                                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/35 cursor-not-allowed' 
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
+                              }`}
+                            >
+                              {enviei ? (
+                                <>
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>Pendente</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                  </svg>
+                                  <span>Adicionar</span>
+                                </>
+                              )}
+                            </button>
                           </div>
                         );
                       })
