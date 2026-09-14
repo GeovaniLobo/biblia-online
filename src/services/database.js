@@ -393,33 +393,24 @@ export const BancoDeDados = {
 
   aceitarPedidoAmizade: async (usernameLogado, usernameRemetente) => {
     try {
-      const perfis = await BancoDeDados.getPerfisCadastrados();
-      const logado = perfis.find(p => p.username === usernameLogado);
-      const remetente = perfis.find(p => p.username === usernameRemetente);
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/aceitar_amizade`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          p_logado: usernameLogado,
+          p_remetente: usernameRemetente
+        })
+      });
 
-      if (logado && remetente) {
-        const novosRecebidos = (logado.pedidos_recebidos || []).filter(u => u !== usernameRemetente);
-        const novosEnviados = (remetente.pedidos_enviados || []).filter(u => u !== usernameLogado);
-
-        const novosAmigosLogado = [...(logado.amigos || [])];
-        if (!novosAmigosLogado.includes(usernameRemetente)) novosAmigosLogado.push(usernameRemetente);
-
-        const novosAmigosRemetente = [...(remetente.amigos || [])];
-        if (!novosAmigosRemetente.includes(usernameLogado)) novosAmigosRemetente.push(usernameLogado);
-
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameLogado}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ pedidos_recebidos: novosRecebidos, amigos: novosAmigosLogado })
-        });
-
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ pedidos_enviados: novosEnviados, amigos: novosAmigosRemetente })
-        });
-
-        await BancoDeDados.adicionarNotificacao(usernameRemetente, `@${usernameLogado} aceitou seu pedido de amizade! 🎉`, 'amizade');
+      if (response.ok) {
+        await BancoDeDados.adicionarNotificacao(
+          usernameRemetente, 
+          `@${usernameLogado} aceitou seu pedido de amizade! 🎉`, 
+          'amizade'
+        );
+      } else {
+        const errTxt = await response.text();
+        console.error("Erro ao chamar RPC aceitar_amizade:", errTxt);
       }
       return await BancoDeDados.getPerfisCadastrados();
     } catch (e) {
@@ -603,7 +594,7 @@ export const BancoDeDados = {
       await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?id=eq.${id}`, { method: 'DELETE', headers });
       return await BancoDeDados.getPedidosOracao();
     } catch (err) { 
-      console.error("Erro ao excluir pedido de oração:", err);
+      console.error("Exceção ao excluir pedido de oração:", err);
       return []; 
     }
   },
@@ -640,7 +631,7 @@ export const BancoDeDados = {
       const data = await response.json();
       return data || [];
     } catch (err) {
-      console.error("Erro ao buscar planos:", err);
+      console.error("Erro -> buscarPlanos:", err);
       return [];
     }
   },
@@ -665,7 +656,7 @@ export const BancoDeDados = {
 
   deletarPlano: async (planoId) => {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/planos_estudo?id=eq.${planoId}`, {
+      await fetch(`${SUPabase_URL}/rest/v1/planos_estudo?id=eq.${planoId}`, {
         method: 'DELETE',
         headers
       });
