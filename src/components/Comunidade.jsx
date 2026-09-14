@@ -1743,61 +1743,61 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         ) : (
           <>
             {/* CARROSSEL DE STORIES OCUPANDO 100% DA LARGURA NO TOPO */}
-<div className={`w-full p-4 rounded-3xl border shadow-md flex gap-3 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-  
-  {/* 1. Botão fixo para Adicionar Story */}
-  <div 
-    onClick={() => setModalCriarStoryAberto(true)}
-    className={`relative flex-shrink-0 w-28 h-44 rounded-2xl border flex flex-col justify-end items-center pb-3 cursor-pointer overflow-hidden transition hover:scale-105 shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}
-  >
-    <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${fotoPerfilOficial})` }}></div>
-    <div className="absolute top-3 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">+</div>
-    <span className="relative z-10 text-[11px] font-bold text-center px-1">Adicionar story</span>
-  </div>
+            <div className={`w-full p-4 rounded-3xl border shadow-md flex gap-3 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+              
+              {/* 1. Botão fixo para Adicionar Story */}
+              <div 
+                onClick={() => setModalCriarStoryAberto(true)}
+                className={`relative flex-shrink-0 w-28 h-44 rounded-2xl border flex flex-col justify-end items-center pb-3 cursor-pointer overflow-hidden transition hover:scale-105 shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}
+              >
+                <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${fotoPerfilOficial})` }}></div>
+                <div className="absolute top-3 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">+</div>
+                <span className="relative z-10 text-[11px] font-bold text-center px-1">Adicionar story</span>
+              </div>
 
-  {/* 2. Lista de Stories (Amigos + o seu próprio story, se você tiver publicado) */}
-  {listaAutoresStories.map((autorItem) => {
-    const st = autorItem.primeiroStory;
-    const todosVistos = autorItem.todosVistos;
+              {/* 2. Lista de Stories (Amigos + o seu próprio story, se você tiver publicado) */}
+              {listaAutoresStories.map((autorItem) => {
+                const st = autorItem.primeiroStory;
+                const todosVistos = autorItem.todosVistos;
 
-    return (
-      <div 
-        key={autorItem.username} 
-        onClick={() => clicarPerfilOuStory(autorItem.username)}
-        className={`relative flex-shrink-0 w-28 h-44 rounded-2xl overflow-hidden cursor-pointer shadow-md transition hover:scale-105 border-2 bg-slate-900 flex flex-col justify-between p-2 ${todosVistos ? 'border-slate-500/40 opacity-70' : 'border-amber-500'}`}
-      >
-        {st.tipo === 'texto' ? (
-          <div className="absolute inset-0 p-3 flex items-center justify-center text-center" style={{ backgroundColor: st.cor_fundo || '#1e293b' }}>
-            <p className="text-white text-[11px] font-bold line-clamp-4">{st.conteudo}</p>
-          </div>
-        ) : st.tipo === 'video' ? (
-          <video src={st.conteudo} className="absolute inset-0 w-full h-full object-cover" />
-        ) : (
-          <img src={st.conteudo} alt="Story" className="absolute inset-0 w-full h-full object-cover" />
-        )}
+                return (
+                  <div 
+                    key={autorItem.username} 
+                    onClick={() => clicarPerfilOuStory(autorItem.username)}
+                    className={`relative flex-shrink-0 w-28 h-44 rounded-2xl overflow-hidden cursor-pointer shadow-md transition hover:scale-105 border-2 bg-slate-900 flex flex-col justify-between p-2 ${todosVistos ? 'border-slate-500/40 opacity-70' : 'border-amber-500'}`}
+                  >
+                    {st.tipo === 'texto' ? (
+                      <div className="absolute inset-0 p-3 flex items-center justify-center text-center" style={{ backgroundColor: st.cor_fundo || '#1e293b' }}>
+                        <p className="text-white text-[11px] font-bold line-clamp-4">{st.conteudo}</p>
+                      </div>
+                    ) : st.tipo === 'video' ? (
+                      <video src={st.conteudo} className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <img src={st.conteudo} alt="Story" className="absolute inset-0 w-full h-full object-cover" />
+                    )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
-        
-        <div className={`relative z-10 w-8 h-8 rounded-full p-0.5 shadow-md ${todosVistos ? 'border border-slate-400 bg-slate-600' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400'}`}>
-          <img src={autorItem.avatar} className="w-full h-full rounded-full object-cover border border-white" />
-        </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+                    
+                    <div className={`relative z-10 w-8 h-8 rounded-full p-0.5 shadow-md ${todosVistos ? 'border border-slate-400 bg-slate-600' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400'}`}>
+                      <img src={autorItem.avatar} className="w-full h-full rounded-full object-cover border border-white" />
+                    </div>
 
-        <div className="relative z-10 flex items-center gap-1">
-          <span 
-            onClick={(e) => {
-              e.stopPropagation();
-              abrirPerfilPorUsername(autorItem.username);
-            }} 
-            className="text-white text-[11px] font-bold truncate hover:underline"
-          >
-            {autorItem.username === usuarioLogado.username ? 'Seu story' : autorItem.autor}
-          </span>
-          {autorItem.verificado && <SeloVerificado tamanho="w-3 h-3" />}
-        </div>
-      </div>
-    );
-  })}
-</div>
+                    <div className="relative z-10 flex items-center gap-1">
+                      <span 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          abrirPerfilPorUsername(autorItem.username);
+                        }} 
+                        className="text-white text-[11px] font-bold truncate hover:underline"
+                      >
+                        {autorItem.username === usuarioLogado.username ? 'Seu story' : autorItem.autor}
+                      </span>
+                      {autorItem.verificado && <SeloVerificado tamanho="w-3 h-3" />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
             {/* INPUT DE BUSCA */}
             <div className={`w-full p-4 rounded-2xl border shadow-sm flex items-center gap-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
@@ -1942,6 +1942,63 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
               </div>
 
               <div className="lg:col-span-3 space-y-6">
+
+                {/* SEÇÃO DE PEDIDOS DE AMIZADE RECEBIDOS */}
+                {(meuPerfilBanco.pedidos_recebidos && meuPerfilBanco.pedidos_recebidos.length > 0) && (
+                  <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                    <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">🤝 Solicitações de Amizade</h4>
+                    <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
+                      {meuPerfilBanco.pedidos_recebidos.map(remetenteUser => {
+                        const perfilRemetente = perfisReais.find(p => p.username === remetenteUser) || { username: remetenteUser, nome: remetenteUser };
+                        
+                        return (
+                          <div key={remetenteUser} className={`p-3 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                            <div 
+                              className="flex items-center gap-2.5 min-w-0 cursor-pointer" 
+                              onClick={() => abrirPerfilPorUsername(remetenteUser)}
+                            >
+                              <img 
+                                src={perfilRemetente.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
+                                className="w-8 h-8 rounded-full object-cover border border-blue-500 flex-shrink-0" 
+                                alt="Avatar"
+                              />
+                              <div className="min-w-0">
+                                <p className="font-bold truncate">{perfilRemetente.nome || remetenteUser}</p>
+                                <p className="text-[10px] opacity-50 truncate">@{remetenteUser}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <button
+                                onClick={async () => {
+                                  await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteUser);
+                                  const perfisAtualizados = await BancoDeDados.getPerfisCadastrados();
+                                  setPerfisReais(perfisAtualizados || []);
+                                  mostrarToast(`Você aceitou a amizade de @${remetenteUser}! 🎉`);
+                                }}
+                                className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition shadow-xs"
+                              >
+                                Aceitar
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteUser);
+                                  const perfisAtualizados = await BancoDeDados.getPerfisCadastrados();
+                                  setPerfisReais(perfisAtualizados || []);
+                                  mostrarToast(`Pedido de @${remetenteUser} recusado.`);
+                                }}
+                                className="px-2.5 py-1.5 bg-red-500/10 hover:bg-red-600 text-red-500 hover:text-white rounded-xl font-bold transition"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                   <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat & Mensagens</h4>
 

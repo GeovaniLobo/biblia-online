@@ -355,39 +355,86 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
+  // Enviar pedido de amizade
   enviarPedidoAmizade: async (usernameRemetente, usernameDestinatario) => {
     try {
-      const perfis = await BancoDeDados.getPerfisCadastrados();
-      const destinatario = perfis.find(p => p.username === usernameDestinatario);
-      const remetente = perfis.find(p => p.username === usernameRemetente);
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/amizades`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          remetente: usernameRemetente,
+          destinatario: usernameDestinatario,
+          status: 'pendente'
+        })
+      });
 
-      if (destinatario && remetente) {
-        const recebidos = Array.isArray(destinatario.pedidos_recebidos) ? [...destinatario.pedidos_recebidos] : [];
-        const enviados = Array.isArray(remetente.pedidos_enviados) ? [...remetente.pedidos_enviados] : [];
-
-        if (!recebidos.includes(usernameRemetente)) recebidos.push(usernameRemetente);
-        if (!enviados.includes(usernameDestinatario)) enviados.push(usernameDestinatario);
-
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameDestinatario}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ pedidos_recebidos: recebidos })
-        });
-
-        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ pedidos_enviados: enviados })
-        });
-
+      if (response.ok) {
         await BancoDeDados.adicionarNotificacao(
           usernameDestinatario, 
           `@${usernameRemetente} enviou um pedido de amizade.`, 
           'amizade'
         );
+      } else {
+        console.error("Erro ao enviar pedido:", await response.text());
       }
     } catch (e) {
       console.error("Exceção em enviarPedidoAmizade:", e);
+    }
+  },
+
+  // Aceitar pedido de amizade
+  aceitarPedidoAmizade: async (usernameLogado, usernameRemetente) => {
+    try {
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/amizades?or=(and(remetente.eq.${usernameRemetente},destinatario.eq.${usernameLogado}))`,
+        {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ status: 'aceito' })
+        }
+      );
+
+      if (response.ok) {
+        await BancoDeDados.adicionarNotificacao(
+          usernameRemetente, 
+          `@${usernameLogado} aceitou seu pedido de amizade! 🎉`, 
+          'amizade'
+        );
+      } else {
+        console.error("Erro ao aceitar pedido:", await response.text());
+      }
+    } catch (e) {
+      console.error("Exceção ao aceitar pedido:", e);
+    }
+  },
+
+  // Recusar / Excluir pedido de amizade
+  recusarPedidoAmizade: async (usernameLogado, usernameRemetente) => {
+    try {
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/amizades?or=(and(remetente.eq.${usernameRemetente},destinatario.eq.${usernameLogado}))`,
+        {
+          method: 'DELETE',
+          headers
+        }
+      );
+    } catch (e) {
+      console.error("Erro ao recusar pedido:", e);
+    }
+  },
+
+  // Buscar todas as amizades e pedidos de um usuário
+  getAmizadesDoUsuario: async (username) => {
+    try {
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/amizades?or=(remetente.eq.${username},destinatario.eq.${username})&select=*`,
+        { method: 'GET', headers }
+      );
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (err) {
+      console.error("Erro ao buscar amizades:", err);
+      return [];
     }
   },
 
