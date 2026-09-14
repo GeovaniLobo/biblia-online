@@ -265,6 +265,14 @@ export const BancoDeDados = {
           headers,
           body: JSON.stringify({ reacoes, curtidas: totalReacoes })
         });
+
+        if (p.username !== usernameUsuario) {
+          await BancoDeDados.adicionarNotificacao(
+            p.username,
+            `@${usernameUsuario} reagiu à sua publicação com ${tipoReacao}.`,
+            'reacao'
+          );
+        }
       }
     } catch (e) {
       console.error("Erro ao reagir na publicação:", e);
@@ -284,6 +292,14 @@ export const BancoDeDados = {
           headers,
           body: JSON.stringify({ comentarios: novosComentarios })
         });
+
+        if (p.username !== comentario.username) {
+          await BancoDeDados.adicionarNotificacao(
+            p.username,
+            `@${comentario.username} comentou na sua publicação.`,
+            'comentario'
+          );
+        }
       }
     } catch (e) {}
     return await BancoDeDados.getPublicacoes();
@@ -452,20 +468,20 @@ export const BancoDeDados = {
   },
 
   adicionarNotificacao: async (usernameDestino, texto, tipo) => {
-  try {
-    const agora = new Date();
-    const novaNotif = {
-      id: Date.now(),
-      destinatario: usernameDestino,
-      texto,
-      tipo,
-      lida: false,
-      data: agora.toISOString(), // <-- Salva a data completa em ISO
-      horario: agora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    await fetch(`${SUPABASE_URL}/rest/v1/notificacoes`, { method: 'POST', headers, body: JSON.stringify(novaNotif) });
-  } catch (e) {}
-},
+    try {
+      const agora = new Date();
+      const novaNotif = {
+        id: Date.now(),
+        destinatario: usernameDestino,
+        texto,
+        tipo,
+        lida: false,
+        data: agora.toISOString(),
+        horario: agora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes`, { method: 'POST', headers, body: JSON.stringify(novaNotif) });
+    } catch (e) {}
+  },
 
   marcarNotificacoesLidas: async (username) => {
     try {

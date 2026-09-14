@@ -22,27 +22,48 @@ export default function App() {
   const [menuPerfilAberto, setMenuPerfilAberto] = useState(false);
   const [menuHamburguerAberto, setMenuHamburguerAberto] = useState(false);
   
-  // Estados para o Dropdown de Notificações
+  // Estados para o Dropdown de Notificações (Sino)
   const [menuNotificacoesAberto, setMenuNotificacoesAberto] = useState(false);
   const [listaNotificacoes, setListaNotificacoes] = useState([]);
-  
+  const [totalNaoLidas, setTotalNaoLidas] = useState(0);
+
+  // Estados para o novo Ícone de Pedidos de Amizade / Sugestões (Boneco)
+  const [menuAmigosAberto, setMenuAmigosAberto] = useState(false);
+  const [solicitacoesPendentes, setSolicitacoesPendentes] = useState([]);
+  const [sugestoesMembros, setSugestoesMembros] = useState([]);
+
   const dropdownRef = useRef(null);
   const hamburguerRef = useRef(null);
   const notificacoesRef = useRef(null);
+  const amigosRef = useRef(null);
+
+  // Valida se o usuário logado ainda existe na base (desloga se foi apagado)
+  useEffect(() => {
+    async function validarUsuarioExistente() {
+      if (usuarioLogado && usuarioLogado.username) {
+        const perfis = await BancoDeDados.getPerfisCadastrados();
+        const existe = perfis.some(p => p.username === usuarioLogado.username);
+        if (!existe) {
+          await supabase.auth.signOut();
+          BancoDeDados.fazerLogout();
+          setUsuarioLogado(null);
+          navegarPara('/', 'biblia');
+        }
+      }
+    }
+    validarUsuarioExistente();
+  }, [usuarioLogado]);
 
   useEffect(() => {
-    // Verifica a sessão atual ao carregar o aplicativo
     async function checarSessao() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session && session.user) {
-        // Busca os dados complementares do usuário na tabela 'perfis'
         const perfis = await BancoDeDados.getPerfisCadastrados();
         const perfilEncontrado = perfis.find(p => p.email === session.user.email || p.username === session.user.user_metadata?.username);
         
         if (perfilEncontrado) {
           setUsuarioLogado(perfilEncontrado);
         } else {
-          // Caso logue pelo Google e ainda não tenha registro na tabela 'perfis'
           const novoPerfil = {
             email: session.user.email,
             username: session.user.user_metadata?.username || session.user.email.split('@')[0],
@@ -61,7 +82,6 @@ export default function App() {
 
     checarSessao();
 
-    // Ouve mudanças de login / logout em tempo real
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
         const perfis = await BancoDeDados.getPerfisCadastrados();
@@ -124,6 +144,9 @@ export default function App() {
       if (notificacoesRef.current && !notificacoesRef.current.contains(event.target)) {
         setMenuNotificacoesAberto(false);
       }
+      if (amigosRef.current && !amigosRef.current.contains(event.target)) {
+        setMenuAmigosAberto(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -144,8 +167,6 @@ export default function App() {
       verificado: false
     };
   });
-
-  const [totalNaoLidas, setTotalNaoLidas] = useState(0);
 
   const [favoritos, setFavoritos] = useState(() => {
     const salvos = localStorage.getItem('favoritos_biblia');
@@ -198,15 +219,29 @@ export default function App() {
     { id: 'ntlh', nome: 'Nova Tradução na Linguagem de Hoje (NTLH)' }
   ];
 
+  // Atualiza Notificações e Pedidos de Amizade em tempo real
   useEffect(() => {
     if (!usuarioLogado) return;
-    async function checarNotificacoes() {
+    async function carregarDadosCabecalho() {
       const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
       const naoLidas = notifs.filter(n => !n.lida).length;
       setTotalNaoLidas(naoLidas);
+
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      const meuPerfil = perfis.find(p => p.username === usuarioLogado.username) || {};
+      const pedidosRecebidosUser = meuPerfil.pedidos_recebidos || [];
+      setSolicitacoesPendentes(pedidosRecebidosUser);
+
+      const meusAmigos = meuPerfil.amigos || [];
+      const sugestoes = perfis.filter(
+        p => p.username !== usuarioLogado.username && 
+             !meusAmigos.includes(p.username) && 
+             !(meuPerfil.pedidos_enviados || []).includes(p.username)
+      );
+      setSugestoesMembros(sugestoes);
     }
-    checarNotificacoes();
-    const intervalo = setInterval(checarNotificacoes, 4000);
+    carregarDadosCabecalho();
+    const intervalo = setInterval(carregarDadosCabecalho, 4000);
     return () => clearInterval(intervalo);
   }, [usuarioLogado]);
 
@@ -265,6 +300,7 @@ export default function App() {
     setMenuPerfilAberto(false);
     setMenuHamburguerAberto(false);
     setMenuNotificacoesAberto(false);
+    setMenuAmigosAberto(false);
   };
 
   useEffect(() => {
@@ -409,7 +445,7 @@ export default function App() {
   return (
     <div className={`flex flex-col min-h-screen font-sans ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
 
-      {/* HEADER SUPERIOR COM MENU HAMBÚRGUER MOBILE */}
+      {/* HEADER SUPERIOR */}
       <header className={`border-b px-4 lg:px-8 py-3 flex items-center justify-between gap-3 shadow-sm backdrop-blur-md z-40 sticky top-0 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         
         {/* Lado Esquerdo: Botão Hambúrguer (Mobile) + Logo */}
@@ -454,7 +490,6 @@ export default function App() {
                     onClick={() => navegarPara('/', 'biblia')}
                     className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2.5 cursor-pointer ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-blue-500/10'}`}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                     Bíblia
                   </button>
 
@@ -465,7 +500,6 @@ export default function App() {
                     }}
                     className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2.5 cursor-pointer ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-blue-500/10'}`}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                     Devocional
                   </button>
 
@@ -476,7 +510,6 @@ export default function App() {
                     }}
                     className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2.5 cursor-pointer ${abaPrincipal === 'planos' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-blue-500/10'}`}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     Planos
                   </button>
 
@@ -487,15 +520,7 @@ export default function App() {
                     }}
                     className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-blue-500/10'}`}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                      Comunidade
-                    </div>
-                    {totalNaoLidas > 0 && (
-                      <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
-                        {totalNaoLidas}
-                      </span>
-                    )}
+                    Comunidade
                   </button>
                 </div>
 
@@ -507,9 +532,6 @@ export default function App() {
             onClick={() => navegarPara('/', 'biblia')}
             className="text-sm sm:text-lg font-black tracking-wider flex items-center gap-2 cursor-pointer"
           >
-            <svg className="w-5 h-5 text-blue-500 hidden sm:block" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
             LUZ DO MUNDO
           </span>
 
@@ -535,7 +557,6 @@ export default function App() {
             onClick={() => navegarPara('/', 'biblia')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${abaPrincipal === 'biblia' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
             Bíblia
           </button>
           <button
@@ -545,7 +566,6 @@ export default function App() {
             }}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${abaPrincipal === 'devocional' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
             Devocional
           </button>
           <button
@@ -555,7 +575,6 @@ export default function App() {
             }}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${abaPrincipal === 'planos' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             Planos
           </button>
           <button
@@ -565,13 +584,7 @@ export default function App() {
             }}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition relative flex items-center gap-1.5 cursor-pointer ${abaPrincipal === 'comunidade' ? 'bg-blue-600 text-white shadow-sm' : darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
             Comunidade
-            {totalNaoLidas > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-md animate-bounce">
-                {totalNaoLidas}
-              </span>
-            )}
           </button>
         </div>
 
@@ -587,7 +600,7 @@ export default function App() {
           />
         </div>
 
-        {/* Lado Direito: Ações (Tema + Notificações Dropdown + Perfil) */}
+        {/* Lado Direito: Ações (Tema + NOVO ÍCONE BONECO DE AMIZADES + Sino de Notificações + Perfil) */}
         <div className="flex items-center gap-3">
           
           <button
@@ -602,7 +615,113 @@ export default function App() {
             )}
           </button>
 
-          {/* BOTÃO DE NOTIFICAÇÕES (Dropdown Flutuante) */}
+          {/* NOVO ÍCONE DE BONECO (Pedidos de Amizade + Sugestões) */}
+          {usuarioLogado && (
+            <div className="relative" ref={amigosRef}>
+              <button
+                onClick={() => setMenuAmigosAberto(!menuAmigosAberto)}
+                className={`p-2.5 rounded-xl border transition relative flex items-center justify-center cursor-pointer ${darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-white' : 'bg-slate-100 border-slate-300 hover:bg-slate-200 text-slate-800'}`}
+                title="Pedidos de amizade e sugestões"
+              >
+                {/* Ícone de Boneco/Amizade */}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                {solicitacoesPendentes.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full font-black flex items-center justify-center shadow-md animate-bounce">
+                    {solicitacoesPendentes.length}
+                  </span>
+                )}
+              </button>
+
+              {menuAmigosAberto && (
+                <div className={`absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl shadow-2xl border p-4 z-50 space-y-4 backdrop-blur-md max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                  
+                  {/* Seção 1: Solicitações de Amizade */}
+                  <div>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider mb-2 flex items-center justify-between">
+                      <span>👥 Solicitações Pendentes</span>
+                      <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full">{solicitacoesPendentes.length}</span>
+                    </h4>
+
+                    {solicitacoesPendentes.length === 0 ? (
+                      <p className="text-xs opacity-60 py-2">Nenhum pedido de amizade no momento.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {solicitacoesPendentes.map((remetenteUsername) => (
+                          <div key={remetenteUsername} className="flex items-center justify-between p-2 rounded-xl border border-slate-700/50 bg-slate-800/40 text-xs">
+                            <span 
+                              onClick={() => { setMenuAmigosAberto(false); navegarPara(`/${remetenteUsername}`, 'perfilUrl'); }}
+                              className="font-bold text-blue-400 cursor-pointer hover:underline"
+                            >
+                              @{remetenteUsername}
+                            </span>
+                            <div className="flex gap-1.5">
+                              <button
+                                onClick={async () => {
+                                  await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteUsername);
+                                  setSolicitacoesPendentes(prev => prev.filter(u => u !== remetenteUsername));
+                                }}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg font-bold"
+                              >
+                                Aceitar
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteUsername);
+                                  setSolicitacoesPendentes(prev => prev.filter(u => u !== remetenteUsername));
+                                }}
+                                className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-2.5 py-1 rounded-lg font-bold"
+                              >
+                                Recusar
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Seção 2: Sugestões de Amigos */}
+                  <div className="border-t border-slate-700/50 pt-3">
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider mb-2">✨ Sugestões para você</h4>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {sugestoesMembros.length === 0 ? (
+                        <p className="text-xs opacity-60">Sem novas sugestões no momento.</p>
+                      ) : (
+                        sugestoesMembros.map((membro) => (
+                          <div key={membro.username} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-800/50">
+                            <div 
+                              onClick={() => { setMenuAmigosAberto(false); navegarPara(`/${membro.username}`, 'perfilUrl'); }}
+                              className="flex items-center gap-2 cursor-pointer"
+                            >
+                              <img src={membro.foto} alt="" className="w-7 h-7 rounded-full object-cover" />
+                              <div>
+                                <p className="text-xs font-bold">{membro.nome}</p>
+                                <p className="text-[10px] opacity-60">@{membro.username}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={async () => {
+                                await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, membro.username);
+                                setSugestoesMembros(prev => prev.filter(u => u.username !== membro.username));
+                              }}
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-[11px] px-3 py-1 rounded-lg font-bold"
+                            >
+                              + Seguir
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* BOTÃO DE NOTIFICAÇÕES (Sino) */}
           {usuarioLogado && (
             <div className="relative" ref={notificacoesRef}>
               <button
@@ -648,10 +767,10 @@ export default function App() {
               </button>
 
               {menuNotificacoesAberto && (
-                <div className={`absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl shadow-2xl border p-3 z-50 space-y-2 backdrop-blur-md max-h-96 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                <div className={`absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl shadow-2xl border p-3 z-50 space-y-2 backdrop-blur-md max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
-                      <span>🔔</span> Notificações
+                      <span>🔔</span> Notificações (Reações, Comentários, Menções e Curtidas)
                     </h4>
                     <button 
                       onClick={() => setMenuNotificacoesAberto(false)}
@@ -741,7 +860,6 @@ export default function App() {
                   onClick={() => navegarPara(`/${usuarioLogado.username}`, 'perfilUrl')}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                   Entrar no Perfil
                 </button>
 
@@ -749,7 +867,6 @@ export default function App() {
                   onClick={() => navegarPara('/editarPerfil', 'editarPerfil')}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   Editar Perfil
                 </button>
 
@@ -762,7 +879,6 @@ export default function App() {
                   }}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2 cursor-pointer"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
                   Copiar Link de Perfil
                 </button>
 

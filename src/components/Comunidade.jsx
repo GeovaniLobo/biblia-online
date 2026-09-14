@@ -62,8 +62,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     { tipo: 'felicidades', emoji: '🥳', label: 'Felicidades', cor: 'text-emerald-500' }
   ];
 
-  const [abaSolicitacoesAberta, setAbaSolicitacoesAberta] = useState(false);
-
   const [postDetalheId, setPostDetalheId] = useState(null);
   const [menuOpcoesPostAberto, setMenuOpcoesPostAberto] = useState(null);
   const [menuCompartilharAberto, setMenuCompartilharAberto] = useState(null);
@@ -227,8 +225,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const biografiaOficial = meuPerfilBanco.biografia !== undefined ? meuPerfilBanco.biografia : (usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.');
 
   const meusAmigos = meuPerfilBanco.amigos || [];
-  const pedidosRecebidos = meuPerfilBanco.pedidos_recebidos || [];
-
   const amigosMaisLogado = [usuarioLogado.username, ...meusAmigos];
   
   const agoraTimestamp = Date.now();
@@ -633,10 +629,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         }
       });
     }
-
-    if (usuarioLogado.username !== usernameAutorPost) {
-      await BancoDeDados.adicionarNotificacao(usernameAutorPost, `@${usuarioLogado.username} comentou na sua publicação.`, 'comentario');
-    }
   };
 
   const reagirComentarioPub = async (publicacaoId, comentarioId, tipoReacao) => {
@@ -1013,7 +1005,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
-      {/* Cabeçalho da Comunidade (Sem o sino) */}
       <div className={`w-full px-4 sm:px-8 lg:px-12 py-3 border-b flex items-center justify-between ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-extrabold uppercase tracking-wider opacity-80">Comunidade Luz do Mundo</h2>
@@ -1077,61 +1068,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
             </div>
           );
         })()
-      )}
-
-      {abaSolicitacoesAberta && (
-        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            <div className="flex justify-between items-center border-b pb-3 border-slate-700">
-              <h3 className="font-extrabold text-sm">👥 Solicitações de Amizade Pendentes</h3>
-              <button onClick={() => setAbaSolicitacoesAberta(false)} className="text-sm font-bold">✕</button>
-            </div>
-
-            <div className="space-y-3 max-h-72 overflow-y-auto">
-              {pedidosRecebidos.length === 0 ? (
-                <p className="text-xs opacity-50 text-center py-6">Nenhuma solicitação pendente.</p>
-              ) : (
-                pedidosRecebidos.map(remetenteusername => {
-                  const perfilRemetente = perfisReais.find(p => p.username === remetenteusername) || { nome: remetenteusername, username: remetenteusername };
-                  return (
-                    <div key={remetenteusername} className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="flex items-center gap-2.5">
-                        <img src={perfilRemetente.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-8 h-8 rounded-full object-cover" />
-                        <div>
-                          <p className="font-bold">{perfilRemetente.nome}</p>
-                          <p className="text-[10px] opacity-60">@{perfilRemetente.username}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={async () => {
-                            const perfisAtualizados = await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteusername);
-                            setPerfisReais(perfisAtualizados);
-                            mostrarToast(`Amizade com @${remetenteusername} aceita! 🎉`);
-                          }}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold"
-                        >
-                          Aceitar
-                        </button>
-                        <button 
-                          onClick={async () => {
-                            const perfisAtualizados = await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteusername);
-                            setPerfisReais(perfisAtualizados);
-                            mostrarToast('Solicitação recusada.');
-                          }}
-                          className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-xl font-bold"
-                        >
-                          Recusar
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
       )}
 
       {modalCriarStoryAberto && (
@@ -1853,14 +1789,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     <p className="text-xs opacity-75 mt-2 whitespace-pre-line break-words">{biografiaOficial}</p>
                   </div>
                   <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
-                    <div 
-                      onClick={() => setAbaSolicitacoesAberta(true)}
-                      className={`p-3 rounded-2xl border shadow-xs cursor-pointer hover:border-blue-500 transition ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}
-                      title="Ver Solicitações"
-                    >
-                      <span className="block font-extrabold text-blue-500 text-sm">
-                        {meusAmigos.length} {pedidosRecebidos.length > 0 && <span className="text-[10px] text-amber-400">({pedidosRecebidos.length})</span>}
-                      </span>
+                    <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <span className="block font-extrabold text-blue-500 text-sm">{meusAmigos.length}</span>
                       <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Amigos</span>
                     </div>
                     <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
