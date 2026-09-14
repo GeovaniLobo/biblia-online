@@ -1082,7 +1082,25 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           <div className={`max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             <div className="flex justify-between items-center border-b pb-3 border-slate-700">
               <h3 className="font-extrabold text-sm">👥 Solicitações de Amizade Pendentes</h3>
-              <button onClick={() => setAbaSolicitacoesAberta(false)} className="text-sm font-bold">✕</button>
+              {/* Botão de Notificações */}
+<button 
+  onClick={async () => {
+    setAbaNotificacoesAberta(true);
+    // Marca como lidas ao abrir
+    await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
+    const atualizadas = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+    setNotificacoes(atualizadas || []);
+  }}
+  className="relative p-2.5 rounded-xl border border-slate-700/50 hover:bg-slate-800 transition flex items-center justify-center"
+  title="Ver Notificações"
+>
+  <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C6.705 6.136 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+  </svg>
+  {notificacoes.some(n => !n.lida) && (
+    <span className="w-2.5 h-2.5 bg-red-500 rounded-full absolute top-2 right-2 animate-pulse"></span>
+  )}
+</button>
             </div>
 
             <div className="space-y-3 max-h-72 overflow-y-auto">
