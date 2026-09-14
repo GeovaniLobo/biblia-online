@@ -638,49 +638,76 @@ export default function App() {
                 <div className={`absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl shadow-2xl border p-4 z-50 space-y-4 backdrop-blur-md max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                   
                   {/* Seção 1: Solicitações de Amizade */}
-                  <div>
-                    <h4 className="text-xs font-extrabold uppercase tracking-wider mb-2 flex items-center justify-between">
-                      <span>Solicitações Pendentes</span>
-                      <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full">{solicitacoesPendentes.length}</span>
-                    </h4>
+                  {/* Seção 1: Solicitações de Amizade */}
+<div>
+  <h4 className="text-xs font-extrabold uppercase tracking-wider mb-2 flex items-center justify-between">
+    <span>Solicitações Pendentes</span>
+    <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full">{solicitacoesPendentes.length}</span>
+  </h4>
 
-                    {solicitacoesPendentes.length === 0 ? (
-                      <p className="text-xs opacity-60 py-2">Nenhum pedido de amizade no momento.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {solicitacoesPendentes.map((remetenteUsername) => (
-                          <div key={remetenteUsername} className="flex items-center justify-between p-2 rounded-xl border border-slate-700/50 bg-slate-800/40 text-xs">
-                            <span 
-                              onClick={() => { setMenuAmigosAberto(false); navegarPara(`/${remetenteUsername}`, 'perfilUrl'); }}
-                              className="font-bold text-blue-400 cursor-pointer hover:underline"
-                            >
-                              @{remetenteUsername}
-                            </span>
-                            <div className="flex gap-1.5">
-                              <button
-                                onClick={async () => {
-                                  await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteUsername);
-                                  setSolicitacoesPendentes(prev => prev.filter(u => u !== remetenteUsername));
-                                }}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg font-bold"
-                              >
-                                Aceitar
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteUsername);
-                                  setSolicitacoesPendentes(prev => prev.filter(u => u !== remetenteUsername));
-                                }}
-                                className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-2.5 py-1 rounded-lg font-bold"
-                              >
-                                Recusar
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+  {solicitacoesPendentes.length === 0 ? (
+    <p className="text-xs opacity-60 py-2">Nenhum pedido de amizade no momento.</p>
+  ) : (
+    <div className="space-y-2">
+      {solicitacoesPendentes.map((remetenteUsername) => {
+        // Busca os dados completos do perfil do remetente (nome, foto, etc)
+        const perfilRemetente = (sugestoesMembros.concat(
+          // Garante que busca também se já estiver na lista geral
+        )).find(p => p.username === remetenteUsername);
+
+        const nomeRemetente = perfilRemetente?.nome || remetenteUsername;
+        const fotoRemetente = perfilRemetente?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+
+        return (
+          <div 
+            key={remetenteUsername} 
+            className={`flex items-center justify-between p-2.5 rounded-xl border text-xs gap-2 ${
+              darkMode 
+                ? 'bg-slate-800 border-slate-700 text-white' 
+                : 'bg-white border-slate-200 text-slate-900 shadow-2xs'
+            }`}
+          >
+            <div 
+              onClick={() => { setMenuAmigosAberto(false); navegarPara(`/${remetenteUsername}`, 'perfilUrl'); }}
+              className="flex items-center gap-2.5 cursor-pointer min-w-0"
+            >
+              <img 
+                src={fotoRemetente} 
+                alt={nomeRemetente} 
+                className="w-8 h-8 rounded-full object-cover border border-blue-500/40 flex-shrink-0" 
+              />
+              <div className="min-w-0">
+                <p className="font-bold truncate hover:underline">{nomeRemetente}</p>
+                <p className="text-[10px] text-blue-500 dark:text-blue-400 truncate">@{remetenteUsername}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-1.5 flex-shrink-0">
+              <button
+                onClick={async () => {
+                  await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteUsername);
+                  setSolicitacoesPendentes(prev => prev.filter(u => u !== remetenteUsername));
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg font-bold cursor-pointer"
+              >
+                Aceitar
+              </button>
+              <button
+                onClick={async () => {
+                  await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteUsername);
+                  setSolicitacoesPendentes(prev => prev.filter(u => u !== remetenteUsername));
+                }}
+                className="bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500 hover:text-white px-2.5 py-1 rounded-lg font-bold cursor-pointer transition"
+              >
+                Recusar
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</div>
 
                   {/* Seção 2: Sugestões de Amigos */}
                   <div className="border-t border-slate-700/50 pt-3">
