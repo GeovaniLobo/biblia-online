@@ -82,7 +82,6 @@ export const BancoDeDados = {
     }
   },
 
-  // --- UPLOAD DE MÍDIA PARA O SUPABASE STORAGE ---
   uploadMidiaStory: async (file) => {
     try {
       const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
@@ -108,24 +107,16 @@ export const BancoDeDados = {
     }
   },
 
-  // --- STORIES ---
   getStories: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/stories?select=*&order=id.desc`, { method: 'GET', headers });
       if (!response.ok) return [];
       const data = await response.json();
-      
       if (!data) return [];
 
       const agora = Date.now();
       const limite24h = 24 * 60 * 60 * 1000;
-      
-      const storiesValidos = data.filter(s => {
-        if (!s.id) return false;
-        return (agora - Number(s.id)) <= limite24h;
-      });
-
-      return storiesValidos;
+      return data.filter(s => s.id && (agora - Number(s.id)) <= limite24h);
     } catch (err) { 
       console.error("Erro ao buscar stories:", err);
       return []; 
@@ -142,7 +133,6 @@ export const BancoDeDados = {
       });
       if (!response.ok) {
         console.error("Erro ao salvar story:", await response.text());
-        return await BancoDeDados.getStories();
       }
       return await BancoDeDados.getStories();
     } catch (err) { 
@@ -158,12 +148,10 @@ export const BancoDeDados = {
       
       const data = await res.json();
       let vistas = (data && data[0] && data[0].visualizacoes) || [];
-      
       const jaViu = vistas.some(v => v.username === dadosVisualizador.username);
       
       if (!jaViu) {
         vistas.push(dadosVisualizador);
-        
         await fetch(`${SUPABASE_URL}/rest/v1/stories?id=eq.${Number(storyId)}`, {
           method: 'PATCH',
           headers,
@@ -182,16 +170,13 @@ export const BancoDeDados = {
       const stories = await BancoDeDados.getStories();
       const s = stories.find(x => x.id === storyId);
       if (s) {
-        let curtidas = s.curtidas || [];
-        if (!Array.isArray(curtidas)) curtidas = [];
-
+        let curtidas = Array.isArray(s.curtidas) ? [...s.curtidas] : [];
         const jaCurtiu = curtidas.includes(usernameUsuario);
 
         if (jaCurtiu) {
           curtidas = curtidas.filter(u => u !== usernameUsuario);
         } else {
           curtidas.push(usernameUsuario);
-          
           if (s.username !== usernameUsuario) {
             await BancoDeDados.adicionarNotificacao(
               s.username,
@@ -224,7 +209,6 @@ export const BancoDeDados = {
     }
   },
 
-  // --- PUBLICAÇÕES ---
   getPublicacoes: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?select=*&order=id.desc`, { method: 'GET', headers });
@@ -245,7 +229,6 @@ export const BancoDeDados = {
       });
       if (!response.ok) {
         console.error("Erro ao salvar publicação:", await response.text());
-        return await BancoDeDados.getPublicacoes();
       }
       return await BancoDeDados.getPublicacoes();
     } catch (err) { 
@@ -283,8 +266,6 @@ export const BancoDeDados = {
       const p = pubs.find(x => x.id === id);
       if (p) {
         let reacoes = p.reacoes || { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
-        if (!reacoes.amei) reacoes = { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
-
         Object.keys(reacoes).forEach(tipo => {
           reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== usernameUsuario);
         });
@@ -322,14 +303,11 @@ export const BancoDeDados = {
       if (p) {
         const comentariosAtuais = p.comentarios || [];
         const novosComentarios = [...comentariosAtuais, comentario];
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/publicacoes?id=eq.${id}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({ comentarios: novosComentarios })
         });
-        if (!res.ok) {
-          console.error("Erro ao adicionar comentário:", await res.text());
-        }
 
         if (p.username !== comentario.username) {
           await BancoDeDados.adicionarNotificacao(
@@ -353,8 +331,6 @@ export const BancoDeDados = {
         const novosComentarios = p.comentarios.map(c => {
           if (c.id === comentarioId) {
             let reacoes = c.reacoes || { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
-            if (!reacoes.amei) reacoes = { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
-
             Object.keys(reacoes).forEach(tipo => {
               reacoes[tipo] = (reacoes[tipo] || []).filter(u => u !== username);
             });
@@ -379,111 +355,42 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
-  // --- AMIZADES ---
   enviarPedidoAmizade: async (usernameRemetente, usernameDestinatario) => {
     try {
-      // 1. Salva na nova tabela de amizades
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/amizades`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          remetente: usernameRemetente,
-          destinatario: usernameDestinatario,
-          status: 'pendente'
-        })
-      });
-
-      // 2. Atualiza a coluna pedidos_recebidos no perfil do destinatário (caso sua interface use isso para exibir os pedidos)
       const perfis = await BancoDeDados.getPerfisCadastrados();
       const destinatario = perfis.find(p => p.username === usernameDestinatario);
-      if (destinatario) {
-        const recebidos = destinatario.pedidos_recebidos || [];
-        if (!recebidos.includes(usernameRemetente)) {
-          recebidos.push(usernameRemetente);
-          await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameDestinatario}`, {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify({ pedidos_recebidos: recebidos })
-          });
-        }
-      }
+      const remetente = perfis.find(p => p.username === usernameRemetente);
 
-      if (response.ok) {
+      if (destinatario && remetente) {
+        const recebidos = Array.isArray(destinatario.pedidos_recebidos) ? [...destinatario.pedidos_recebidos] : [];
+        const enviados = Array.isArray(remetente.pedidos_enviados) ? [...remetente.pedidos_enviados] : [];
+
+        if (!recebidos.includes(usernameRemetente)) recebidos.push(usernameRemetente);
+        if (!enviados.includes(usernameDestinatario)) enviados.push(usernameDestinatario);
+
+        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameDestinatario}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ pedidos_recebidos: recebidos })
+        });
+
+        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ pedidos_enviados: enviados })
+        });
+
         await BancoDeDados.adicionarNotificacao(
           usernameDestinatario, 
           `@${usernameRemetente} enviou um pedido de amizade.`, 
           'amizade'
         );
-      } else {
-        console.error("Erro ao enviar pedido:", await response.text());
       }
     } catch (e) {
       console.error("Exceção em enviarPedidoAmizade:", e);
     }
   },
 
-  // 2. Aceitar pedido de amizade
-  aceitarPedidoAmizade: async (usernameLogado, usernameRemetente) => {
-    try {
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/amizades?or=(and(remetente.eq.${usernameRemetente},destinatario.eq.${usernameLogado}),and(remetente.eq.${usernameLogado},destinatario.eq.${usernameRemetente}))`,
-        {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ status: 'aceito' })
-        }
-      );
-
-      if (response.ok) {
-        await BancoDeDados.adicionarNotificacao(
-          usernameRemetente, 
-          `@${usernameLogado} aceitou seu pedido de amizade! 🎉`, 
-          'amizade'
-        );
-      } else {
-        console.error("Erro ao aceitar pedido:", await response.text());
-      }
-      return await BancoDeDados.getPerfisCadastrados();
-    } catch (e) {
-      console.error("Exceção ao aceitar pedido:", e);
-      return [];
-    }
-  },
-
-  // 3. Recusar pedido de amizade
-  recusarPedidoAmizade: async (usernameLogado, usernameRemetente) => {
-    try {
-      await fetch(
-        `${SUPABASE_URL}/rest/v1/amizades?or=(and(remetente.eq.${usernameRemetente},destinatario.eq.${usernameLogado}),and(remetente.eq.${usernameLogado},destinatario.eq.${usernameRemetente}))`,
-        {
-          method: 'DELETE',
-          headers
-        }
-      );
-      return await BancoDeDados.getPerfisCadastrados();
-    } catch (e) {
-      console.error("Erro ao recusar pedido:", e);
-      return [];
-    }
-  },
-
-  // 4. Buscar lista de amigos aceitos de um usuário
-  buscarAmigosDoUsuario: async (username) => {
-    try {
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/amizades?status=eq.aceito&or=(remetente.eq.${username},destinatario.eq.${username})`,
-        { method: 'GET', headers }
-      );
-      if (!response.ok) return [];
-      const data = await response.json();
-      
-      // Retorna a lista com o username do amigo (quem não for o próprio usuário)
-      return data.map(item => item.remetente === username ? item.destinatario : item.remetente);
-    } catch (err) {
-      console.error("Erro ao buscar amigos:", err);
-      return [];
-    }
-  },
   aceitarPedidoAmizade: async (usernameLogado, usernameRemetente) => {
     try {
       const perfis = await BancoDeDados.getPerfisCadastrados();
@@ -500,19 +407,17 @@ export const BancoDeDados = {
         const novosAmigosRemetente = [...(remetente.amigos || [])];
         if (!novosAmigosRemetente.includes(usernameLogado)) novosAmigosRemetente.push(usernameLogado);
 
-        const res1 = await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameLogado}`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameLogado}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({ pedidos_recebidos: novosRecebidos, amigos: novosAmigosLogado })
         });
-        if (!res1.ok) console.error("Erro ao aceitar pedido (logado):", await res1.text());
 
-        const res2 = await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameRemetente}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({ pedidos_enviados: novosEnviados, amigos: novosAmigosRemetente })
         });
-        if (!res2.ok) console.error("Erro ao aceitar pedido (remetente):", await res2.text());
 
         await BancoDeDados.adicionarNotificacao(usernameRemetente, `@${usernameLogado} aceitou seu pedido de amizade! 🎉`, 'amizade');
       }
@@ -552,7 +457,6 @@ export const BancoDeDados = {
     }
   },
 
-  // --- MENSAGENS E CHAT ---
   getMensagensChat: async (usuarioA, usuarioB) => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat?select=*&or=(and(remetente.eq.${usuarioA},destinatario.eq.${usuarioB}),and(remetente.eq.${usuarioB},destinatario.eq.${usuarioA}))&order=id.asc`, { method: 'GET', headers });
@@ -583,9 +487,7 @@ export const BancoDeDados = {
         body: JSON.stringify(payload) 
       });
 
-      if (!response.ok) {
-        console.error("Erro ao enviar mensagem do chat:", await response.text());
-      } else {
+      if (response.ok) {
         await BancoDeDados.adicionarNotificacao(novaMensagem.destinatario, `@${novaMensagem.remetente} enviou uma nova mensagem.`, 'mensagem');
       }
     } catch (err) {
@@ -593,15 +495,10 @@ export const BancoDeDados = {
     }
   },
 
-  // --- NOTIFICAÇÕES ---
   getNotificacoes: async (username) => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?select=*&destinatario=eq.${encodeURIComponent(username)}&order=id.desc`, { method: 'GET', headers });
-      if (!response.ok) {
-        const errData = await response.text();
-        console.error("Erro ao buscar notificações:", errData);
-        return [];
-      }
+      if (!response.ok) return [];
       return await response.json();
     } catch (err) { 
       console.error("Exceção ao buscar notificações:", err);
@@ -622,16 +519,11 @@ export const BancoDeDados = {
         horario: agora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/notificacoes`, { 
+      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes`, { 
         method: 'POST', 
         headers, 
         body: JSON.stringify(novaNotif) 
       });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error("Falha ao inserir notificação no Supabase:", errText);
-      }
     } catch (e) {
       console.error("Exceção ao adicionar notificação:", e);
     }
@@ -639,21 +531,16 @@ export const BancoDeDados = {
 
   marcarNotificacoesLidas: async (username) => {
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?destinatario=eq.${encodeURIComponent(username)}`, { 
+      await fetch(`${SUPABASE_URL}/rest/v1/notificacoes?destinatario=eq.${encodeURIComponent(username)}`, { 
         method: 'PATCH', 
         headers, 
         body: JSON.stringify({ lida: true }) 
       });
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error("Erro ao marcar notificações como lidas:", errText);
-      }
     } catch (e) {
       console.error("Exceção ao marcar notificações como lidas:", e);
     }
   },
 
-  // --- PEDIDOS DE ORAÇÃO ---
   getPedidosOracao: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?select=*&order=id.desc`, { method: 'GET', headers });
@@ -672,13 +559,10 @@ export const BancoDeDados = {
         username: pedido.username,
         autor: pedido.autor || pedido.username,
         texto: pedido.texto,
-        apoios: 0
+        apoios: 0,
+        apoiadores: []
       };
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao`, { method: 'POST', headers, body: JSON.stringify(payload) });
-      if (!response.ok) {
-        console.error("Erro ao salvar pedido de oração:", await response.text());
-        return await BancoDeDados.getPedidosOracao();
-      }
+      await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao`, { method: 'POST', headers, body: JSON.stringify(payload) });
       return await BancoDeDados.getPedidosOracao();
     } catch (err) { 
       console.error("Exceção ao salvar pedido de oração:", err);
@@ -686,13 +570,26 @@ export const BancoDeDados = {
     }
   },
 
-  apoiarPedidoOracao: async (id) => {
+  apoiarPedidoOracao: async (id, usernameLogado) => {
     try {
       const pedidos = await BancoDeDados.getPedidosOracao();
       const p = pedidos.find(item => item.id === id);
       if (p) {
-        const novosApoios = (p.apoios || 0) + 1;
-        await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?id=eq.${id}`, { method: 'PATCH', headers, body: JSON.stringify({ apoios: novosApoios }) });
+        let apoiadores = Array.isArray(p.apoiadores) ? [...p.apoiadores] : [];
+        const jaApoiou = apoiadores.includes(usernameLogado);
+
+        if (jaApoiou) {
+          apoiadores = apoiadores.filter(u => u !== usernameLogado);
+        } else {
+          apoiadores.push(usernameLogado);
+        }
+
+        const novosApoios = apoiadores.length;
+        await fetch(`${SUPABASE_URL}/rest/v1/pedidos_oracao?id=eq.${id}`, { 
+          method: 'PATCH', 
+          headers, 
+          body: JSON.stringify({ apoios: novosApoios, apoiadores }) 
+        });
       }
       return await BancoDeDados.getPedidosOracao();
     } catch (err) { 
@@ -736,7 +633,6 @@ export const BancoDeDados = {
     }
   },
 
-  // --- PLANOS DE ESTUDO ---
   buscarPlanos: async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/planos_estudo?select=*&order=created_at.desc`, { method: 'GET', headers });

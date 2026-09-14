@@ -31,7 +31,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       </div>
     );
   }
-
+  
   const [publicacoes, setPublicacoes] = useState([]);
   const [perfisReais, setPerfisReais] = useState([]);
   const [notificacoes, setNotificacoes] = useState([]);
@@ -65,7 +65,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [postDetalheId, setPostDetalheId] = useState(null);
   const [menuOpcoesPostAberto, setMenuOpcoesPostAberto] = useState(null);
   const [menuCompartilharAberto, setMenuCompartilharAberto] = useState(null);
-
+  
   const [usuarioStoryVisualizando, setUsuarioStoryVisualizando] = useState(null);
   const [indiceStoryAtual, setIndiceStoryAtual] = useState(0);
   const [progressoStory, setProgressoStory] = useState(0);
@@ -1910,7 +1910,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <button 
                                 onClick={async () => { 
-                                  const atualizados = await BancoDeDados.apoiarPedidoOracao(p.id, usuarioLogado.username); 
+                                  const atualizados = await BancoDeDados.apoiarPedidoOracao(p.id, usuarioLogado.username);
                                   setPedidosOracao(atualizados || []); 
                                 }} 
                                 className={`px-3.5 py-1.5 rounded-xl font-bold transition ${jaApoiou ? 'bg-red-600 text-white' : 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white'}`}
