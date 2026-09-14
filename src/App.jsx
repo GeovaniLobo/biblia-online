@@ -28,7 +28,7 @@ export default function App() {
   const [totalNaoLidas, setTotalNaoLidas] = useState(0);
   const [perfisCache, setPerfisCache] = useState([]);
   
-  // Estados para o novo Ícone de Pedidos de Amizade / Sugestões (Boneco)
+  // Estados para o Ícone de Pedidos de Amizade / Sugestões (Boneco)
   const [menuAmigosAberto, setMenuAmigosAberto] = useState(false);
   const [solicitacoesPendentes, setSolicitacoesPendentes] = useState([]);
   const [sugestoesMembros, setSugestoesMembros] = useState([]);
@@ -70,10 +70,7 @@ export default function App() {
             nome: session.user.user_metadata?.name || session.user.user_metadata?.nome || 'Usuário Google',
             foto: session.user.user_metadata?.avatar_url || session.user.user_metadata?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
             biografia: 'Praticando a fé e o amor ao próximo.',
-            senha: 'google_auth_user', // <-- Adicione esta linha se a coluna 'senha' for obrigatória no banco
-            amigos: [],
-            pedidos_enviados: [],
-            pedidos_recebidos: []
+            senha: 'google_auth_user'
           };
           await BancoDeDados.salvarNovoPerfilNaRede(novoPerfil);
           setUsuarioLogado(novoPerfil);
@@ -178,7 +175,6 @@ export default function App() {
     return salvos ? JSON.parse(salvos) : {};
   });
   const [versiculosSelecionados, setVersiculosSelecionados] = useState([]);
-  const [copiadoFeedback, setCopiadoFeedback] = useState(false);
 
   const [termoBusca, setTermoBusca] = useState('');
   const [resultadosBusca, setResultadosBusca] = useState([]);
@@ -220,7 +216,7 @@ export default function App() {
     { id: 'ntlh', nome: 'Nova Tradução na Linguagem de Hoje (NTLH)' }
   ];
 
-  // Atualiza Notificações e Pedidos de Amizade em tempo real
+  // Atualiza Notificações e Pedidos de Amizade em tempo real via tabela 'amizades'
   useEffect(() => {
     if (!usuarioLogado) return;
     async function carregarDadosCabecalho() {
@@ -231,16 +227,29 @@ export default function App() {
       const perfis = await BancoDeDados.getPerfisCadastrados();
       setPerfisCache(perfis);
 
-      const meuPerfil = perfis.find(p => p.username === usuarioLogado.username) || {};
-      const pedidosRecebidosUser = meuPerfil.pedidos_recebidos || [];
-      setSolicitacoesPendentes(pedidosRecebidosUser);
+      const rels = await BancoDeDados.getRelacoesAmizade(usuarioLogado.username);
+      
+      // Quem enviou pedido para mim (onde eu sou o amigo_id e o status é 'pendente')
+      const pedidosPendentesUser = rels
+        .filter(r => r.amigo_id === usuarioLogado.username && r.status === 'pendente')
+        .map(r => r.usuario_id);
+      setSolicitacoesPendentes(pedidosPendentesUser);
 
-      const meusAmigos = meuPerfil.amigos || [];
+      // Meus amigos aceitos
+      const amigosAceitos = rels
+        .filter(r => r.status === 'aceito')
+        .map(r => r.usuario_id === usuarioLogado.username ? r.amigo_id : r.usuario_id);
+
+      // Quem eu já enviei pedido (pendente)
+      const meusEnviosPendentes = rels
+        .filter(r => r.usuario_id === usuarioLogado.username && r.status === 'pendente')
+        .map(r => r.amigo_id);
+
       const sugestoes = perfis.filter(
         p => p.username !== usuarioLogado.username && 
-             !meusAmigos.includes(p.username) && 
-             !(meusAmigos || []).includes(p.username) &&
-             !(meuPerfil.pedidos_enviados || []).includes(p.username)
+             !amigosAceitos.includes(p.username) && 
+             !pedidosPendentesUser.includes(p.username) &&
+             !meusEnviosPendentes.includes(p.username)
       );
       setSugestoesMembros(sugestoes);
     }
@@ -519,7 +528,7 @@ export default function App() {
           />
         </div>
 
-        {/* Lado Direito: Ações (Tema + NOVO ÍCONE BONECO DE AMIZADES + Sino de Notificações + Perfil) */}
+        {/* Lado Direito: Ações (Tema + ÍCONE BONECO DE AMIZADES + Sino de Notificações + Perfil) */}
         <div className="flex items-center gap-3">
           
           <button
@@ -534,7 +543,7 @@ export default function App() {
             )}
           </button>
 
-          {/* NOVO ÍCONE DE BONECO (Pedidos de Amizade + Sugestões) */}
+          {/* ÍCONE DE BONECO (Pedidos de Amizade + Sugestões) */}
           {usuarioLogado && (
             <div className="relative" ref={amigosRef}>
               <button
@@ -607,7 +616,7 @@ export default function App() {
                                 </button>
                                 <button
                                   onClick={async () => {
-                                    await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteUsername);
+                                    await BancoDeDados.removerAmizadeOuPedido(usuarioLogado.username, remetenteUsername);
                                     setSolicitacoesPendentes(prev => prev.filter(u => u !== remetenteUsername));
                                   }}
                                   className="bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500 hover:text-white px-2.5 py-1 rounded-lg font-bold cursor-pointer transition"
@@ -1052,7 +1061,6 @@ export default function App() {
 
           </div>
         </section>
-
       </main>
 
       {/* RODAPÉ GLOBAL PROFISSIONAL */}
