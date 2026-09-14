@@ -382,6 +382,7 @@ export const BancoDeDados = {
   // --- AMIZADES ---
   enviarPedidoAmizade: async (usernameRemetente, usernameDestinatario) => {
     try {
+      // 1. Salva na nova tabela de amizades
       const response = await fetch(`${SUPABASE_URL}/rest/v1/amizades`, {
         method: 'POST',
         headers,
@@ -391,6 +392,21 @@ export const BancoDeDados = {
           status: 'pendente'
         })
       });
+
+      // 2. Atualiza a coluna pedidos_recebidos no perfil do destinatário (caso sua interface use isso para exibir os pedidos)
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      const destinatario = perfis.find(p => p.username === usernameDestinatario);
+      if (destinatario) {
+        const recebidos = destinatario.pedidos_recebidos || [];
+        if (!recebidos.includes(usernameRemetente)) {
+          recebidos.push(usernameRemetente);
+          await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${usernameDestinatario}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ pedidos_recebidos: recebidos })
+          });
+        }
+      }
 
       if (response.ok) {
         await BancoDeDados.adicionarNotificacao(
