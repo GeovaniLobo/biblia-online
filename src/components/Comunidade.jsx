@@ -118,22 +118,16 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   };
 
   const SeloVerificado = ({ tamanho = "w-4 h-4" }) => (
-    <span className="relative inline-flex items-center justify-center flex-shrink-0 group/badge cursor-pointer -translate-y-0.5 ml-1" title="Verificado">
-      <svg 
-        aria-label="Verificado" 
-        className={`${tamanho} transform transition hover:scale-110 flex-shrink-0`} 
-        fill="rgb(0, 149, 246)" 
-        role="img" 
-        viewBox="0 0 40 40" 
-      >
-        <title>Verificado</title>
-        <path 
-          d="M19.998 3.094 14.638 0l-2.972 5.15H5.432v6.354L0 14.64 3.094 20 0 25.359l15.432 3.137v5.905h5.975l14.638 40.15.36-3.094L25.358 40l3.232-5.6h6.162v-6.01L40 25.359 36.905 20 40 14.64l1-5.248-3.03v-6.46h-6.419L25.358 0l-5.36 3.094Zm7.415 11.225 2.254 2.287-11.43 11.5-6.835-6.93 2.244-2.258 4.587 4.581 9.18-9.18Z" 
-          fillRule="evenodd"
-        />
-      </svg>
-    </span>
-  );
+  <span className="relative inline-flex items-center justify-center flex-shrink-0 group/badge cursor-pointer -translate-y-0.5 ml-1" title="Verificado">
+    <svg 
+      className={`${tamanho} text-blue-500 transform transition hover:scale-110 flex-shrink-0`} 
+      viewBox="0 0 24 24" 
+      fill="currentColor"
+    >
+      <path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z" />
+    </svg>
+  </span>
+);
 
   useEffect(() => {
     let montado = true;
