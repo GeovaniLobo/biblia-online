@@ -27,6 +27,7 @@ export default function App() {
   const [listaNotificacoes, setListaNotificacoes] = useState([]);
   const [totalNaoLidas, setTotalNaoLidas] = useState(0);
   const [perfisCache, setPerfisCache] = useState([]);
+  
   // Estados para o novo Ícone de Pedidos de Amizade / Sugestões (Boneco)
   const [menuAmigosAberto, setMenuAmigosAberto] = useState(false);
   const [solicitacoesPendentes, setSolicitacoesPendentes] = useState([]);
@@ -221,32 +222,32 @@ export default function App() {
 
   // Atualiza Notificações e Pedidos de Amizade em tempo real
   useEffect(() => {
-  if (!usuarioLogado) return;
-  async function carregarDadosCabecalho() {
-    const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
-    const naoLidas = notifs.filter(n => !n.lida).length;
-    setTotalNaoLidas(naoLidas);
+    if (!usuarioLogado) return;
+    async function carregarDadosCabecalho() {
+      const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+      const naoLidas = notifs.filter(n => !n.lida).length;
+      setTotalNaoLidas(naoLidas);
 
-    const perfis = await BancoDeDados.getPerfisCadastrados();
-    setPerfisCache(perfis); // <-- ADICIONE ESTA LINHA
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      setPerfisCache(perfis);
 
-    const meuPerfil = perfis.find(p => p.username === usuarioLogado.username) || {};
-    const pedidosRecebidosUser = meuPerfil.pedidos_recebidos || [];
-    setSolicitacoesPendentes(pedidosRecebidosUser);
+      const meuPerfil = perfis.find(p => p.username === usuarioLogado.username) || {};
+      const pedidosRecebidosUser = meuPerfil.pedidos_recebidos || [];
+      setSolicitacoesPendentes(pedidosRecebidosUser);
 
-    const meusAmigos = meuPerfil.amigos || [];
-    const sugestoes = perfis.filter(
-      p => p.username !== usuarioLogado.username && 
-           !meusAmigos.includes(p.username) && 
-           !(meusAmigos || []).includes(p.username) &&
-           !(meuPerfil.pedidos_enviados || []).includes(p.username)
-    );
-    setSugestoesMembros(sugestoes);
-  }
-  carregarDadosCabecalho();
-  const intervalo = setInterval(carregarDadosCabecalho, 4000);
-  return () => clearInterval(intervalo);
-}, [usuarioLogado]);
+      const meusAmigos = meuPerfil.amigos || [];
+      const sugestoes = perfis.filter(
+        p => p.username !== usuarioLogado.username && 
+             !meusAmigos.includes(p.username) && 
+             !(meusAmigos || []).includes(p.username) &&
+             !(meuPerfil.pedidos_enviados || []).includes(p.username)
+      );
+      setSugestoesMembros(sugestoes);
+    }
+    carregarDadosCabecalho();
+    const intervalo = setInterval(carregarDadosCabecalho, 4000);
+    return () => clearInterval(intervalo);
+  }, [usuarioLogado]);
 
   useEffect(() => {
     const tratarRotaUrl = async () => {
@@ -354,91 +355,6 @@ export default function App() {
         comentarios: []
       });
     }
-  };
-
-  const destacarVersiculosSelecionados = (corClasse) => {
-    if (!usuarioLogado) {
-      setModalLoginAberto(true);
-      return;
-    }
-    if (versiculosSelecionados.length === 0) return;
-
-    const novasMarcacoes = { ...marcacoes };
-    const textosFormatados = [];
-
-    versiculosSelecionados.forEach(v => {
-      const chave = `${livroAtualObj.name}_${capituloAtual}_${v.numero}`;
-      novasMarcacoes[chave] = corClasse;
-      textosFormatados.push(`[${v.numero}] ${v.texto}`);
-    });
-
-    setMarcacoes(novasMarcacoes);
-
-    const primeiroNum = versiculosSelecionados[0].numero;
-    const ultimoNum = versiculosSelecionados[versiculosSelecionados.length - 1].numero;
-    const reference = versiculosSelecionados.length > 1 
-      ? `${livroAtualObj.name} ${capituloAtual}:${primeiroNum}-${ultimoNum}`
-      : `${livroAtualObj.name} ${capituloAtual}:${primeiroNum}`;
-
-    BancoDeDados.salvarPublicacao({
-      id: Date.now(),
-      autor: usuarioLogado.nome,
-      username: usuarioLogado.username,
-      avatar: usuarioLogado.foto,
-      tema: `${reference}`,
-      texto: textosFormatados.join(' '),
-      imagem: '',
-      curtidas: 0,
-      comentarios: []
-    });
-
-    setVersiculosSelecionados([]);
-  };
-
-  const toggleSelecaoVersiculo = (numero, texto) => {
-    const existe = versiculosSelecionados.find(v => v.numero === numero);
-    if (existe) {
-      setVersiculosSelecionados(versiculosSelecionados.filter(v => v.numero !== numero));
-    } else {
-      setVersiculosSelecionados([...versiculosSelecionados, { numero, texto }].sort((a, b) => a.numero - b.numero));
-    }
-  };
-
-  const copiarVersiculosSelecionados = () => {
-    const livroAtualObj = bibliaCompleta[livroIndex];
-    const textoFormatado = versiculosSelecionados
-      .map(v => `${v.numero}. ${v.texto}`)
-      .join('\n') + `\n\n(${livroAtualObj.name} ${capituloAtual} - ${versaoSelecionada.toUpperCase()})`;
-
-    navigator.clipboard.writeText(textoFormatado);
-    setCopiadoFeedback(true);
-    setTimeout(() => setCopiadoFeedback(false), 2500);
-  };
-
-  const handleBuscar = (e) => {
-    const termo = e.target.value;
-    setTermoBusca(termo);
-    if (termo.trim().length < 3) {
-      setResultadosBusca([]);
-      return;
-    }
-    const resultados = [];
-    bibliaCompleta.forEach((livro, lIndex) => {
-      livro.chapters.forEach((capitulo, cIndex) => {
-        capitulo.forEach((texto, vIndex) => {
-          if (texto.toLowerCase().includes(termo.toLowerCase())) {
-            resultados.push({
-              livroNome: livro.name,
-              livroIndex: lIndex,
-              capitulo: cIndex + 1,
-              numero: vIndex + 1,
-              texto
-            });
-          }
-        });
-      });
-    });
-    setResultadosBusca(resultados.slice(0, 50));
   };
 
   const livroAtualObj = bibliaCompleta[livroIndex] || { name: "Carregando...", chapters: [[]] };
@@ -598,7 +514,7 @@ export default function App() {
             type="text"
             placeholder="Pesquisar..."
             value={termoBusca}
-            onChange={handleBuscar}
+            onChange={(e) => setTermoBusca(e.target.value)}
             className="w-full text-xs bg-transparent focus:outline-none"
           />
         </div>
@@ -626,7 +542,6 @@ export default function App() {
                 className={`p-2.5 rounded-xl border transition relative flex items-center justify-center cursor-pointer ${darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-white' : 'bg-slate-100 border-slate-300 hover:bg-slate-200 text-slate-800'}`}
                 title="Pedidos de amizade e sugestões"
               >
-                {/* Ícone de Boneco/Amizade */}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
@@ -641,75 +556,71 @@ export default function App() {
                 <div className={`absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl shadow-2xl border p-4 z-50 space-y-4 backdrop-blur-md max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                   
                   {/* Seção 1: Solicitações de Amizade */}
-                  {/* Seção 1: Solicitações de Amizade */}
-{/* Seção 1: Solicitações de Amizade */}
-<div>
-  <h4 className="text-xs font-extrabold uppercase tracking-wider mb-2 flex items-center justify-between">
-    <span>Solicitações Pendentes</span>
-    <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full">{solicitacoesPendentes.length}</span>
-  </h4>
+                  <div>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider mb-2 flex items-center justify-between">
+                      <span>Solicitações Pendentes</span>
+                      <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full">{solicitacoesPendentes.length}</span>
+                    </h4>
 
-  {solicitacoesPendentes.length === 0 ? (
-    <p className="text-xs opacity-60 py-2">Nenhum pedido de amizade no momento.</p>
-  ) : (
-    <div className="space-y-2">
-      {solicitacoesPendentes.map((remetenteUsername) => {
-        // Busca o perfil completo da pessoa que enviou o pedido na base de perfis
-        const perfilRemetente = perfisCache.find(p => p.username === remetenteUsername);
+                    {solicitacoesPendentes.length === 0 ? (
+                      <p className="text-xs opacity-60 py-2">Nenhum pedido de amizade no momento.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {solicitacoesPendentes.map((remetenteUsername) => {
+                          const perfilRemetente = perfisCache.find(p => p.username === remetenteUsername);
+                          const nomeRemetente = perfilRemetente?.nome || remetenteUsername;
+                          const fotoRemetente = perfilRemetente?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
 
-        const nomeRemetente = perfilRemetente?.nome || remetenteUsername;
-        const fotoRemetente = perfilRemetente?.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+                          return (
+                            <div 
+                              key={remetenteUsername} 
+                              className={`flex items-center justify-between p-2.5 rounded-xl border text-xs gap-2 ${
+                                darkMode 
+                                  ? 'bg-slate-800 border-slate-700 text-white' 
+                                  : 'bg-white border-slate-200 text-slate-900 shadow-2xs'
+                              }`}
+                            >
+                              <div 
+                                onClick={() => { setMenuAmigosAberto(false); navegarPara(`/${remetenteUsername}`, 'perfilUrl'); }}
+                                className="flex items-center gap-2.5 cursor-pointer min-w-0"
+                              >
+                                <img 
+                                  src={fotoRemetente} 
+                                  alt={nomeRemetente} 
+                                  className="w-9 h-9 rounded-full object-cover border-2 border-blue-500/40 flex-shrink-0" 
+                                />
+                                <div className="min-w-0">
+                                  <p className="font-bold truncate hover:underline">{nomeRemetente}</p>
+                                  <p className="text-[10px] text-blue-500 dark:text-blue-400 truncate">@{remetenteUsername}</p>
+                                </div>
+                              </div>
 
-        return (
-          <div 
-            key={remetenteUsername} 
-            className={`flex items-center justify-between p-2.5 rounded-xl border text-xs gap-2 ${
-              darkMode 
-                ? 'bg-slate-800 border-slate-700 text-white' 
-                : 'bg-white border-slate-200 text-slate-900 shadow-2xs'
-            }`}
-          >
-            <div 
-              onClick={() => { setMenuAmigosAberto(false); navegarPara(`/${remetenteUsername}`, 'perfilUrl'); }}
-              className="flex items-center gap-2.5 cursor-pointer min-w-0"
-            >
-              <img 
-                src={fotoRemetente} 
-                alt={nomeRemetente} 
-                className="w-9 h-9 rounded-full object-cover border-2 border-blue-500/40 flex-shrink-0" 
-              />
-              <div className="min-w-0">
-                <p className="font-bold truncate hover:underline">{nomeRemetente}</p>
-                <p className="text-[10px] text-blue-500 dark:text-blue-400 truncate">@{remetenteUsername}</p>
-              </div>
-            </div>
-
-            <div className="flex gap-1.5 flex-shrink-0">
-              <button
-                onClick={async () => {
-                  await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteUsername);
-                  setSolicitacoesPendentes(prev => prev.filter(u => u !== remetenteUsername));
-                }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg font-bold cursor-pointer"
-              >
-                Aceitar
-              </button>
-              <button
-                onClick={async () => {
-                  await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteUsername);
-                  setSolicitacoesPendentes(prev => prev.filter(u => u !== remetenteUsername));
-                }}
-                className="bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500 hover:text-white px-2.5 py-1 rounded-lg font-bold cursor-pointer transition"
-              >
-                Recusar
-              </button>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  )}
-</div>
+                              <div className="flex gap-1.5 flex-shrink-0">
+                                <button
+                                  onClick={async () => {
+                                    await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteUsername);
+                                    setSolicitacoesPendentes(prev => prev.filter(u => u !== remetenteUsername));
+                                  }}
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg font-bold cursor-pointer"
+                                >
+                                  Aceitar
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    await BancoDeDados.recusarPedidoAmizade(usuarioLogado.username, remetenteUsername);
+                                    setSolicitacoesPendentes(prev => prev.filter(u => u !== remetenteUsername));
+                                  }}
+                                  className="bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500 hover:text-white px-2.5 py-1 rounded-lg font-bold cursor-pointer transition"
+                                >
+                                  Recusar
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Seção 2: Sugestões de Amigos */}
                   <div className="border-t border-slate-700/50 pt-3">
@@ -796,10 +707,10 @@ export default function App() {
               </button>
 
               {menuNotificacoesAberto && (
-                <div className={`absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl shadow-2xl border p-3 z-50 space-y-2 backdrop-blur-md max-h-96 overflow-y-auto ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                <div className={`absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl shadow-2xl border p-3 z-50 space-y-2 backdrop-blur-md max-h-96 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
-                      <span>🔔</span> Notificações (Reações, Comentários, Menções e Curtidas)
+                      <span>🔔</span> Notificações
                     </h4>
                     <button 
                       onClick={() => setMenuNotificacoesAberto(false)}
@@ -816,52 +727,69 @@ export default function App() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {listaNotificacoes.map((n, idx) => (
-                        <div 
-                          key={n.id || idx} 
-                          className={`p-3 rounded-2xl border transition flex items-start gap-3 ${darkMode ? 'bg-slate-800/60 border-slate-700/80 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
-                        >
-                          <div className="relative flex-shrink-0">
-                            <img 
-                              src={n.avatarRemetente} 
-                              alt="Avatar" 
-                              className="w-10 h-10 rounded-full object-cover border-2 border-blue-500/40 shadow-sm"
-                            />
-                            <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-blue-600 text-white rounded-full flex items-center justify-center text-[9px] shadow">
-                              {n.tipo === 'mensagem' ? '💬' : n.tipo === 'verificado' ? '✔' : '❤️'}
-                            </span>
-                          </div>
+                      {listaNotificacoes.map((n, idx) => {
+                        const iconeTipo = 
+                          n.tipo === 'mensagem' ? '💬' :
+                          n.tipo === 'curtida' ? '❤️' :
+                          n.tipo === 'reacao' ? '🔥' :
+                          n.tipo === 'comentario' ? '💭' :
+                          n.tipo === 'mencao' ? '🏷️' :
+                          n.tipo === 'amizade' ? '👥' :
+                          n.tipo === 'verificado' ? '✔' : '🔔';
 
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <p className="text-xs leading-relaxed font-medium break-words">
-                              {n.texto}
-                            </p>
-                            <div className="flex items-center justify-between pt-0.5">
-                              <span className="text-[10px] opacity-50 font-semibold">
-                                {n.dataReal && !isNaN(n.dataReal.getTime()) 
-                                  ? n.dataReal.toLocaleString('pt-BR', {
-                                      day: '2-digit',
-                                      month: '2-digit',
-                                      year: '2-digit',
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    })
-                                  : (n.horario || 'Data não registrada')}
+                        return (
+                          <div 
+                            key={n.id || idx} 
+                            onClick={() => {
+                              if (['reacao', 'comentario', 'mencao', 'curtida'].includes(n.tipo)) {
+                                setMenuNotificacoesAberto(false);
+                                navegarPara('/comunidade', 'comunidade');
+                              }
+                            }}
+                            className={`p-3 rounded-2xl border transition flex items-start gap-3 cursor-pointer ${darkMode ? 'bg-slate-800/60 border-slate-700/80 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
+                          >
+                            <div className="relative flex-shrink-0">
+                              <img 
+                                src={n.avatarRemetente} 
+                                alt="Avatar" 
+                                className="w-10 h-10 rounded-full object-cover border-2 border-blue-500/40 shadow-sm"
+                              />
+                              <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-blue-600 text-white rounded-full flex items-center justify-center text-[9px] shadow">
+                                {iconeTipo}
                               </span>
-                              {!n.lida && (
-                                <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
-                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <p className="text-xs leading-relaxed font-medium break-words">
+                                {n.texto}
+                              </p>
+                              <div className="flex items-center justify-between pt-0.5">
+                                <span className="text-[10px] opacity-50 font-semibold">
+                                  {n.dataReal && !isNaN(n.dataReal.getTime()) 
+                                    ? n.dataReal.toLocaleString('pt-BR', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })
+                                    : (n.horario || 'Data não registrada')}
+                                </span>
+                                {!n.lida && (
+                                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               )}
             </div>
           )}
-
+              
           {/* Balão de Perfil */}
           <div className="relative" ref={dropdownRef}>
             <div
@@ -1018,7 +946,14 @@ export default function App() {
                       return (
                         <div 
                           key={index} 
-                          onClick={() => toggleSelecaoVersiculo(numeroV, textoVersiculo)}
+                          onClick={() => {
+                            const existe = versiculosSelecionados.find(v => v.numero === numeroV);
+                            if (existe) {
+                              setVersiculosSelecionados(versiculosSelecionados.filter(v => v.numero !== numeroV));
+                            } else {
+                              setVersiculosSelecionados([...versiculosSelecionados, { numero: numeroV, texto: textoVersiculo }].sort((a, b) => a.numero - b.numero));
+                            }
+                          }}
                           className={`group flex flex-col gap-2 py-2.5 px-4 rounded-2xl transition border cursor-pointer select-none ${
                             isSelecionado 
                               ? 'bg-blue-600/20 border-blue-500/60 shadow-sm' 
@@ -1117,37 +1052,6 @@ export default function App() {
 
           </div>
         </section>
-
-        {abaPrincipal === 'biblia' && versiculosSelecionados.length > 0 && (
-          <div className="absolute bottom-6 left-4 right-4 sm:left-1/2 sm:transform sm:-translate-x-1/2 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between sm:justify-center gap-3 border border-slate-700 z-50">
-            <span className="text-xs font-semibold bg-blue-600 px-2 py-1 rounded-lg">
-              {versiculosSelecionados.length} sel.
-            </span>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] opacity-75">Destacar:</span>
-              <button onClick={() => destacarVersiculosSelecionados('bg-amber-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-amber-400 shadow cursor-pointer" title="Amarelo"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-emerald-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-emerald-500 shadow cursor-pointer" title="Verde"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-blue-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-blue-500 shadow cursor-pointer" title="Azul"></button>
-              <button onClick={() => destacarVersiculosSelecionados('bg-pink-300 px-1.5 py-0.5 rounded')} className="w-5 h-5 rounded-full bg-pink-500 shadow cursor-pointer" title="Rosa"></button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={copiarVersiculosSelecionados}
-                className="bg-slate-800 text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-slate-700 transition cursor-pointer"
-              >
-                Copiar
-              </button>
-              <button
-                onClick={() => setVersiculosSelecionados([])}
-                className="text-xs text-slate-400 px-2 py-1 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
 
       </main>
 
