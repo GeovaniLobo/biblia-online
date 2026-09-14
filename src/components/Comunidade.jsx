@@ -2116,29 +2116,30 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                               </div>
                             </div>
 
-                            <button 
-                              disabled={enviei}
-                              title={enviei ? 'Solicitação Pendente' : 'Seguir / Adicionar'}
-                              onClick={async () => {
-                                await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, membro.username);
-                                mostrarToast(`Pedido de amizade enviado para @${membro.username}!`);
-                              }}
-                              className={`p-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center flex-shrink-0 ${
-                                enviei 
-                                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/35 cursor-not-allowed' 
-                                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
-                              }`}
-                            >
-                              {enviei ? (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              ) : (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                                </svg>
-                              )}
-                            </button>
+                           <button 
+  disabled={enviei}
+  title={enviei ? 'Solicitação Pendente' : 'Seguir / Adicionar'}
+  onClick={async () => {
+    // 1. Envia o pedido de amizade no banco
+    await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, membro.username);
+    
+    // 2. Cria a notificação para o usuário alvo
+    await BancoDeDados.adicionarNotificacao(
+      membro.username, 
+      `@${usuarioLogado.username} enviou uma solicitação de amizade.`, 
+      'amizade'
+    );
+
+    mostrarToast(`Pedido de amizade enviado para @${membro.username}!`);
+  }}
+  className={`p-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center flex-shrink-0 ${
+    enviei 
+      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/35 cursor-not-allowed' 
+      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
+  }`}
+>
+  {/* ícones... */}
+</button>
                           </div>
                         );
                       })
