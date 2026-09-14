@@ -26,7 +26,7 @@ export default function App() {
   const [menuNotificacoesAberto, setMenuNotificacoesAberto] = useState(false);
   const [listaNotificacoes, setListaNotificacoes] = useState([]);
   const [totalNaoLidas, setTotalNaoLidas] = useState(0);
-
+  const [perfisCache, setPerfisCache] = useState([]);
   // Estados para o novo Ícone de Pedidos de Amizade / Sugestões (Boneco)
   const [menuAmigosAberto, setMenuAmigosAberto] = useState(false);
   const [solicitacoesPendentes, setSolicitacoesPendentes] = useState([]);
