@@ -727,13 +727,13 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     }}
                     className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-blue-600 hover:text-white transition flex items-center gap-2"
                   >
-                    ✏️ Editar
+                    Editar
                   </button>
                   <button 
                     onClick={() => excluirPost(post.id)}
                     className="w-full text-left px-4 py-2 text-xs font-bold text-red-500 hover:bg-red-600 hover:text-white transition flex items-center gap-2"
                   >
-                    🗑️ Excluir
+                    Excluir
                   </button>
                 </div>
               )}
