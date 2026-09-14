@@ -43,14 +43,19 @@ export const BancoDeDados = {
 
   salvarNovoPerfilNaRede: async (perfil) => {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/perfis`, {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/perfis`, {
         method: 'POST',
         headers: { ...headers, 'Prefer': 'resolution=merge-duplicates' },
         body: JSON.stringify(perfil)
       });
-    } catch (e) {}
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("Erro ao salvar perfil no Supabase:", errText);
+      }
+    } catch (e) {
+      console.error("Exceção ao salvar perfil:", e);
+    }
   },
-
   atualizarPerfil: async (username, novosDados) => {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/perfis?username=eq.${username}`, {
       method: 'PATCH',
