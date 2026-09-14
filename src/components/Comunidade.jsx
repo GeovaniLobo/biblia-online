@@ -118,11 +118,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' às ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Selo de verificado limpo e proporcional
   const SeloVerificado = ({ tamanho = "w-4 h-4" }) => (
-    <span className="relative inline-flex items-center justify-center flex-shrink-0 group/badge cursor-pointer -translate-y-0.5 ml-1" title="Perfil Verificado">
-      <svg className={`${tamanho} text-blue-500 transform transition hover:scale-110`} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2c-.65 0-1.28.31-1.66.85l-.78 1.13c-.38.55-1.03.86-1.69.81l-1.37-.11c-.78-.06-1.46.46-1.61 1.23l-.28 1.35c-.15.72-.63 1.3-1.28 1.62l-1.18.59c-.68.34-.97 1.17-.65 1.86l.6 1.25c.33.68.33 1.49 0 2.17l-.6 1.25c-.32.69-.03 1.52.65 1.86l1.18.59c.65.32 1.13.9 1.28 1.62l.28 1.35c.15.77.83 1.29 1.61 1.23l1.37-.11c.66-.05 1.31-.26 1.69-.81l.78 1.13c.38.54 1.01.85 1.66.85s1.28-.31 1.66-.85l.78-1.13c.38-.55 1.03-.86 1.69-.81l1.37.11c.78.06 1.46-.46 1.61-1.23l.28-1.35c.15-.72.63-1.3 1.28-1.62l1.18-.59c.68-.34.97-1.17.65-1.86l-.6-1.25c-.33-.68-.33-1.49 0-2.17l.6-1.25c.32-.69.03-1.52.65-1.86l-1.18-.59c-.65-.32-1.13-.9-1.28-1.62l-.28-1.35c-.15-.77-.83-1.29-1.61-1.23l-1.37.11c-.66.05-1.31-.26-1.69-.81l-.78-1.13A2.01 2.01 0 0 0 12 2z" />
-        <path d="m9.5 13.79-2.15-2.15a1 1 0 0 0-1.41 1.41l2.86 2.86a1 1 0 0 0 1.41 0l6.14-6.14a1 1 0 0 0-1.41-1.41L9.5 13.79z" fill="#ffffff" />
+    <span className="relative inline-flex items-center justify-center flex-shrink-0 group/badge cursor-pointer -translate-y-0.5 ml-1" title="Verificado">
+      <svg className={`${tamanho} text-blue-500 transform transition hover:scale-110 flex-shrink-0`} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z" />
       </svg>
     </span>
   );
@@ -1016,6 +1016,33 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       )}
 
+      {/* Barra de Notificações Fixa no Topo (Cabeçalho da Comunidade) */}
+      <div className={`w-full px-4 sm:px-8 lg:px-12 py-3 border-b flex items-center justify-between ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-extrabold uppercase tracking-wider opacity-80">Comunidade Luz do Mundo</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* BOTÃO DE NOTIFICAÇÕES NO TOPO */}
+          <button 
+            onClick={async () => {
+              setAbaNotificacoesAberta(true);
+              await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
+              const atualizadas = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+              setNotificacoes(atualizadas || []);
+            }}
+            className="relative p-2.5 rounded-xl border border-slate-700/50 hover:bg-slate-800 transition flex items-center justify-center cursor-pointer"
+            title="Ver Notificações"
+          >
+            <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C6.705 6.136 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            {notificacoes.some(n => !n.lida) && (
+              <span className="w-2.5 h-2.5 bg-red-500 rounded-full absolute top-1.5 right-1.5 animate-pulse"></span>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Modal de Notificações */}
       {abaNotificacoesAberta && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-xs">
@@ -1806,25 +1833,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         </div>
       ) : (
         <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3">
-          {/* Botão de Notificações */}
-          <button 
-            onClick={async () => {
-              setAbaNotificacoesAberta(true);
-              await BancoDeDados.marcarNotificacoesLidas(usuarioLogado.username);
-              const atualizadas = await BancoDeDados.getNotificacoes(usuarioLogado.username);
-              setNotificacoes(atualizadas || []);
-            }}
-            className="w-12 h-12 bg-slate-800 hover:bg-slate-700 text-white rounded-full shadow-2xl flex items-center justify-center transition hover:scale-110 relative border border-slate-700"
-            title="Ver Notificações"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C6.705 6.136 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            {notificacoes.some(n => !n.lida) && (
-              <span className="w-3 h-3 bg-red-500 rounded-full absolute -top-1 -right-1 animate-pulse border-2 border-slate-900"></span>
-            )}
-          </button>
-
           {/* Botão Flutuante do Chat */}
           <button 
             onClick={() => {
