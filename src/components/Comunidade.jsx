@@ -1742,6 +1742,63 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           })()
         ) : (
           <>
+            {/* CARROSSEL DE STORIES OCUPANDO 100% DA LARGURA NO TOPO */}
+<div className={`w-full p-4 rounded-3xl border shadow-md flex gap-3 overflow-x-auto ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+  
+  {/* 1. Botão fixo para Adicionar Story */}
+  <div 
+    onClick={() => setModalCriarStoryAberto(true)}
+    className={`relative flex-shrink-0 w-28 h-44 rounded-2xl border flex flex-col justify-end items-center pb-3 cursor-pointer overflow-hidden transition hover:scale-105 shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}
+  >
+    <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${fotoPerfilOficial})` }}></div>
+    <div className="absolute top-3 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">+</div>
+    <span className="relative z-10 text-[11px] font-bold text-center px-1">Adicionar story</span>
+  </div>
+
+  {/* 2. Lista de Stories (Amigos + o seu próprio story, se você tiver publicado) */}
+  {listaAutoresStories.map((autorItem) => {
+    const st = autorItem.primeiroStory;
+    const todosVistos = autorItem.todosVistos;
+
+    return (
+      <div 
+        key={autorItem.username} 
+        onClick={() => clicarPerfilOuStory(autorItem.username)}
+        className={`relative flex-shrink-0 w-28 h-44 rounded-2xl overflow-hidden cursor-pointer shadow-md transition hover:scale-105 border-2 bg-slate-900 flex flex-col justify-between p-2 ${todosVistos ? 'border-slate-500/40 opacity-70' : 'border-amber-500'}`}
+      >
+        {st.tipo === 'texto' ? (
+          <div className="absolute inset-0 p-3 flex items-center justify-center text-center" style={{ backgroundColor: st.cor_fundo || '#1e293b' }}>
+            <p className="text-white text-[11px] font-bold line-clamp-4">{st.conteudo}</p>
+          </div>
+        ) : st.tipo === 'video' ? (
+          <video src={st.conteudo} className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <img src={st.conteudo} alt="Story" className="absolute inset-0 w-full h-full object-cover" />
+        )}
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+        
+        <div className={`relative z-10 w-8 h-8 rounded-full p-0.5 shadow-md ${todosVistos ? 'border border-slate-400 bg-slate-600' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400'}`}>
+          <img src={autorItem.avatar} className="w-full h-full rounded-full object-cover border border-white" />
+        </div>
+
+        <div className="relative z-10 flex items-center gap-1">
+          <span 
+            onClick={(e) => {
+              e.stopPropagation();
+              abrirPerfilPorUsername(autorItem.username);
+            }} 
+            className="text-white text-[11px] font-bold truncate hover:underline"
+          >
+            {autorItem.username === usuarioLogado.username ? 'Seu story' : autorItem.autor}
+          </span>
+          {autorItem.verificado && <SeloVerificado tamanho="w-3 h-3" />}
+        </div>
+      </div>
+    );
+  })}
+</div>
+
             {/* INPUT DE BUSCA */}
             <div className={`w-full p-4 rounded-2xl border shadow-sm flex items-center gap-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
               <svg className="w-5 h-5 opacity-50 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -1792,63 +1849,6 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       <span className="block font-extrabold text-indigo-500 text-sm">{publicacoes.filter(p => p.username === usuarioLogado.username).length}</span>
                       <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Posts</span>
                     </div>
-                  </div>
-                </div>
-
-                {/* CARROSSEL DE STORIES (ABAIXO DA COLUNA DO PERFIL) */}
-                <div className={`p-4 rounded-3xl border shadow-md space-y-3 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                  <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">Stories</h4>
-                  <div className="flex gap-3 overflow-x-auto pb-2">
-                    <div 
-                      onClick={() => setModalCriarStoryAberto(true)}
-                      className={`relative flex-shrink-0 w-24 h-36 rounded-2xl border flex flex-col justify-end items-center pb-2 cursor-pointer overflow-hidden transition hover:scale-105 shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`}
-                    >
-                      <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${fotoPerfilOficial})` }}></div>
-                      <div className="absolute top-2 w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-base shadow-md">+</div>
-                      <span className="relative z-10 text-[10px] font-bold text-center px-1">Adicionar story</span>
-                    </div>
-
-                    {listaAutoresStories.map((autorItem) => {
-                      const st = autorItem.primeiroStory;
-                      const todosVistos = autorItem.todosVistos;
-
-                      return (
-                        <div 
-                          key={autorItem.username} 
-                          onClick={() => clicarPerfilOuStory(autorItem.username)}
-                          className={`relative flex-shrink-0 w-24 h-36 rounded-2xl overflow-hidden cursor-pointer shadow-md transition hover:scale-105 border-2 bg-slate-900 flex flex-col justify-between p-2 ${todosVistos ? 'border-slate-500/40 opacity-70' : 'border-amber-500'}`}
-                        >
-                          {st.tipo === 'texto' ? (
-                            <div className="absolute inset-0 p-2 flex items-center justify-center text-center" style={{ backgroundColor: st.cor_fundo || '#1e293b' }}>
-                              <p className="text-white text-[10px] font-bold line-clamp-4">{st.conteudo}</p>
-                            </div>
-                          ) : st.tipo === 'video' ? (
-                            <video src={st.conteudo} className="absolute inset-0 w-full h-full object-cover" />
-                          ) : (
-                            <img src={st.conteudo} alt="Story" className="absolute inset-0 w-full h-full object-cover" />
-                          )}
-
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
-                          
-                          <div className={`relative z-10 w-7 h-7 rounded-full p-0.5 shadow-md ${todosVistos ? 'border border-slate-400 bg-slate-600' : 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400'}`}>
-                            <img src={autorItem.avatar} className="w-full h-full rounded-full object-cover border border-white" />
-                          </div>
-
-                          <div className="relative z-10 flex items-center gap-1">
-                            <span 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                abrirPerfilPorUsername(autorItem.username);
-                              }} 
-                              className="text-white text-[10px] font-bold truncate hover:underline"
-                            >
-                              {autorItem.autor}
-                            </span>
-                            {autorItem.verificado && <SeloVerificado tamanho="w-3 h-3" />}
-                          </div>
-                        </div>
-                      );
-                    })}
                   </div>
                 </div>
               </div>
