@@ -1399,7 +1399,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 <div className="flex items-center gap-2 w-full">
                  {/* Ícone de Repostar */}
 <button
-  onClick={handleRepostarStory}
+  onClick={() => repostarStory(storyAtivoObj)}
   className="p-2.5 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition cursor-pointer flex items-center justify-center shadow-lg"
   title="Repostar story"
 >
