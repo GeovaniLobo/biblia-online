@@ -221,29 +221,32 @@ export default function App() {
 
   // Atualiza Notificações e Pedidos de Amizade em tempo real
   useEffect(() => {
-    if (!usuarioLogado) return;
-    async function carregarDadosCabecalho() {
-      const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
-      const naoLidas = notifs.filter(n => !n.lida).length;
-      setTotalNaoLidas(naoLidas);
+  if (!usuarioLogado) return;
+  async function carregarDadosCabecalho() {
+    const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+    const naoLidas = notifs.filter(n => !n.lida).length;
+    setTotalNaoLidas(naoLidas);
 
-      const perfis = await BancoDeDados.getPerfisCadastrados();
-      const meuPerfil = perfis.find(p => p.username === usuarioLogado.username) || {};
-      const pedidosRecebidosUser = meuPerfil.pedidos_recebidos || [];
-      setSolicitacoesPendentes(pedidosRecebidosUser);
+    const perfis = await BancoDeDados.getPerfisCadastrados();
+    setPerfisCache(perfis); // <-- ADICIONE ESTA LINHA
 
-      const meusAmigos = meuPerfil.amigos || [];
-      const sugestoes = perfis.filter(
-        p => p.username !== usuarioLogado.username && 
-             !meusAmigos.includes(p.username) && 
-             !(meuPerfil.pedidos_enviados || []).includes(p.username)
-      );
-      setSugestoesMembros(sugestoes);
-    }
-    carregarDadosCabecalho();
-    const intervalo = setInterval(carregarDadosCabecalho, 4000);
-    return () => clearInterval(intervalo);
-  }, [usuarioLogado]);
+    const meuPerfil = perfis.find(p => p.username === usuarioLogado.username) || {};
+    const pedidosRecebidosUser = meuPerfil.pedidos_recebidos || [];
+    setSolicitacoesPendentes(pedidosRecebidosUser);
+
+    const meusAmigos = meuPerfil.amigos || [];
+    const sugestoes = perfis.filter(
+      p => p.username !== usuarioLogado.username && 
+           !meusAmigos.includes(p.username) && 
+           !(meusAmigos || []).includes(p.username) &&
+           !(meuPerfil.pedidos_enviados || []).includes(p.username)
+    );
+    setSugestoesMembros(sugestoes);
+  }
+  carregarDadosCabecalho();
+  const intervalo = setInterval(carregarDadosCabecalho, 4000);
+  return () => clearInterval(intervalo);
+}, [usuarioLogado]);
 
   useEffect(() => {
     const tratarRotaUrl = async () => {
