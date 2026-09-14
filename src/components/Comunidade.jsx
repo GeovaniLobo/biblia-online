@@ -613,6 +613,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     const texto = novoComentario[publicacaoId];
     if (!texto || !texto.trim()) return;
 
+    // Pega o ID exato que foi salvo ao clicar em "Responder" naquele comentário específico
     const respostaPaiId = respondendoComentarioId[publicacaoId] || null;
 
     const comentarioObj = {
@@ -628,7 +629,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     const atualizados = await BancoDeDados.adicionarComentarioPub(publicacaoId, comentarioObj);
     setPublicacoes([...atualizados]);
     setNovoComentario({ ...novoComentario, [publicacaoId]: '' });
-    setRespondendoComentarioId({ ...respondendoComentarioId, [publicacaoId]: null });
+    setRespondendoComentarioId(prev => ({ ...prev, [publicacaoId]: null }));
     setMenuMencaoComentarioAberto(null);
 
     const matches = texto.match(/@([a-zA-Z0-9_]+)/g);
@@ -837,7 +838,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 const meuFelicidadesCom = (reacoesComentario.felicidades || []).includes(usuarioLogado.username);
 
                 const ehResposta = Boolean(c.resposta_a_id);
-                const comentarioPai = ehResposta ? post.comentarios.find(cp => String(cp.id) === String(c.resposta_a_id)) : null;
+                // Procura o comentário pai comparando o ID como String de forma segura
+                const comentarioPai = ehResposta 
+                  ? post.comentarios.find(cp => String(cp.id) === String(c.resposta_a_id)) 
+                  : null;
 
                 return (
                   <div 
