@@ -37,6 +37,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const [notificacoes, setNotificacoes] = useState([]);
   const [pedidosOracao, setPedidosOracao] = useState([]);
   const [stories, setStories] = useState([]);
+  const [relacoesAmizade, setRelacoesAmizade] = useState([]);
   const [modalListaAmigosChatAberto, setModalListaAmigosChatAberto] = useState(false);
   const [carregandoComunidade, setCarregandoComunidade] = useState(true);
   const [perfilSelecionado, setPerfilSelecionado] = useState(null);
@@ -122,9 +123,29 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     </span>
   );
 
+  const carregarDadosRede = async () => {
+    try {
+      const perfis = await BancoDeDados.getPerfisCadastrados();
+      const pubs = await BancoDeDados.getPublicacoes();
+      const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
+      const pedidos = await BancoDeDados.getPedidosOracao();
+      const strs = await BancoDeDados.getStories();
+      const rels = await BancoDeDados.getRelacoesAmizade(usuarioLogado.username);
+
+      setPerfisReais(perfis || []);
+      setPublicacoes(pubs || []);
+      setNotificacoes(notifs || []);
+      setPedidosOracao(pedidos || []);
+      setStories(strs || []);
+      setRelacoesAmizade(rels || []);
+    } catch (err) {
+      console.error("Erro ao carregar dados:", err);
+    }
+  };
+
   useEffect(() => {
     let montado = true;
-    async function carregarDadosIniciais() {
+    async function inicializar() {
       try {
         await BancoDeDados.salvarNovoPerfilNaRede({
           username: usuarioLogado.username,
@@ -135,19 +156,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           data_nascimento: usuarioLogado.dataNascimento || ''
         });
 
-        const perfis = await BancoDeDados.getPerfisCadastrados();
-        const pubs = await BancoDeDados.getPublicacoes();
-        const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
-        const pedidos = await BancoDeDados.getPedidosOracao();
-        const strs = await BancoDeDados.getStories();
+        await carregarDadosRede();
 
         if (montado) {
-          setPerfisReais(perfis || []);
-          setPublicacoes(pubs || []);
-          setNotificacoes(notifs || []);
-          setPedidosOracao(pedidos || []);
-          setStories(strs || []);
-
+          const perfis = await BancoDeDados.getPerfisCadastrados();
+          const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
           const meuPerfil = perfis.find(p => p.username === usuarioLogado.username);
           if (meuPerfil && meuPerfil.verificado) {
             const jaTemNotifVerificado = notifs.some(n => n.texto && n.texto.includes('perfil foi verificado'));
@@ -175,24 +188,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       }
     }
 
-    carregarDadosIniciais();
+    inicializar();
 
-    const intervalo = setInterval(async () => {
-      try {
-        const pubs = await BancoDeDados.getPublicacoes();
-        const notifs = await BancoDeDados.getNotificacoes(usuarioLogado.username);
-        const perfis = await BancoDeDados.getPerfisCadastrados();
-        const pedidos = await BancoDeDados.getPedidosOracao();
-        const strs = await BancoDeDados.getStories();
-
-        if (montado) {
-          setPublicacoes(pubs || []);
-          setNotificacoes(notifs || []);
-          setPerfisReais(perfis || []);
-          setPedidosOracao(pedidos || []);
-          setStories(strs || []);
-        }
-      } catch (e) {}
+    const intervalo = setInterval(() => {
+      if (montado) carregarDadosRede();
     }, 5000);
 
     return () => {
@@ -224,6 +223,22 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   const nomePerfilOficial = meuPerfilBanco.nome || usuarioLogado.nome || 'Usuário';
   const biografiaOficial = meuPerfilBanco.biografia !== undefined ? meuPerfilBanco.biografia : (usuarioLogado.biografia || 'Praticando a fé e o amor ao próximo.');
 
+  // Deriva amigos e pedidos a partir de relacoesAmizade
+  const amigosListaUsernames = relacoesAmizade
+    .filter(r => r.status === 'aceito')
+    .map(r => r.usuario_id === usuarioLogado.username ? r.amigo_id : r.usuario_id);
+
+  const meusAmigos = perfisReais.filter(p => amigosListaUsernames.includes(p.username));
+  const amigosMaisLogado = [usuarioLogado.username, ...amigosListaUsernames];
+
+  const pedidosRecebidosList = relacoesAmizade.filter(
+    r => r.amigo_id === usuarioLogado.username && r.status === 'pendente'
+  );
+
+  const pedidosEnviadosList = relacoesAmizade.filter(
+    r => r.usuario_id === usuarioLogado.username && r.status === 'pendente'
+  ).map(r => r.amigo_id);
+
   const agoraTimestamp = Date.now();
   const limite24h = 24 * 60 * 60 * 1000;
   
@@ -233,6 +248,8 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     return (agoraTimestamp - Number(s.id)) <= limite24h;
   });
 
+  const storiesFiltradosAmigos = storiesValidos.filter(s => amigosMaisLogado.includes(s.username));
+
   const meusStories = storiesValidos.filter(s => s.username === usuarioLogado.username);
   const temStoryAtivo = meusStories.length > 0;
   const meusStoriesVistos = temStoryAtivo && meusStories.every(st => {
@@ -241,7 +258,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   });
 
   const autoresComStoriesMap = {};
-  const storiesOrdenados = [...storiesValidos].sort((a, b) => a.id - b.id);
+  const storiesOrdenados = [...storiesFiltradosAmigos].sort((a, b) => a.id - b.id);
 
   storiesOrdenados.forEach(st => {
     if (!autoresComStoriesMap[st.username]) {
@@ -373,7 +390,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
   const clicarPerfilOuStory = (usernameAlvo) => {
     if (!usernameAlvo) return;
-    const autorTemStory = storiesValidos.some(s => s.username === usernameAlvo);
+    const autorTemStory = storiesFiltradosAmigos.some(s => s.username === usernameAlvo);
     if (autorTemStory) {
       setIndiceStoryAtual(0);
       setUsuarioStoryVisualizando(usernameAlvo);
@@ -657,7 +674,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     const avatarAtualizado = perfilAutorReal.foto || post.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
     const nomeAtualizado = perfilAutorReal.nome || post.autor;
     const autorVerificado = perfilAutorReal.verificado;
-    const autorTemStory = storiesValidos.some(s => s.username === post.username);
+    const autorTemStory = storiesFiltradosAmigos.some(s => s.username === post.username);
 
     return (
       <div key={post.id} className={`p-4 sm:p-6 rounded-3xl border shadow-md space-y-4 relative w-full ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -811,7 +828,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 const perfilAutorComentario = perfisReais.find(p => p.username === c.username) || {};
                 const fotoComentario = perfilAutorComentario.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
                 const autorComentarioVerificado = perfilAutorComentario.verificado;
-                const autorComentarioTemStory = storiesValidos.some(s => s.username === c.username);
+                const autorComentarioTemStory = storiesFiltradosAmigos.some(s => s.username === c.username);
 
                 const reacoesComentario = c.reacoes || { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
                 const meuAmeiCom = (reacoesComentario.amei || []).includes(usuarioLogado.username);
@@ -963,14 +980,14 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
     );
   };
 
-  const listaTodosUsuarios = perfisReais.filter(p => p.username !== usuarioLogado.username);
+  const outrosUsuarios = perfisReais.filter(p => p.username !== usuarioLogado.username);
 
   const publicacoesFiltradas = publicacoes.filter(post => {
     const termo = termoBuscaComunidade.toLowerCase();
     return !termoBuscaComunidade.trim() || (post.tema || '').toLowerCase().includes(termo) || (post.texto || '').toLowerCase().includes(termo);
   });
 
-  const membrosFiltrados = listaTodosUsuarios.filter(membro => {
+  const membrosFiltrados = outrosUsuarios.filter(membro => {
     if (!termoBuscaComunidade.trim()) return true;
     const termo = termoBuscaComunidade.toLowerCase();
     return membro.nome.toLowerCase().includes(termo) || membro.username.toLowerCase().includes(termo);
@@ -1470,38 +1487,38 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           </div>
 
           <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
-            {listaTodosUsuarios.length === 0 ? (
-              <p className="text-xs opacity-60 text-center py-8">Nenhum membro disponível para chat.</p>
+            {meusAmigos.length === 0 ? (
+              <p className="text-xs opacity-60 text-center py-8">Você ainda não tem amigos adicionados.</p>
             ) : (
-              listaTodosUsuarios.map(membro => {
-                const naoLidasDoMembro = notificacoes.filter(
-                  n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${membro.username}`)
+              meusAmigos.map(amigo => {
+                const naoLidasDoAmigo = notificacoes.filter(
+                  n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
                 ).length;
 
                 return (
                   <div
-                    key={membro.username}
+                    key={amigo.username}
                     onClick={() => {
-                      abrirChatComAmigo(membro.username);
+                      abrirChatComAmigo(amigo.username);
                       setModalListaAmigosChatAberto(false);
                     }}
                     className="p-2.5 rounded-2xl border border-slate-800 hover:bg-slate-800/80 cursor-pointer transition flex items-center justify-between"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <img 
-                        src={membro.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
+                        src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
                         className="w-9 h-9 rounded-full object-cover border border-blue-500/50 flex-shrink-0" 
                         alt="Avatar"
                       />
                       <div className="min-w-0">
-                        <p className="text-xs font-bold truncate text-white">{membro.nome}</p>
-                        <p className="text-[10px] text-blue-400">@{membro.username}</p>
+                        <p className="text-xs font-bold truncate text-white">{amigo.nome}</p>
+                        <p className="text-[10px] text-blue-400">@{amigo.username}</p>
                       </div>
                     </div>
 
-                    {naoLidasDoMembro > 0 && (
+                    {naoLidasDoAmigo > 0 && (
                       <span className="bg-red-500 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full animate-bounce">
-                        {naoLidasDoMembro}
+                        {naoLidasDoAmigo}
                       </span>
                     )}
                   </div>
@@ -1684,7 +1701,13 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
       ) : (
         <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3">
           <button 
-            onClick={() => setModalListaAmigosChatAberto(!modalListaAmigosChatAberto)}
+            onClick={() => {
+              if (meusAmigos.length > 0) {
+                setModalListaAmigosChatAberto(!modalListaAmigosChatAberto);
+              } else {
+                mostrarToast('Você precisa ter amigos adicionados na comunidade para iniciar um chat!');
+              }
+            }}
             className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center transition hover:scale-110 relative group border-2 border-white/20"
             title="Abrir Chat"
           >
@@ -1826,7 +1849,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     <p onClick={() => abrirPerfilPorUsername(usuarioLogado.username)} className="text-xs text-blue-500 font-bold mt-0.5 cursor-pointer hover:underline">@{usuarioLogado.username}</p>
                     <p className="text-xs opacity-75 mt-2 whitespace-pre-line break-words">{biografiaOficial}</p>
                   </div>
-                  <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 gap-2 text-center">
+                  <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-center">
+                    <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <span className="block font-extrabold text-blue-500 text-sm">{meusAmigos.length}</span>
+                      <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Amigos</span>
+                    </div>
                     <div className={`p-3 rounded-2xl border shadow-xs ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
                       <span className="block font-extrabold text-indigo-500 text-sm">{publicacoes.filter(p => p.username === usuarioLogado.username).length}</span>
                       <span className="text-[10px] opacity-60 uppercase font-bold tracking-wider">Posts</span>
@@ -1925,50 +1952,104 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
 
               <div className="lg:col-span-3 space-y-6">
 
+                {/* SOLICITAÇÕES DE AMIZADE RECEBIDAS */}
+                {pedidosRecebidosList.length > 0 && (
+                  <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                    <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">🤝 Solicitações de Amizade</h4>
+                    <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
+                      {pedidosRecebidosList.map(rel => {
+                        const remetenteUser = rel.usuario_id;
+                        const perfilRemetente = perfisReais.find(p => p.username === remetenteUser) || { username: remetenteUser, nome: remetenteUser };
+                        
+                        return (
+                          <div key={rel.id} className={`p-3 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                            <div 
+                              className="flex items-center gap-2.5 min-w-0 cursor-pointer" 
+                              onClick={() => abrirPerfilPorUsername(remetenteUser)}
+                            >
+                              <img 
+                                src={perfilRemetente.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} 
+                                className="w-8 h-8 rounded-full object-cover border border-blue-500 flex-shrink-0" 
+                                alt="Avatar"
+                              />
+                              <div className="min-w-0">
+                                <p className="font-bold truncate">{perfilRemetente.nome || remetenteUser}</p>
+                                <p className="text-[10px] opacity-50 truncate">@{remetenteUser}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <button
+                                onClick={async () => {
+                                  await BancoDeDados.aceitarPedidoAmizade(usuarioLogado.username, remetenteUser);
+                                  await carregarDadosRede();
+                                  mostrarToast(`Você aceitou a amizade de @${remetenteUser}! 🎉`);
+                                }}
+                                className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition shadow-xs"
+                              >
+                                Aceitar
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  await BancoDeDados.removerAmizadeOuPedido(usuarioLogado.username, remetenteUser);
+                                  await carregarDadosRede();
+                                  mostrarToast(`Pedido de @${remetenteUser} recusado.`);
+                                }}
+                                className="px-2.5 py-1.5 bg-red-500/10 hover:bg-red-600 text-red-500 hover:text-white rounded-xl font-bold transition"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-                  <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Chat Direto</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider opacity-60">💬 Meus Amigos</h4>
 
                   <div className="space-y-3">
-                    <p className="text-xs opacity-60">Clique em qualquer membro para conversar:</p>
-                    {listaTodosUsuarios.length === 0 ? (
-                      <p className="text-xs opacity-40 text-center py-6">Nenhum membro na comunidade ainda.</p>
+                    {meusAmigos.length === 0 ? (
+                      <p className="text-xs opacity-40 text-center py-6">Você ainda não tem amigos adicionados.</p>
                     ) : (
-                      listaTodosUsuarios.slice(0, 5).map(membro => {
-                        const naoLidasDoMembro = notificacoes.filter(
-                          n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${membro.username}`)
+                      meusAmigos.map(amigo => {
+                        const naoLidasDoAmigo = notificacoes.filter(
+                          n => !n.lida && n.tipo === 'mensagem' && n.texto.includes(`@${amigo.username}`)
                         ).length;
-                        const membroTemStory = storiesValidos.some(s => s.username === membro.username);
+                        const amigoTemStory = storiesFiltradosAmigos.some(s => s.username === amigo.username);
 
                         return (
                           <div 
-                            key={membro.username} 
-                            onClick={() => abrirChatComAmigo(membro.username)} 
+                            key={amigo.username} 
+                            onClick={() => abrirChatComAmigo(amigo.username)} 
                             className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${darkMode ? 'bg-slate-800/40 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <div 
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  clicarPerfilOuStory(membro.username);
+                                  clicarPerfilOuStory(amigo.username);
                                 }}
-                                className={`relative w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${membroTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
+                                className={`relative w-10 h-10 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 transition ${amigoTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 shadow-md animate-pulse cursor-pointer' : ''}`}
                               >
-                                <img src={membro.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
+                                <img src={amigo.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
                               </div>
 
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1 min-w-0">
-                                  <p onClick={(e) => { e.stopPropagation(); abrirPerfilPorUsername(membro.username); }} className="text-xs font-bold truncate hover:underline">{membro.nome}</p>
-                                  {membro.verificado && <SeloVerificado tamanho="w-3 h-3" />}
+                                  <p onClick={(e) => { e.stopPropagation(); abrirPerfilPorUsername(amigo.username); }} className="text-xs font-bold truncate hover:underline">{amigo.nome}</p>
+                                  {amigo.verificado && <SeloVerificado tamanho="w-3 h-3" />}
                                 </div>
-                                <p className="text-[10px] opacity-50 truncate">@{membro.username}</p>
+                                <p className="text-[10px] opacity-50 truncate">@{amigo.username}</p>
                               </div>
                             </div>
 
                             <div className="flex items-center gap-2 flex-shrink-0">
-                              {naoLidasDoMembro > 0 && (
+                              {naoLidasDoAmigo > 0 && (
                                 <span className="bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs animate-bounce">
-                                  {naoLidasDoMembro}
+                                  {naoLidasDoAmigo}
                                 </span>
                               )}
                               <button title="Abrir chat" className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center justify-center">
@@ -1991,7 +2072,9 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                       <p className="text-xs opacity-40 text-center py-4">Nenhum membro encontrado.</p>
                     ) : (
                       membrosFiltrados.map(membro => {
-                        const membroTemStory = storiesValidos.some(s => s.username === membro.username);
+                        const jaEhAmigo = amigosListaUsernames.includes(membro.username);
+                        const envieiPedido = pedidosEnviadosList.includes(membro.username);
+                        const membroTemStory = storiesFiltradosAmigos.some(s => s.username === membro.username);
 
                         return (
                           <div key={membro.username} className={`p-3 rounded-2xl border flex items-center justify-between text-xs gap-2 ${darkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
@@ -2011,12 +2094,38 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                               </div>
                             </div>
 
-                            <button 
-                              onClick={() => abrirChatComAmigo(membro.username)}
-                              className="px-3 py-1.5 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition flex items-center gap-1.5 flex-shrink-0"
-                            >
-                              💬 Conversar
-                            </button>
+                            {jaEhAmigo ? (
+                              <button 
+                                onClick={async () => {
+                                  if (window.confirm(`Deseja desfazer a amizade com @${membro.username}?`)) {
+                                    await BancoDeDados.removerAmizadeOuPedido(usuarioLogado.username, membro.username);
+                                    await carregarDadosRede();
+                                    mostrarToast(`Amizade com @${membro.username} desfeita.`);
+                                  }
+                                }}
+                                className="px-3 py-1.5 rounded-xl font-bold text-xs bg-slate-700 hover:bg-red-600 text-white transition flex items-center gap-1.5 flex-shrink-0"
+                              >
+                                Amigos ✓
+                              </button>
+                            ) : envieiPedido ? (
+                              <button 
+                                disabled
+                                className="px-3 py-1.5 rounded-xl font-bold text-xs bg-amber-500/10 text-amber-400 border border-amber-500/35 cursor-not-allowed flex items-center gap-1.5 flex-shrink-0"
+                              >
+                                Pendente
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={async () => {
+                                  await BancoDeDados.enviarPedidoAmizade(usuarioLogado.username, membro.username);
+                                  await carregarDadosRede();
+                                  mostrarToast(`Pedido de amizade enviado para @${membro.username}!`);
+                                }}
+                                className="px-3 py-1.5 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition flex items-center gap-1.5 flex-shrink-0"
+                              >
+                                Adicionar
+                              </button>
+                            )}
                           </div>
                         );
                       })

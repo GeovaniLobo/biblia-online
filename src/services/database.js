@@ -355,6 +355,89 @@ export const BancoDeDados = {
     return await BancoDeDados.getPublicacoes();
   },
 
+  // === SISTEMA DE AMIZADE (Tabela Relacional 'amizades') ===
+  enviarPedidoAmizade: async (usernameLogado, usernameDestino) => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/amizades`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          usuario_id: usernameLogado,
+          amigo_id: usernameDestino,
+          status: 'pendente'
+        })
+      });
+
+      if (response.ok) {
+        await BancoDeDados.adicionarNotificacao(
+          usernameDestino, 
+          `@${usernameLogado} enviou uma solicitação de amizade.`, 
+          'amizade'
+        );
+      }
+      return true;
+    } catch (e) {
+      console.error("Erro ao enviar pedido de amizade:", e);
+      return false;
+    }
+  },
+
+  aceitarPedidoAmizade: async (usernameLogado, usernameRemetente) => {
+    try {
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/amizades?usuario_id=eq.${usernameRemetente}&amigo_id=eq.${usernameLogado}`,
+        {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ status: 'aceito' })
+        }
+      );
+
+      if (response.ok) {
+        await BancoDeDados.adicionarNotificacao(
+          usernameRemetente, 
+          `@${usernameLogado} aceitou sua solicitação de amizade! 🎉`, 
+          'amizade'
+        );
+      }
+      return true;
+    } catch (e) {
+      console.error("Erro ao aceitar pedido:", e);
+      return false;
+    }
+  },
+
+  removerAmizadeOuPedido: async (usuarioA, usuarioB) => {
+    try {
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/amizades?or=(and(usuario_id.eq.${usuarioA},amigo_id.eq.${usuarioB}),and(usuario_id.eq.${usuarioB},amigo_id.eq.${usuarioA}))`,
+        {
+          method: 'DELETE',
+          headers
+        }
+      );
+      return true;
+    } catch (e) {
+      console.error("Erro ao remover amizade/pedido:", e);
+      return false;
+    }
+  },
+
+  getRelacoesAmizade: async (username) => {
+    try {
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/amizades?or=(usuario_id.eq.${username},amigo_id.eq.${username})&select=*`,
+        { method: 'GET', headers }
+      );
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (err) {
+      console.error("Erro ao buscar relacoes de amizade:", err);
+      return [];
+    }
+  },
+  // ========================================================
+
   getMensagensChat: async (usuarioA, usuarioB) => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/mensagens_chat?select=*&or=(and(remetente.eq.${usuarioA},destinatario.eq.${usuarioB}),and(remetente.eq.${usuarioB},destinatario.eq.${usuarioA}))&order=id.asc`, { method: 'GET', headers });
