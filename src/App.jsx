@@ -948,7 +948,7 @@ export default function App() {
 
                   {/* TEXTO DA BÍBLIA ESTILO YOUVERSION (PARÁGRAFO CORRIDO) */}
                   <div className={`p-6 sm:p-8 rounded-3xl border shadow-sm relative ${darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'}`}>
-                    <p className={`${tamanhoFonte} leading-[1.9] text-justify`}>
+                    <p className={`${tamanhoFonte} leading-[2.2] text-justify`}>
                       {versiculosDoCapitulo.map((textoVersiculo, index) => {
                         const numeroV = index + 1;
                         const chaveMarcacao = `${livroAtualObj.name}_${capituloAtual}_${numeroV}`;
@@ -969,11 +969,11 @@ export default function App() {
                                 setVersiculosSelecionados([...versiculosSelecionados, { numero: numeroV, texto: textoVersiculo }].sort((a, b) => a.numero - b.numero));
                               }
                             }}
-                            className={`inline-block mr-1.5 cursor-pointer rounded px-1 transition ${
+                            className={`inline-block mr-1.5 cursor-pointer rounded-sm px-1 py-0.5 box-decoration-clone transition ${
                               isSelecionado
                                 ? 'bg-blue-600 text-white font-medium'
                                 : corDestaqueAtual
-                                ? `${corDestaqueAtual} text-slate-900 font-medium`
+                                ? `${corDestaqueAtual} ${darkMode ? 'text-slate-100' : 'text-slate-900'} font-medium`
                                 : 'hover:bg-blue-500/10'
                             }`}
                           >
@@ -1010,7 +1010,7 @@ export default function App() {
                           </button>
                         </div>
 
-                        {/* Opção 1: Destaque com cores */}
+                        {/* Opção 1: Destaque com cores mais suaves estilo YouVersion */}
                         <div className="flex items-center justify-between py-1">
                           <div className="flex items-center gap-2">
                             <span>✏️</span>
@@ -1033,11 +1033,11 @@ export default function App() {
                             </button>
 
                             {[
-                              { nome: 'Amarelo', cor: 'bg-amber-400', tailwind: 'bg-amber-400/30 border-amber-400' },
-                              { nome: 'Verde', cor: 'bg-emerald-400', tailwind: 'bg-emerald-400/30 border-emerald-400' },
-                              { nome: 'Azul', cor: 'bg-sky-400', tailwind: 'bg-sky-400/30 border-sky-400' },
-                              { nome: 'Laranja', cor: 'bg-orange-400', tailwind: 'bg-orange-400/30 border-orange-400' },
-                              { nome: 'Rosa', cor: 'bg-rose-400', tailwind: 'bg-rose-400/30 border-rose-400' }
+                              { nome: 'Amarelo', cor: 'bg-amber-400', tailwind: 'bg-amber-300/60 dark:bg-amber-400/40' },
+                              { nome: 'Verde', cor: 'bg-emerald-400', tailwind: 'bg-emerald-300/60 dark:bg-emerald-400/40' },
+                              { nome: 'Azul', cor: 'bg-sky-400', tailwind: 'bg-sky-300/60 dark:bg-sky-400/40' },
+                              { nome: 'Laranja', cor: 'bg-orange-400', tailwind: 'bg-orange-300/60 dark:bg-orange-400/40' },
+                              { nome: 'Rosa', cor: 'bg-rose-400', tailwind: 'bg-rose-300/60 dark:bg-rose-400/40' }
                             ].map((c) => (
                               <button
                                 key={c.nome}
