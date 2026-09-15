@@ -838,10 +838,14 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                 const meuFelicidadesCom = (reacoesComentario.felicidades || []).includes(usuarioLogado.username);
 
                 const ehResposta = Boolean(c.resposta_a_id);
-                // Procura o comentário pai comparando o ID como String de forma segura
-                const comentarioPai = ehResposta 
-                  ? post.comentarios.find(cp => String(cp.id) === String(c.resposta_a_id)) 
-                  : null;
+const comentarioPai = ehResposta 
+  ? comentariosOrdenados.find(cp => String(cp.id) === String(c.resposta_a_id)) 
+  : null;
+
+// COLOQUE ESTE LOG AQUI:
+if (ehResposta) {
+  console.log(`Comentário filho [${c.texto}] (ID: ${c.id}) aponta para resposta_a_id: ${c.resposta_a_id} -> Pai encontrado:`, comentarioPai);
+}
 
                 return (
                   <div 
