@@ -229,18 +229,15 @@ export default function App() {
 
       const rels = await BancoDeDados.getRelacoesAmizade(usuarioLogado.username);
       
-      // Quem enviou pedido para mim (onde eu sou o amigo_id e o status é 'pendente')
       const pedidosPendentesUser = rels
         .filter(r => r.amigo_id === usuarioLogado.username && r.status === 'pendente')
         .map(r => r.usuario_id);
       setSolicitacoesPendentes(pedidosPendentesUser);
 
-      // Meus amigos aceitos
       const amigosAceitos = rels
         .filter(r => r.status === 'aceito')
         .map(r => r.usuario_id === usuarioLogado.username ? r.amigo_id : r.usuario_id);
 
-      // Quem eu já enviei pedido (pendente)
       const meusEnviosPendentes = rels
         .filter(r => r.usuario_id === usuarioLogado.username && r.status === 'pendente')
         .map(r => r.amigo_id);
@@ -912,6 +909,7 @@ export default function App() {
                     <p className="text-sm italic leading-relaxed">"{palavraAtual.texto}" — <span className="font-semibold">{palavraAtual.referencia}</span></p>
                   </div>
 
+                  {/* SELEÇÃO DE LIVRO E CAPÍTULO */}
                   <div className={`flex flex-wrap gap-3 items-center justify-between p-4 rounded-2xl border ${darkMode ? 'bg-slate-900/50 border-slate-800/80' : 'bg-white border-slate-200 shadow-2xs'}`}>
                     <select
                       value={livroIndex}
@@ -941,79 +939,171 @@ export default function App() {
                     </select>
                   </div>
 
-                  <div className={`space-y-4 ${tamanhoFonte} leading-loose`}>
-                    {versiculosDoCapitulo.map((textoVersiculo, index) => {
-                      const numeroV = index + 1;
-                      const chaveMarcacao = `${livroAtualObj.name}_${capituloAtual}_${numeroV}`;
-                      const corDestaqueAtual = marcacoes[chaveMarcacao];
-                      const isFavorito = favoritos.some(
-                        (f) => f.livro === livroAtualObj.name && f.capitulo === capituloAtual && f.numero === numeroV
-                      );
-                      const isSelecionado = versiculosSelecionados.some(v => v.numero === numeroV);
-                      const notaPessoal = notasPessoais[chaveMarcacao];
+                  {/* TÍTULO DO CAPÍTULO */}
+                  <div className="text-center pt-2">
+                    <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+                      {livroAtualObj.name} {capituloAtual}
+                    </h2>
+                  </div>
 
-                      return (
-                        <div 
-                          key={index} 
-                          onClick={() => {
-                            const existe = versiculosSelecionados.find(v => v.numero === numeroV);
-                            if (existe) {
-                              setVersiculosSelecionados(versiculosSelecionados.filter(v => v.numero !== numeroV));
-                            } else {
-                              setVersiculosSelecionados([...versiculosSelecionados, { numero: numeroV, texto: textoVersiculo }].sort((a, b) => a.numero - b.numero));
-                            }
-                          }}
-                          className={`group flex flex-col gap-2 py-2.5 px-4 rounded-2xl transition border cursor-pointer select-none ${
-                            isSelecionado 
-                              ? 'bg-blue-600/20 border-blue-500/60 shadow-sm' 
-                              : 'border-transparent hover:bg-blue-500/5'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <p className="flex-1 leading-relaxed">
-                              <span className="text-xs font-extrabold text-blue-500 mr-3 align-super bg-blue-500/10 px-2 py-0.5 rounded-md">{numeroV}</span>
-                              <span className={corDestaqueAtual ? `${corDestaqueAtual} text-slate-900 font-semibold px-1 rounded` : (darkMode ? 'text-slate-100' : 'text-slate-900')}>
-                                {textoVersiculo}
-                              </span>
+                  {/* TEXTO DA BÍBLIA ESTILO YOUVERSION (PARÁGRAFO CORRIDO) */}
+                  <div className={`p-6 sm:p-8 rounded-3xl border shadow-sm relative ${darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'}`}>
+                    <p className={`${tamanhoFonte} leading-[1.9] text-justify`}>
+                      {versiculosDoCapitulo.map((textoVersiculo, index) => {
+                        const numeroV = index + 1;
+                        const chaveMarcacao = `${livroAtualObj.name}_${capituloAtual}_${numeroV}`;
+                        const corDestaqueAtual = marcacoes[chaveMarcacao];
+                        const isFavorito = favoritos.some(
+                          (f) => f.livro === livroAtualObj.name && f.capitulo === capituloAtual && f.numero === numeroV
+                        );
+                        const isSelecionado = versiculosSelecionados.some(v => v.numero === numeroV);
+
+                        return (
+                          <span
+                            key={index}
+                            onClick={() => {
+                              const existe = versiculosSelecionados.find(v => v.numero === numeroV);
+                              if (existe) {
+                                setVersiculosSelecionados(versiculosSelecionados.filter(v => v.numero !== numeroV));
+                              } else {
+                                setVersiculosSelecionados([...versiculosSelecionados, { numero: numeroV, texto: textoVersiculo }].sort((a, b) => a.numero - b.numero));
+                              }
+                            }}
+                            className={`inline-block mr-1.5 cursor-pointer rounded px-1 transition ${
+                              isSelecionado
+                                ? 'bg-blue-600 text-white font-medium'
+                                : corDestaqueAtual
+                                ? `${corDestaqueAtual} text-slate-900 font-medium`
+                                : 'hover:bg-blue-500/10'
+                            }`}
+                          >
+                            <sup className="text-[10px] sm:text-xs font-bold mr-1 opacity-70 select-none">
+                              {numeroV}
+                            </sup>
+                            <span>{textoVersiculo}</span>{' '}
+                            {isFavorito && <span className="text-xs select-none">❤️</span>}
+                          </span>
+                        );
+                      })}
+                    </p>
+
+                    {/* MODAL / BARRA FLUTUANTE ESTILO YOUVERSION */}
+                    {versiculosSelecionados.length > 0 && (
+                      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-sm rounded-3xl shadow-2xl border p-4 backdrop-blur-md bg-slate-900 border-slate-700 text-white animate-in fade-in zoom-in-95 duration-200 space-y-4">
+                        
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-slate-400">Atualmente Selecionado:</p>
+                            <p className="text-xs font-extrabold text-blue-400">
+                              {livroAtualObj.name}{' '}
+                              {versiculosSelecionados.length === 1
+                                ? `${versiculosSelecionados[0].numero}`
+                                : `${versiculosSelecionados[0].numero}-${versiculosSelecionados[versiculosSelecionados.length - 1].numero}`}{' '}
+                              {versaoSelecionada.toUpperCase()}
                             </p>
-
-                            <div className="flex items-center justify-end gap-2 pt-1 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
-                              <button onClick={() => setNotaVersiculoAtiva(chaveMarcacao)} className="text-xs bg-slate-700/20 hover:bg-slate-700/40 p-1.5 rounded-lg cursor-pointer" title="Adicionar Nota">📝</button>
-
-                              <button
-                                onClick={() => toggleFavorito(livroAtualObj.name, capituloAtual, numeroV, textoVersiculo)}
-                                className={`text-sm p-1 rounded-lg cursor-pointer ${isFavorito ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
-                                title="Favoritar"
-                              >
-                                {isFavorito ? '❤️' : '🤍'}
-                              </button>
-                            </div>
                           </div>
-
-                          {notaPessoal && (
-                            <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl text-xs text-amber-600 dark:text-amber-300 italic" onClick={(e) => e.stopPropagation()}>
-                              <b>Nota Pessoal:</b> {notaPessoal}
-                            </div>
-                          )}
-
-                          {notaVersiculoAtiva === chaveMarcacao && (
-                            <div className="p-3.5 bg-slate-800 rounded-2xl space-y-2.5 mt-2 shadow-lg" onClick={(e) => e.stopPropagation()}>
-                              <input 
-                                type="text" 
-                                placeholder="Escreva sua anotação pessoal..." 
-                                value={textoNota} 
-                                onChange={(e) => setTextoNota(e.target.value)} 
-                                className="w-full text-xs p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none"
-                              />
-                              <div className="flex justify-end gap-2">
-                                <button onClick={() => setNotaVersiculoAtiva(null)} className="text-xs px-3 py-1.5 opacity-70 cursor-pointer">Cancelar</button>
-                                <button onClick={() => salvarNotaVersiculo(chaveMarcacao)} className="bg-blue-600 text-white text-xs px-4 py-1.5 rounded-xl font-bold cursor-pointer">Salvar Nota</button>
-                              </div>
-                            </div>
-                          )}
+                          <button 
+                            onClick={() => setVersiculosSelecionados([])}
+                            className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-xs font-bold transition cursor-pointer"
+                          >
+                            ✕
+                          </button>
                         </div>
-                      );
-                    })}
+
+                        {/* Opção 1: Destaque com cores */}
+                        <div className="flex items-center justify-between py-1">
+                          <div className="flex items-center gap-2">
+                            <span>✏️</span>
+                            <span className="text-xs font-bold">Destaque</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                const novasMarcacoes = { ...marcacoes };
+                                versiculosSelecionados.forEach(v => {
+                                  const chave = `${livroAtualObj.name}_${capituloAtual}_${v.numero}`;
+                                  delete novasMarcacoes[chave];
+                                });
+                                setMarcacoes(novasMarcacoes);
+                              }}
+                              className="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-[10px] hover:bg-slate-700"
+                              title="Remover destaque"
+                            >
+                              ✕
+                            </button>
+
+                            {[
+                              { nome: 'Amarelo', cor: 'bg-amber-400', tailwind: 'bg-amber-400/30 border-amber-400' },
+                              { nome: 'Verde', cor: 'bg-emerald-400', tailwind: 'bg-emerald-400/30 border-emerald-400' },
+                              { nome: 'Azul', cor: 'bg-sky-400', tailwind: 'bg-sky-400/30 border-sky-400' },
+                              { nome: 'Laranja', cor: 'bg-orange-400', tailwind: 'bg-orange-400/30 border-orange-400' },
+                              { nome: 'Rosa', cor: 'bg-rose-400', tailwind: 'bg-rose-400/30 border-rose-400' }
+                            ].map((c) => (
+                              <button
+                                key={c.nome}
+                                onClick={() => {
+                                  const novasMarcacoes = { ...marcacoes };
+                                  versiculosSelecionados.forEach(v => {
+                                    const chave = `${livroAtualObj.name}_${capituloAtual}_${v.numero}`;
+                                    novasMarcacoes[chave] = c.tailwind;
+                                  });
+                                  setMarcacoes(novasMarcacoes);
+                                  setVersiculosSelecionados([]);
+                                }}
+                                className={`w-6 h-6 rounded-full ${c.cor} hover:scale-125 transition cursor-pointer shadow-sm`}
+                                title={`Destacar de ${c.nome}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Opção 2: Copiar Versículo (Formato YouVersion: "Texto..." — Ref Versão) */}
+                        <button
+                          onClick={() => {
+                            const textoCompleto = versiculosSelecionados.map(v => v.texto).join(' ');
+                            const referenciaFormatada = `${livroAtualObj.name} ${capituloAtual}:${
+                              versiculosSelecionados.length === 1
+                                ? versiculosSelecionados[0].numero
+                                : `${versiculosSelecionados[0].numero}-${versiculosSelecionados[versiculosSelecionados.length - 1].numero}`
+                            } ${versaoSelecionada.toUpperCase()}`;
+
+                            const copiarTexto = `"${textoCompleto}" — ${referenciaFormatada}`;
+                            navigator.clipboard.writeText(copiarTexto);
+                            setVersiculosSelecionados([]);
+                            alert('Versículo copiado!');
+                          }}
+                          className="w-full flex items-center gap-3 py-2.5 px-3 rounded-2xl hover:bg-slate-800 transition text-xs font-bold cursor-pointer text-left border-t border-slate-800/80"
+                        >
+                          <span>📋</span>
+                          <span>Copiar</span>
+                        </button>
+
+                        {/* Opção 3: Comparar */}
+                        <button
+                          onClick={() => {
+                            alert('Funcionalidade de comparar traduções em breve!');
+                          }}
+                          className="w-full flex items-center gap-3 py-2.5 px-3 rounded-2xl hover:bg-slate-800 transition text-xs font-bold cursor-pointer text-left"
+                        >
+                          <span>⚖️</span>
+                          <span>Comparar</span>
+                        </button>
+
+                        {/* Opção 4: Favoritar / Compartilhar */}
+                        <button
+                          onClick={() => {
+                            versiculosSelecionados.forEach(v => {
+                              toggleFavorito(livroAtualObj.name, capituloAtual, v.numero, v.texto);
+                            });
+                            setVersiculosSelecionados([]);
+                          }}
+                          className="w-full flex items-center gap-3 py-2.5 px-3 rounded-2xl hover:bg-slate-800 transition text-xs font-bold cursor-pointer text-left"
+                        >
+                          <span>❤️</span>
+                          <span>Favoritar / Compartilhar na Comunidade</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )
