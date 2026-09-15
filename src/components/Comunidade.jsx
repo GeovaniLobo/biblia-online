@@ -609,29 +609,27 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   };
 
   const comentar = async (publicacaoId, usernameAutorPost, e) => {
-  e.preventDefault();
-  const texto = novoComentario[publicacaoId];
-  if (!texto || !texto.trim()) return;
+    e.preventDefault();
+    const texto = novoComentario[publicacaoId];
+    if (!texto || !texto.trim()) return;
 
-  const respostaPaiId = respondendoComentarioId[publicacaoId] || null;
-  console.log("Salvando comentário | Pai ID:", respostaPaiId);
+    const respostaPaiId = respondendoComentarioId[publicacaoId] || null;
 
-  const comentarioObj = {
-    id: Date.now(),
-    autor: nomePerfilOficial,
-    username: usuarioLogado.username,
-    texto: texto.trim(),
-    data_criacao: new Date().toISOString(),
-    resposta_a_id: respostaPaiId,
-    reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] }
-  };
+    const comentarioObj = {
+      id: Date.now(),
+      autor: nomePerfilOficial,
+      username: usuarioLogado.username,
+      texto: texto.trim(),
+      data_criacao: new Date().toISOString(),
+      resposta_a_id: respostaPaiId,
+      reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] }
+    };
 
-  const atualizados = await BancoDeDados.adicionarComentarioPub(publicacaoId, comentarioObj);
-  setPublicacoes([...atualizados]);
-  setNovoComentario({ ...novoComentario, [publicacaoId]: '' });
-  setRespondendoComentarioId(prev => ({ ...prev, [publicacaoId]: null }));
-  setMenuMencaoComentarioAberto(null);
-  
+    const atualizados = await BancoDeDados.adicionarComentarioPub(publicacaoId, comentarioObj);
+    setPublicacoes([...atualizados]);
+    setNovoComentario({ ...novoComentario, [publicacaoId]: '' });
+    setRespondendoComentarioId(prev => ({ ...prev, [publicacaoId]: null }));
+    setMenuMencaoComentarioAberto(null);
 
     const matches = texto.match(/@([a-zA-Z0-9_]+)/g);
     if (matches) {
@@ -824,15 +822,15 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
         
         <div className="space-y-3 pt-2">
           {post.comentarios && post.comentarios.length > 0 && (
-            <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               {(() => {
-                const todosComentarios = [...post.comentarios].sort((a, b) => Number(a.id) - Number(b.id));
-                const comentariosPais = todosComentarios.filter(c => !c.resposta_a_id);
+                const ordenados = [...post.comentarios].sort((a, b) => Number(a.id) - Number(b.id));
+                const principais = ordenados.filter(c => !c.resposta_a_id);
 
-                return comentariosPais.map((pai) => {
-                  const respostasDoPai = todosComentarios.filter(c => String(c.resposta_a_id) === String(pai.id));
+                return principais.map(principal => {
+                  const respostas = ordenados.filter(c => String(c.resposta_a_id) === String(principal.id));
 
-                  const renderizarItemComentario = (c, ehFilho = false) => {
+                  const renderComentario = (c, isResposta = false) => {
                     const perfilAutorComentario = perfisReais.find(p => p.username === c.username) || {};
                     const fotoComentario = perfilAutorComentario.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
                     const autorComentarioVerificado = perfilAutorComentario.verificado;
@@ -845,18 +843,17 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                     const meuParabensCom = (reacoesComentario.parabens || []).includes(usuarioLogado.username);
                     const meuFelicidadesCom = (reacoesComentario.felicidades || []).includes(usuarioLogado.username);
 
-                    const ehResposta = Boolean(c.resposta_a_id);
-                    const comentarioPai = ehResposta 
-                      ? todosComentarios.find(cp => String(cp.id) === String(c.resposta_a_id)) 
+                    const comentarioPai = isResposta 
+                      ? ordenados.find(cp => String(cp.id) === String(c.resposta_a_id)) 
                       : null;
 
                     return (
                       <div 
                         key={c.id || Math.random()} 
                         className={`p-3 rounded-2xl text-xs space-y-2 transition ${
-                          ehFilho 
-                            ? 'ml-6 sm:ml-10 pl-3 sm:pl-4 border-l-2 border-blue-500 bg-blue-500/5 mt-2' 
-                            : darkMode ? 'bg-slate-800/40 text-slate-200 mt-3' : 'bg-slate-50 text-slate-800 mt-3'
+                          isResposta 
+                            ? 'ml-6 sm:ml-10 pl-3 sm:pl-4 border-l-2 border-blue-500 bg-blue-500/5 mt-1.5' 
+                            : darkMode ? 'bg-slate-800/40 text-slate-200 mt-2.5' : 'bg-slate-50 text-slate-800 mt-2.5'
                         }`}
                       >
                         <div className="flex items-start gap-2.5">
@@ -878,10 +875,7 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                                 {autorComentarioVerificado && <SeloVerificado tamanho="w-3.5 h-3.5" />}
                               </div>
                               <button 
-                                onClick={() => {
-                                  console.log("Definindo resposta para o comentário ID:", c.id);
-                                  setRespondendoComentarioId(prev => ({ ...prev, [post.id]: c.id }));
-                                }}
+                                onClick={() => setRespondendoComentarioId(prev => ({ ...prev, [post.id]: c.id }))}
                                 className="text-[10px] font-semibold opacity-60 hover:opacity-100 text-blue-400 flex-shrink-0"
                               >
                                 Responder
@@ -925,10 +919,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                   };
 
                   return (
-                    <div key={pai.id} className="space-y-1">
-                      {renderizarItemComentario(pai, false)}
-                      {respostasDoPai.map(filho => renderizarItemComentario(filho, true))}
-                    </div>
+                    <React.Fragment key={principal.id}>
+                      {renderComentario(principal, false)}
+                      {respostas.map(resp => renderComentario(resp, true))}
+                    </React.Fragment>
                   );
                 });
               })()}
@@ -936,19 +930,11 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           )}
 
           {respondendoComentarioId[post.id] && (
-  <div className="flex items-center justify-between bg-blue-500/10 px-3 py-1.5 rounded-xl text-xs border border-blue-500/30">
-    <span className="font-semibold text-blue-400">
-      Respondendo ao comentário #{respondendoComentarioId[post.id]}...
-    </span>
-    <button 
-      type="button"
-      onClick={() => setRespondendoComentarioId(prev => ({ ...prev, [post.id]: null }))} 
-      className="font-bold text-red-400 hover:underline"
-    >
-      ✕ Cancelar
-    </button>
-  </div>
-)}
+            <div className="flex items-center justify-between bg-blue-500/10 px-3 py-1.5 rounded-xl text-xs border border-blue-500/30">
+              <span className="font-semibold text-blue-400">Respondendo a um comentário...</span>
+              <button onClick={() => setRespondendoComentarioId({ ...respondendoComentarioId, [post.id]: null })} className="font-bold text-red-400 hover:underline">✕ Cancelar</button>
+            </div>
+          )}
 
           <form onSubmit={(e) => comentar(post.id, post.username, e)} className="flex gap-2 relative mt-2">
             <input 
