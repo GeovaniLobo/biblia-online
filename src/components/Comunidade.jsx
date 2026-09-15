@@ -609,22 +609,22 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   };
 
   const comentar = async (publicacaoId, usernameAutorPost, e) => {
-    e.preventDefault();
-    const texto = novoComentario[publicacaoId];
-    if (!texto || !texto.trim()) return;
+  e.preventDefault();
+  const texto = novoComentario[publicacaoId];
+  if (!texto || !texto.trim()) return;
 
-    // Pega o ID exato que foi salvo ao clicar em "Responder" naquele comentário específico
-    const respostaPaiId = respondendoComentarioId[publicacaoId] || null;
+  const respostaPaiId = respondendoComentarioId[publicacaoId] || null;
+  console.log("--> ENVIANDO RESPOSTA | Post ID:", publicacaoId, "| Respondendo ao ID Pai:", respostaPaiId);
 
-    const comentarioObj = {
-      id: Date.now(),
-      autor: nomePerfilOficial,
-      username: usuarioLogado.username,
-      texto: texto.trim(),
-      data_criacao: new Date().toISOString(),
-      resposta_a_id: respostaPaiId,
-      reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] }
-    };
+  const comentarioObj = {
+    id: Date.now(),
+    autor: nomePerfilOficial,
+    username: usuarioLogado.username,
+    texto: texto.trim(),
+    data_criacao: new Date().toISOString(),
+    resposta_a_id: respostaPaiId,
+    reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] }
+  };
 
     const atualizados = await BancoDeDados.adicionarComentarioPub(publicacaoId, comentarioObj);
     setPublicacoes([...atualizados]);
