@@ -609,27 +609,29 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
   };
 
   const comentar = async (publicacaoId, usernameAutorPost, e) => {
-    e.preventDefault();
-    const texto = novoComentario[publicacaoId];
-    if (!texto || !texto.trim()) return;
+  e.preventDefault();
+  const texto = novoComentario[publicacaoId];
+  if (!texto || !texto.trim()) return;
 
-    const respostaPaiId = respondendoComentarioId[publicacaoId] || null;
+  const respostaPaiId = respondendoComentarioId[publicacaoId] || null;
+  console.log("Salvando comentário | Pai ID:", respostaPaiId);
 
-    const comentarioObj = {
-      id: Date.now(),
-      autor: nomePerfilOficial,
-      username: usuarioLogado.username,
-      texto: texto.trim(),
-      data_criacao: new Date().toISOString(),
-      resposta_a_id: respostaPaiId,
-      reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] }
-    };
+  const comentarioObj = {
+    id: Date.now(),
+    autor: nomePerfilOficial,
+    username: usuarioLogado.username,
+    texto: texto.trim(),
+    data_criacao: new Date().toISOString(),
+    resposta_a_id: respostaPaiId,
+    reacoes: { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] }
+  };
 
-    const atualizados = await BancoDeDados.adicionarComentarioPub(publicacaoId, comentarioObj);
-    setPublicacoes([...atualizados]);
-    setNovoComentario({ ...novoComentario, [publicacaoId]: '' });
-    setRespondendoComentarioId(prev => ({ ...prev, [publicacaoId]: null }));
-    setMenuMencaoComentarioAberto(null);
+  const atualizados = await BancoDeDados.adicionarComentarioPub(publicacaoId, comentarioObj);
+  setPublicacoes([...atualizados]);
+  setNovoComentario({ ...novoComentario, [publicacaoId]: '' });
+  setRespondendoComentarioId(prev => ({ ...prev, [publicacaoId]: null }));
+  setMenuMencaoComentarioAberto(null);
+  
 
     const matches = texto.match(/@([a-zA-Z0-9_]+)/g);
     if (matches) {
@@ -876,7 +878,10 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
                                 {autorComentarioVerificado && <SeloVerificado tamanho="w-3.5 h-3.5" />}
                               </div>
                               <button 
-                                onClick={() => setRespondendoComentarioId(prev => ({ ...prev, [post.id]: c.id }))}
+                                onClick={() => {
+                                  console.log("Definindo resposta para o comentário ID:", c.id);
+                                  setRespondendoComentarioId(prev => ({ ...prev, [post.id]: c.id }));
+                                }}
                                 className="text-[10px] font-semibold opacity-60 hover:opacity-100 text-blue-400 flex-shrink-0"
                               >
                                 Responder
@@ -931,11 +936,19 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           )}
 
           {respondendoComentarioId[post.id] && (
-            <div className="flex items-center justify-between bg-blue-500/10 px-3 py-1.5 rounded-xl text-xs border border-blue-500/30">
-              <span className="font-semibold text-blue-400">Respondendo a um comentário...</span>
-              <button onClick={() => setRespondendoComentarioId({ ...respondendoComentarioId, [post.id]: null })} className="font-bold text-red-400 hover:underline">✕ Cancelar</button>
-            </div>
-          )}
+  <div className="flex items-center justify-between bg-blue-500/10 px-3 py-1.5 rounded-xl text-xs border border-blue-500/30">
+    <span className="font-semibold text-blue-400">
+      Respondendo ao comentário #{respondendoComentarioId[post.id]}...
+    </span>
+    <button 
+      type="button"
+      onClick={() => setRespondendoComentarioId(prev => ({ ...prev, [post.id]: null }))} 
+      className="font-bold text-red-400 hover:underline"
+    >
+      ✕ Cancelar
+    </button>
+  </div>
+)}
 
           <form onSubmit={(e) => comentar(post.id, post.username, e)} className="flex gap-2 relative mt-2">
             <input 
