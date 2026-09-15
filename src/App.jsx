@@ -178,7 +178,7 @@ export default function App() {
 
   const [termoBusca, setTermoBusca] = useState('');
   const [resultadosBusca, setResultadosBusca] = useState([]);
-  const [tamanhoFonte, setTamanhoFonte] = useState('text-base sm:text-lg');
+ const [tamanhoFonte, setTamanhoFonte] = useState('text-lg sm:text-xl leading-[2.2]');
   const [notaVersiculoAtiva, setNotaVersiculoAtiva] = useState(null);
   const [textoNota, setTextoNota] = useState('');
   const [notasPessoais, setNotasPessoais] = useState(() => {
@@ -973,24 +973,24 @@ export default function App() {
     isSelecionado
       ? {}
       : corDestaqueAtual === 'bg-amber-300/60 dark:bg-amber-400/40'
-      ? { boxShadow: 'inset 0 -0.55em 0 0 rgba(250, 204, 21, 0.45)' }
+      ? { backgroundColor: '#facc15', color: '#1e293b', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone', padding: '0.1em 0.25em', borderRadius: '0.25em' }
       : corDestaqueAtual === 'bg-emerald-300/60 dark:bg-emerald-400/40'
-      ? { boxShadow: 'inset 0 -0.55em 0 0 rgba(52, 211, 153, 0.45)' }
+      ? { backgroundColor: '#34d399', color: '#064e3b', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone', padding: '0.1em 0.25em', borderRadius: '0.25em' }
       : corDestaqueAtual === 'bg-sky-300/60 dark:bg-sky-400/40'
-      ? { boxShadow: 'inset 0 -0.55em 0 0 rgba(56, 189, 248, 0.45)' }
+      ? { backgroundColor: '#38bdf8', color: '#082f49', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone', padding: '0.1em 0.25em', borderRadius: '0.25em' }
       : corDestaqueAtual === 'bg-orange-300/60 dark:bg-orange-400/40'
-      ? { boxShadow: 'inset 0 -0.55em 0 0 rgba(251, 146, 60, 0.45)' }
+      ? { backgroundColor: '#fb923c', color: '#431407', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone', padding: '0.1em 0.25em', borderRadius: '0.25em' }
       : corDestaqueAtual === 'bg-rose-300/60 dark:bg-rose-400/40'
-      ? { boxShadow: 'inset 0 -0.55em 0 0 rgba(251, 113, 133, 0.45)' }
+      ? { backgroundColor: '#fb7185', color: '#4c0519', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone', padding: '0.1em 0.25em', borderRadius: '0.25em' }
       : {}
   }
-  className={`inline mr-1.5 cursor-pointer rounded px-0.5 transition ${
+  className={`inline mr-2 cursor-pointer transition ${
     isSelecionado
-      ? 'bg-blue-600 text-white font-medium px-1'
-      : `${darkMode ? 'text-slate-100' : 'text-slate-900'} font-normal hover:bg-blue-500/10`
+      ? 'bg-blue-600 text-white font-medium px-1.5 py-0.5 rounded'
+      : `${darkMode && !corDestaqueAtual ? 'text-slate-100' : ''} hover:opacity-80`
   }`}
 >
-  <sup className="text-[10px] sm:text-xs font-bold mr-1 opacity-70 select-none">
+  <sup className="text-xs sm:text-sm font-bold mr-1 opacity-70 select-none">
     {numeroV}
   </sup>
   <span>{textoVersiculo}</span>{' '}
