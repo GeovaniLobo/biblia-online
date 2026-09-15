@@ -960,29 +960,42 @@ export default function App() {
 
                         return (
                           <span
-                            key={index}
-                            onClick={() => {
-                              const existe = versiculosSelecionados.find(v => v.numero === numeroV);
-                              if (existe) {
-                                setVersiculosSelecionados(versiculosSelecionados.filter(v => v.numero !== numeroV));
-                              } else {
-                                setVersiculosSelecionados([...versiculosSelecionados, { numero: numeroV, texto: textoVersiculo }].sort((a, b) => a.numero - b.numero));
-                              }
-                            }}
-                            className={`inline-block mr-1.5 cursor-pointer rounded-sm px-1 py-0.5 box-decoration-clone transition ${
-                              isSelecionado
-                                ? 'bg-blue-600 text-white font-medium'
-                                : corDestaqueAtual
-                                ? `${corDestaqueAtual} ${darkMode ? 'text-slate-100' : 'text-slate-900'} font-medium`
-                                : 'hover:bg-blue-500/10'
-                            }`}
-                          >
-                            <sup className="text-[10px] sm:text-xs font-bold mr-1 opacity-70 select-none">
-                              {numeroV}
-                            </sup>
-                            <span>{textoVersiculo}</span>{' '}
-                            {isFavorito && <span className="text-xs select-none">❤️</span>}
-                          </span>
+  key={index}
+  onClick={() => {
+    const existe = versiculosSelecionados.find(v => v.numero === numeroV);
+    if (existe) {
+      setVersiculosSelecionados(versiculosSelecionados.filter(v => v.numero !== numeroV));
+    } else {
+      setVersiculosSelecionados([...versiculosSelecionados, { numero: numeroV, texto: textoVersiculo }].sort((a, b) => a.numero - b.numero));
+    }
+  }}
+  style={
+    isSelecionado
+      ? {}
+      : corDestaqueAtual === 'bg-amber-300/60 dark:bg-amber-400/40'
+      ? { boxShadow: 'inset 0 -0.55em 0 0 rgba(250, 204, 21, 0.45)' }
+      : corDestaqueAtual === 'bg-emerald-300/60 dark:bg-emerald-400/40'
+      ? { boxShadow: 'inset 0 -0.55em 0 0 rgba(52, 211, 153, 0.45)' }
+      : corDestaqueAtual === 'bg-sky-300/60 dark:bg-sky-400/40'
+      ? { boxShadow: 'inset 0 -0.55em 0 0 rgba(56, 189, 248, 0.45)' }
+      : corDestaqueAtual === 'bg-orange-300/60 dark:bg-orange-400/40'
+      ? { boxShadow: 'inset 0 -0.55em 0 0 rgba(251, 146, 60, 0.45)' }
+      : corDestaqueAtual === 'bg-rose-300/60 dark:bg-rose-400/40'
+      ? { boxShadow: 'inset 0 -0.55em 0 0 rgba(251, 113, 133, 0.45)' }
+      : {}
+  }
+  className={`inline mr-1.5 cursor-pointer rounded px-0.5 transition ${
+    isSelecionado
+      ? 'bg-blue-600 text-white font-medium px-1'
+      : `${darkMode ? 'text-slate-100' : 'text-slate-900'} font-normal hover:bg-blue-500/10`
+  }`}
+>
+  <sup className="text-[10px] sm:text-xs font-bold mr-1 opacity-70 select-none">
+    {numeroV}
+  </sup>
+  <span>{textoVersiculo}</span>{' '}
+  {isFavorito && <span className="text-xs select-none">❤️</span>}
+</span>
                         );
                       })}
                     </p>
