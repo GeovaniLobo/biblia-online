@@ -824,105 +824,121 @@ export default function Comunidade({ usuarioLogado, darkMode, onVerPerfil }) {
           {post.comentarios && post.comentarios.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               {(() => {
-                const ordenados = [...post.comentarios].sort((a, b) => Number(a.id) - Number(b.id));
-                const principais = ordenados.filter(c => !c.resposta_a_id);
+                const listaOriginal = [...post.comentarios].sort((a, b) => Number(a.id) - Number(b.id));
+                const mapa = new Map();
+                const raiz = [];
 
-                return principais.map(principal => {
-                  const respostas = ordenados.filter(c => String(c.resposta_a_id) === String(principal.id));
+                listaOriginal.forEach(c => mapa.set(String(c.id), { ...c, filhos: [] }));
 
-                  const renderComentario = (c, isResposta = false) => {
-                    const perfilAutorComentario = perfisReais.find(p => p.username === c.username) || {};
-                    const fotoComentario = perfilAutorComentario.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
-                    const autorComentarioVerificado = perfilAutorComentario.verificado;
-                    const autorComentarioTemStory = storiesFiltradosAmigos.some(s => s.username === c.username);
+                listaOriginal.forEach(c => {
+                  const item = mapa.get(String(c.id));
+                  if (c.resposta_a_id && mapa.has(String(c.resposta_a_id))) {
+                    mapa.get(String(c.resposta_a_id)).filhos.push(item);
+                  } else {
+                    raiz.push(item);
+                  }
+                });
 
-                    const reacoesComentario = c.reacoes || { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
-                    const meuAmeiCom = (reacoesComentario.amei || []).includes(usuarioLogado.username);
-                    const meuAmemCom = (reacoesComentario.amem || []).includes(usuarioLogado.username);
-                    const meuGloriaCom = (reacoesComentario.gloria || []).includes(usuarioLogado.username);
-                    const meuParabensCom = (reacoesComentario.parabens || []).includes(usuarioLogado.username);
-                    const meuFelicidadesCom = (reacoesComentario.felicidades || []).includes(usuarioLogado.username);
+                const listaOrdenadaHierarquica = [];
+                const percorrerArvore = (nodes, nivel = 0) => {
+                  nodes.forEach(node => {
+                    listaOrdenadaHierarquica.push({ ...node, nivel });
+                    if (node.filhos && node.filhos.length > 0) {
+                      percorrerArvore(node.filhos, nivel + 1);
+                    }
+                  });
+                };
 
-                    const comentarioPai = isResposta 
-                      ? ordenados.find(cp => String(cp.id) === String(c.resposta_a_id)) 
-                      : null;
+                percorrerArvore(raiz);
 
-                    return (
-                      <div 
-                        key={c.id || Math.random()} 
-                        className={`p-3 rounded-2xl text-xs space-y-2 transition ${
-                          isResposta 
-                            ? 'ml-6 sm:ml-10 pl-3 sm:pl-4 border-l-2 border-blue-500 bg-blue-500/5 mt-1.5' 
-                            : darkMode ? 'bg-slate-800/40 text-slate-200 mt-2.5' : 'bg-slate-50 text-slate-800 mt-2.5'
-                        }`}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          <div 
-                            onClick={() => clicarPerfilOuStory(c.username)}
-                            className={`relative w-7 h-7 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${autorComentarioTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-sm' : ''}`}
-                          >
-                            <img src={fotoComentario} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
-                          </div>
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1 min-w-0">
-                                <span 
-                                  onClick={() => abrirPerfilPorUsername(c.username)} 
-                                  className="font-bold text-blue-500 cursor-pointer hover:underline truncate"
-                                >
-                                  @{c.username}
-                                </span>
-                                {autorComentarioVerificado && <SeloVerificado tamanho="w-3.5 h-3.5" />}
-                              </div>
-                              <button 
-                                onClick={() => setRespondendoComentarioId(prev => ({ ...prev, [post.id]: c.id }))}
-                                className="text-[10px] font-semibold opacity-60 hover:opacity-100 text-blue-400 flex-shrink-0"
+                return listaOrdenadaHierarquica.map((c) => {
+                  const perfilAutorComentario = perfisReais.find(p => p.username === c.username) || {};
+                  const fotoComentario = perfilAutorComentario.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+                  const autorComentarioVerificado = perfilAutorComentario.verificado;
+                  const autorComentarioTemStory = storiesFiltradosAmigos.some(s => s.username === c.username);
+
+                  const reacoesComentario = c.reacoes || { amei: [], amem: [], gloria: [], parabens: [], felicidades: [] };
+                  const meuAmeiCom = (reacoesComentario.amei || []).includes(usuarioLogado.username);
+                  const meuAmemCom = (reacoesComentario.amem || []).includes(usuarioLogado.username);
+                  const meuGloriaCom = (reacoesComentario.gloria || []).includes(usuarioLogado.username);
+                  const meuParabensCom = (reacoesComentario.parabens || []).includes(usuarioLogado.username);
+                  const meuFelicidadesCom = (reacoesComentario.felicidades || []).includes(usuarioLogado.username);
+
+                  const ehResposta = Boolean(c.resposta_a_id);
+                  const comentarioPai = ehResposta 
+                    ? listaOriginal.find(cp => String(cp.id) === String(c.resposta_a_id)) 
+                    : null;
+
+                  const margemEsquerda = c.nivel > 0 ? ('ml-' + Math.min(c.nivel * 6, 12) + ' sm:ml-' + Math.min(c.nivel * 10, 16)) : '';
+
+                  return (
+                    <div 
+                      key={c.id || Math.random()} 
+                      className={`p-3 rounded-2xl text-xs space-y-2 transition ${margemEsquerda} ${
+                        ehResposta 
+                          ? 'pl-3 sm:pl-4 border-l-2 border-blue-500 bg-blue-500/5 mt-1.5' 
+                          : darkMode ? 'bg-slate-800/40 text-slate-200 mt-2.5' : 'bg-slate-50 text-slate-800 mt-2.5'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <div 
+                          onClick={() => clicarPerfilOuStory(c.username)}
+                          className={`relative w-7 h-7 rounded-full p-0.5 flex items-center justify-center flex-shrink-0 cursor-pointer transition ${autorComentarioTemStory ? 'bg-gradient-to-tr from-amber-500 via-rose-600 to-yellow-400 animate-pulse shadow-sm' : ''}`}
+                        >
+                          <img src={fotoComentario} className="w-full h-full rounded-full object-cover border border-white dark:border-slate-900" />
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span 
+                                onClick={() => abrirPerfilPorUsername(c.username)} 
+                                className="font-bold text-blue-500 cursor-pointer hover:underline truncate"
                               >
-                                Responder
-                              </button>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <span className="text-[9px] opacity-50 block">
-                                {c.data_criacao && formatarData(c.data_criacao)}
+                                @{c.username}
                               </span>
-                              {comentarioPai && (
-                                <p className="text-[9px] opacity-60 italic bg-blue-500/10 px-2 py-0.5 rounded w-fit inline-block">
-                                  em resposta a @{comentarioPai.username}
-                                </p>
-                              )}
+                              {autorComentarioVerificado && <SeloVerificado tamanho="w-3.5 h-3.5" />}
                             </div>
+                            <button 
+                              onClick={() => setRespondendoComentarioId(prev => ({ ...prev, [post.id]: c.id }))}
+                              className="text-[10px] font-semibold opacity-60 hover:opacity-100 text-blue-400 flex-shrink-0"
+                            >
+                              Responder
+                            </button>
+                          </div>
 
-                            <p className="opacity-95 break-words leading-relaxed pt-1">{c.texto}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] opacity-50 block">
+                              {c.data_criacao && formatarData(c.data_criacao)}
+                            </span>
+                            {comentarioPai && (
+                              <p className="text-[9px] opacity-60 italic bg-blue-500/10 px-2 py-0.5 rounded w-fit inline-block">
+                                em resposta a @{comentarioPai.username}
+                              </p>
+                            )}
+                          </div>
 
-                            <div className="flex flex-wrap items-center gap-3 pt-1.5">
-                              <button onClick={() => reagirComentarioPub(post.id, c.id, 'amei')} className={`text-[10px] font-bold flex items-center gap-1 ${meuAmeiCom ? 'text-rose-500' : 'opacity-60 hover:opacity-100'}`}>
-                                ❤️ Amei ({(reacoesComentario.amei || []).length})
-                              </button>
-                              <button onClick={() => reagirComentarioPub(post.id, c.id, 'amem')} className={`text-[10px] font-bold flex items-center gap-1 ${meuAmemCom ? 'text-blue-500' : 'opacity-60 hover:opacity-100'}`}>
-                                🙏 Amém ({(reacoesComentario.amem || []).length})
-                              </button>
-                              <button onClick={() => reagirComentarioPub(post.id, c.id, 'gloria')} className={`text-[10px] font-bold flex items-center gap-1 ${meuGloriaCom ? 'text-amber-500' : 'opacity-60 hover:opacity-100'}`}>
-                                ✨ Glória ({(reacoesComentario.gloria || []).length})
-                              </button>
-                              <button onClick={() => reagirComentarioPub(post.id, c.id, 'parabens')} className={`text-[10px] font-bold flex items-center gap-1 ${meuParabensCom ? 'text-purple-500' : 'opacity-60 hover:opacity-100'}`}>
-                                🎉 Parabéns ({(reacoesComentario.parabens || []).length})
-                              </button>
-                              <button onClick={() => reagirComentarioPub(post.id, c.id, 'felicidades')} className={`text-[10px] font-bold flex items-center gap-1 ${meuFelicidadesCom ? 'text-emerald-500' : 'opacity-60 hover:opacity-100'}`}>
-                                🥳 Felicidades ({(reacoesComentario.felicidades || []).length})
-                              </button>
-                            </div>
+                          <p className="opacity-95 break-words leading-relaxed pt-1">{c.texto}</p>
+
+                          <div className="flex flex-wrap items-center gap-3 pt-1.5">
+                            <button onClick={() => reagirComentarioPub(post.id, c.id, 'amei')} className={`text-[10px] font-bold flex items-center gap-1 ${meuAmeiCom ? 'text-rose-500' : 'opacity-60 hover:opacity-100'}`}>
+                              ❤️ Amei ({(reacoesComentario.amei || []).length})
+                            </button>
+                            <button onClick={() => reagirComentarioPub(post.id, c.id, 'amem')} className={`text-[10px] font-bold flex items-center gap-1 ${meuAmemCom ? 'text-blue-500' : 'opacity-60 hover:opacity-100'}`}>
+                              🙏 Amém ({(reacoesComentario.amem || []).length})
+                            </button>
+                            <button onClick={() => reagirComentarioPub(post.id, c.id, 'gloria')} className={`text-[10px] font-bold flex items-center gap-1 ${meuGloriaCom ? 'text-amber-500' : 'opacity-60 hover:opacity-100'}`}>
+                              ✨ Glória ({(reacoesComentario.gloria || []).length})
+                            </button>
+                            <button onClick={() => reagirComentarioPub(post.id, c.id, 'parabens')} className={`text-[10px] font-bold flex items-center gap-1 ${meuParabensCom ? 'text-purple-500' : 'opacity-60 hover:opacity-100'}`}>
+                              🎉 Parabéns ({(reacoesComentario.parabens || []).length})
+                            </button>
+                            <button onClick={() => reagirComentarioPub(post.id, c.id, 'felicidades')} className={`text-[10px] font-bold flex items-center gap-1 ${meuFelicidadesCom ? 'text-emerald-500' : 'opacity-60 hover:opacity-100'}`}>
+                              🥳 Felicidades ({(reacoesComentario.felicidades || []).length})
+                            </button>
                           </div>
                         </div>
                       </div>
-                    );
-                  };
-
-                  return (
-                    <React.Fragment key={principal.id}>
-                      {renderComentario(principal, false)}
-                      {respostas.map(resp => renderComentario(resp, true))}
-                    </React.Fragment>
+                    </div>
                   );
                 });
               })()}
